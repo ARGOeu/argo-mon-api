@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Inherit shared properties and dependency management -->
+    <parent>
+        <groupId>org.grnet</groupId>
+        <artifactId>status</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>status-entities</artifactId>
+    <name>status-entities</name>
+    <version>${revision}</version>
+
+    <dependencies>
+        <!-- PostgreSQL JDBC driver (required by Quarkus for database access) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jdbc-postgresql</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Required for Quarkus reflection indexing of entity classes -->
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

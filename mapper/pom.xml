@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Inherit common configuration and dependency management from parent -->
+    <parent>
+        <groupId>org.grnet</groupId>
+        <artifactId>status</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <!-- Module coordinates -->
+    <artifactId>status-mappers</artifactId>
+    <name>status-mappers</name>
+
+    <dependencies>
+        <!-- MapStruct for automatic mapping between DTOs and Entities -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <!-- Internal DTO module used in mapper definitions -->
+        <dependency>
+            <groupId>org.grnet</groupId>
+            <artifactId>status-data-transfer-objects</artifactId>
+            <version>${revision}</version>
+        </dependency>
+    </dependencies>
+</project>
