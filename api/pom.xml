@@ -14,7 +14,7 @@
 
     <artifactId>status-api</artifactId>
     <name>status-api</name>
-
+    <version>${revision}</version>
     <dependencies>
         <!-- Quarkus core runtime -->
         <dependency>
@@ -95,7 +95,7 @@
             <version>${revision}</version>
         </dependency>
         <dependency>
-            <groupId>org.example</groupId>
+            <groupId>org.grnet</groupId>
             <artifactId>status-handlers</artifactId>
             <version>${revision}</version>
         </dependency>

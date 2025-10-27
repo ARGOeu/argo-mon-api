@@ -6,16 +6,23 @@
     <parent>
         <groupId>org.grnet</groupId>
         <artifactId>status</artifactId>
-        <version>1.0.0</version>
+        <version>${revision}</version>
     </parent>
 
-    <groupId>org.example</groupId>
-    <artifactId>repository</artifactId>
+    <artifactId>status-repository</artifactId>
+    <name>status-repository</name>
+    <version>${revision}</version>
 
-    <properties>
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <dependencies>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

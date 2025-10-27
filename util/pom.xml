@@ -17,13 +17,6 @@
     <name>status-util</name>
     <version>${revision}</version>
 
-    <properties>
-        <!-- Java version and encoding for this module -->
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <!-- Jakarta REST API for utility classes that may use JAX-RS types -->
         <dependency>
