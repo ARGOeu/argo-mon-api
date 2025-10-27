@@ -53,6 +53,9 @@ public class EncryptUtil {
     public String decrypt(String encryptedText, String secretKey) {
         try {
             byte[] combined = Base64.getDecoder().decode(encryptedText);
+            if (combined.length < 33) { // must be at least 33 bytes (32 salt + ≥1 encrypted)
+                throw new IllegalArgumentException("Invalid encrypted text: insufficient length (" + combined.length + " bytes)");
+            }
             byte[] salt = new byte[32];
             System.arraycopy(combined, 0, salt, 0, 32);
             byte[] encrypted = new byte[combined.length - 32];

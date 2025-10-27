@@ -19,7 +19,7 @@ public class InternalServerExceptionHandler implements ExceptionMapper<InternalS
 
         var response = new InformativeResponse();
         response.code = 500;
-        response.message = "An internal server error occurred.";
+        response.message = "An internal server error occurred: "+e.getMessage();
 
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(response)

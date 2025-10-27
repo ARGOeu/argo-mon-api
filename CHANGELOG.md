@@ -27,3 +27,4 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 ### Added
 
 - [#1](https://github.com/ARGOeu/argo-mon-status-api/pull/1) ARGO-5136 Add Status Pages API and Implement /v1/encrypt & /v1/reports Endpoints
+- [#5](https://github.com/ARGOeu/argo-mon-status-api/pull/5) ARGO-5147 argo-mon-status-api pom issue preventing jenkins deployment
