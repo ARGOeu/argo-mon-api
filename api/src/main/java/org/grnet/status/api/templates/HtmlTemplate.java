@@ -44,7 +44,7 @@ public class HtmlTemplate {
     )
     @APIResponse(
             responseCode = "200",
-            description = "Returns the index html page."
+            description = "Returns the index html statuspage."
     )
 
     @GET
@@ -59,13 +59,13 @@ public class HtmlTemplate {
     @Tag(name = "Html Template")
     @Operation(
             hidden = true,
-            summary = "Redirects a client to the AAI login page.",
-            description = "The user is presented with the AAI login page, which is hosted by the authentication server. " +
-                    "This page contains options for selecting the user's identity provider (IdP) or organization. After selecting the identity provider, the user is redirected to the selected IdP's login page to enter their credentials." +
-                    " The user enters their username and password  on the IdP's login page. The identity provider verifies the user's credentials and determines whether they are valid. If the authentication is successful, the IdP generates an access token.")
+            summary = "Redirects a client to the AAI login statuspage.",
+            description = "The user is presented with the AAI login statuspage, which is hosted by the authentication server. " +
+                    "This statuspage contains options for selecting the user's identity provider (IdP) or organization. After selecting the identity provider, the user is redirected to the selected IdP's login statuspage to enter their credentials." +
+                    " The user enters their username and password  on the IdP's login statuspage. The identity provider verifies the user's credentials and determines whether they are valid. If the authentication is successful, the IdP generates an access token.")
     @APIResponse(
             responseCode = "200",
-            description = "Returns an html page containing the obtained access token."
+            description = "Returns an html statuspage containing the obtained access token."
     )
 
     @GET

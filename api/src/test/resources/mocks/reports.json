@@ -1,0 +1,46 @@
+{
+  "data": [
+    {
+      "info": {
+        "name": "SLA",
+        "description": "A/R report based on mapping SLAs to EGI service groups"
+      }
+    },
+    {
+      "info": {
+        "name": "Test-Thresholds",
+        "description": "A test job with thresholds."
+      }
+    },
+    {
+      "info": {
+        "name": "TEST-REPORT-1",
+        "description": "test1"
+      }
+    },
+    {
+      "info": {
+        "name": "Critical",
+        "description": "A/R report for the Core EGI Services"
+      }
+    },
+    {
+      "info": {
+        "name": "OPS-MONITOR-Critical",
+        "description": "A/R report for the Operations Most critical services"
+      }
+    },
+    {
+      "info": {
+        "name": "ALL",
+        "description": "Report containing all endpoints"
+      }
+    },
+    {
+      "info": {
+        "name": "OPERATORS",
+        "description": "Report for generating results and notifications for operators"
+      }
+    }
+  ]
+}

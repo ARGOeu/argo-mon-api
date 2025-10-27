@@ -19,15 +19,8 @@ public class BadRequestExceptionHandler implements ExceptionMapper<BadRequestExc
 
         var response = new InformativeResponse();
         response.code = 400;
+        response.message = e.getMessage();
 
-        // Prefer error details if they exist, otherwise fallback to main message
-        if (e.getErrors() != null && !e.getErrors().isEmpty()) {
-            response.message = String.join("; ", e.getErrors());
-        } else {
-            response.message = e.getMessage();
-        }
-
-        response.errors = null;
 
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(response)

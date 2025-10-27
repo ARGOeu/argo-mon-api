@@ -21,7 +21,7 @@ public class WebApplicationExceptionHandler implements ExceptionMapper<WebApplic
 
         var response = new InformativeResponse();
         response.code = statusCode;
-        response.message = "External service responded with an error (" + statusCode + ").";
+        response.message = e.getMessage();
 
         return Response.status(statusCode).entity(response).build();
     }

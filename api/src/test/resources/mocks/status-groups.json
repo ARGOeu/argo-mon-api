@@ -1,0 +1,106 @@
+{
+  "groups": [
+    {
+      "name": "AM-01-AANL",
+      "type": "SITES",
+      "statuses": [
+        {
+          "timestamp": "2025-11-03T00:00:00Z",
+          "value": "MISSING"
+        },
+        {
+          "timestamp": "2025-11-03T16:42:07Z",
+          "value": "MISSING"
+        }
+      ],
+      "endpoints": [
+        {
+          "hostname": "ce.wlcg.sci.am",
+          "service": "ARC-CE",
+          "info": {
+            "ID": "16113G0"
+          },
+          "statuses": [
+            {
+              "timestamp": "2025-11-03T00:00:00Z",
+              "value": "MISSING"
+            },
+            {
+              "timestamp": "2025-11-03T16:42:07Z",
+              "value": "MISSING"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ARNES",
+      "type": "SITES",
+      "statuses": [
+        {
+          "timestamp": "2025-11-03T00:00:00Z",
+          "value": "OK"
+        },
+        {
+          "timestamp": "2025-11-03T16:42:07Z",
+          "value": "OK"
+        }
+      ],
+      "endpoints": [
+        {
+          "hostname": "hpc.arnes.si",
+          "service": "ARC-CE",
+          "info": {
+            "HOSTDN": "/C=SI/O=SiGNET/O=ARNES/CN=hpc.arnes.si",
+            "ID": "2840G0",
+            "ext_VOS_SUPPORTED": "atlas belle"
+          },
+          "statuses": [
+            {
+              "timestamp": "2025-11-03T00:00:00Z",
+              "value": "OK"
+            },
+            {
+              "timestamp": "2025-11-03T16:42:07Z",
+              "value": "OK"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ATLAND",
+      "type": "SITES",
+      "statuses": [
+        {
+          "timestamp": "2025-11-03T00:00:00Z",
+          "value": "CRITICAL"
+        },
+        {
+          "timestamp": "2025-11-03T16:42:07Z",
+          "value": "CRITICAL"
+        }
+      ],
+      "endpoints": [
+        {
+          "hostname": "atlandce.fis.puc.cl",
+          "service": "ARC-CE",
+          "info": {
+            "HOSTDN": "/C=CL/O=REUNACA/O=REUNA/OU=PUC/CN=atlandce.fis.puc.cl",
+            "ID": "2623G0"
+          },
+          "statuses": [
+            {
+              "timestamp": "2025-11-03T00:00:00Z",
+              "value": "CRITICAL"
+            },
+            {
+              "timestamp": "2025-11-03T16:42:07Z",
+              "value": "CRITICAL"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

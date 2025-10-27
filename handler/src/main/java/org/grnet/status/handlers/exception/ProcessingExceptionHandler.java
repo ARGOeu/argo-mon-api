@@ -19,7 +19,7 @@ public class ProcessingExceptionHandler implements ExceptionMapper<ProcessingExc
 
         var response = new InformativeResponse();
         response.code = 502;
-        response.message = "Unable to connect to the external service.";
+        response.message = e.getMessage();
 
         return Response.status(Response.Status.BAD_GATEWAY)
                 .entity(response)
