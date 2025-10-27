@@ -14,13 +14,7 @@
 
     <!-- Module information -->
     <artifactId>status-enums</artifactId>
+    <name>status-enums</name>
     <version>${revision}</version>
-
-    <properties>
-        <!-- Compilation settings for this module -->
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
 </project>

@@ -60,7 +60,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.example</groupId>
+            <groupId>org.grnet</groupId>
             <artifactId>status-exceptions</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>

@@ -6,17 +6,13 @@
     <parent>
         <groupId>org.grnet</groupId>
         <artifactId>status</artifactId>
-        <version>1.0.0</version>
+        <version>${revision}</version>
     </parent>
 
-    <groupId>org.example</groupId>
     <artifactId>status-handlers</artifactId>
+    <name>status-handlers</name>
+    <version>${revision}</version>
 
-    <properties>
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>jakarta.ws.rs</groupId>
@@ -33,7 +29,7 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.example</groupId>
+            <groupId>org.grnet</groupId>
             <artifactId>status-exceptions</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>

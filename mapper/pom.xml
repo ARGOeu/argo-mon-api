@@ -15,7 +15,7 @@
     <!-- Module coordinates -->
     <artifactId>status-mappers</artifactId>
     <name>status-mappers</name>
-
+    <version>${revision}</version>
     <dependencies>
         <!-- MapStruct for automatic mapping between DTOs and Entities -->
         <dependency>
