@@ -22,6 +22,10 @@
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+        </dependency>
 
         <!-- Internal DTO module used in mapper definitions -->
         <dependency>
@@ -29,5 +33,21 @@
             <artifactId>status-data-transfer-objects</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>org.grnet</groupId>
+            <artifactId>status-entities</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.smallrye</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

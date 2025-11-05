@@ -2,22 +2,20 @@ package org.grnet.status.services;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.grnet.status.dtos.encrypt.EncryptRequestDto;
 import org.grnet.status.dtos.encrypt.EncryptResponseDto;
 import org.grnet.status.dtos.report.ReportRequestDto;
 import org.grnet.status.dtos.report.ReportResponseDto;
-import org.grnet.status.exceptions.BadRequestException;
+import org.grnet.status.mappers.GeneralMapper;
 import org.grnet.status.services.clients.ArgoWebApiClient;
+import org.grnet.status.services.clients.ArgoWebApiClientFactory;
 import org.grnet.status.services.utils.EncryptUtil;
+import org.grnet.status.services.utils.UriUtil;
 import org.jboss.logging.Logger;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @ApplicationScoped
 public class ReportService {
@@ -27,8 +25,11 @@ public class ReportService {
     @Inject
     EncryptUtil encryptUtil;
 
-    @ConfigProperty(name = "api.status.encrypt.secret")
-    String encryptSecret;
+    @Inject
+    UriUtil uriUtil;
+
+    @Inject
+    ArgoWebApiClientFactory argoClientFactory;
 
     /**
      * Fetches a list of reports from the ARGO Web API.
@@ -37,12 +38,10 @@ public class ReportService {
      * @return A list of report DTOs.
      */
     public List<ReportResponseDto> fetchReports(ReportRequestDto request) {
-        var decryptedSecret = decrypt(request.secret);
+        var decryptedSecret = encryptUtil.decrypt(request.secret);
 
         LOG.info("Building ARGO Web API client...");
-        var client = RestClientBuilder.newBuilder()
-                .baseUri(buildUri(request.api))
-                .build(ArgoWebApiClient.class);
+        var client = argoClientFactory.buildClient(request.api);
 
         var response = client.fetchReports(decryptedSecret);
 
@@ -69,45 +68,9 @@ public class ReportService {
      */
     public EncryptResponseDto encrypt(EncryptRequestDto request) {
 
-            var encrypted = encryptUtil.encrypt(request.secret, encryptSecret);
-            var dto = new EncryptResponseDto();
-            dto.secret = encrypted;
+            var encrypted = encryptUtil.encrypt(request.secret);
 
-            return dto;
+            return GeneralMapper.INSTANCE.toEncryptResponse(encrypted);
     }
-
-    /**
-     * Decrypts an encrypted secret.
-     *
-     * @param encryptedSecret The encrypted secret value.
-     * @return The decrypted plain secret.
-     */
-    public String decrypt(String encryptedSecret) {
-
-        return encryptUtil.decrypt(encryptedSecret, encryptSecret);
-    }
-
-
-    /**
-     * Validates and builds the URI or throws IllegalArgumentException.
-     */
-    /**
-     * Validates and builds the URI or throws BadRequestException.
-     */
-    private URI buildUri(String apiUrl) {
-        try {
-            var uri = new URI(apiUrl);
-            if (uri.getScheme() == null || uri.getHost() == null) {
-                throw new BadRequestException(apiUrl,
-                        Set.of("URL must include scheme and host (e.g. http://example.com)"));
-            }
-            return uri;
-        } catch (URISyntaxException e) {
-            throw new BadRequestException(apiUrl,
-                    Set.of("The URL is not correctly formatted."));
-        }
-    }
-
-
 
 }

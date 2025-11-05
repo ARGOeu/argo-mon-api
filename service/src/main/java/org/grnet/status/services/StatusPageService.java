@@ -1,0 +1,231 @@
+package org.grnet.status.services;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.UriInfo;
+import org.grnet.status.dtos.general.ExistResponseDto;
+import org.grnet.status.dtos.pagination.PageResource;
+import org.grnet.status.dtos.status.StatusGroupRequestDto;
+import org.grnet.status.dtos.statuspage.*;
+import org.grnet.status.enums.ArgoItemStatusEnum;
+import org.grnet.status.mappers.GeneralMapper;
+import org.grnet.status.mappers.StatusPageMapper;
+import org.grnet.status.repositories.StatusPageRepository;
+import org.grnet.status.services.clients.ArgoWebApiClientFactory;
+import org.grnet.status.services.utils.EncryptUtil;
+
+import java.util.List;
+import java.util.Set;
+
+@ApplicationScoped
+public class StatusPageService {
+
+    @Inject
+    StatusPageRepository statusPageRepository;
+
+    @Inject
+    ArgoWebApiClientFactory argoWebApiClientFactory;
+
+    @Inject
+    EncryptUtil encryptUtil;
+
+    @Inject
+    StatusService statusService;
+
+    /**
+     * Create a new status statuspage.
+     */
+    @Transactional
+    public StatusPageResponseDto createStatusPage(StatusPageRequestDto request, String userId) {
+
+        validateArgoConnection(request.api, request.secret);
+        validateGroupsExist(request.api, request.secret, request.report, request.config.groups);
+        validateTheming(request.config);
+        checkIfExistSlug(request.slug, null);
+
+        var entity = StatusPageMapper.INSTANCE.dtoToEntity(request);
+        entity.userId = userId;
+        statusPageRepository.persist(entity);
+
+        return StatusPageMapper.INSTANCE.entityToDto(entity);
+    }
+
+    /**
+     * Update an existing status statuspage.
+     */
+    @Transactional
+    public StatusPageResponseDto updateStatusPage(String id, StatusPageUpdateRequestDto request) {
+
+        var entity = statusPageRepository.searchByIdOptional(id)
+                .orElseThrow(() -> new IllegalArgumentException("StatusPage not found with id " + id));
+
+        checkIfExistSlug(request.slug, id);
+
+        validateGroupsExist(entity.api, entity.secret, request.report, request.config.groups);
+        validateTheming(request.config);
+
+        StatusPageMapper.INSTANCE.updateToEntity(request, entity);
+        statusPageRepository.persist(entity);
+
+        return StatusPageMapper.INSTANCE.entityToDto(entity);
+    }
+
+    /**
+     * Get a statuspage by ID.
+     */
+    public StatusPageResponseDto getStatusPageById(String id) {
+
+        var statusPage =  statusPageRepository.findById(id);
+
+        return StatusPageMapper.INSTANCE.entityToDto(statusPage);
+    }
+
+
+    /**
+     * Retrieves a page of Subjects submitted by the specified user.
+     *
+     * @param page The index of the page to retrieve (starting from 0).
+     * @param size The maximum number of Subjects to include in a page.
+     * @param uriInfo The Uri Info.
+     * @param userID The ID of the user.
+     * @return A list of SubjectResponse objects representing the submitted Subjects in the requested page.
+     */
+    public PageResource<StatusPageResponseDto> getStatusPageByUserAndPage(int page, int size, UriInfo uriInfo, String userID){
+
+        var statusPages = statusPageRepository.fetchStatusPageByUserAndPage(page, size, userID);
+
+        return new PageResource<>(statusPages, StatusPageMapper.INSTANCE.entitiesToDtos(statusPages.list()), uriInfo);
+    }
+
+
+    /**
+     * List all pages.
+     */
+    public List<StatusPageResponseDto> listAll() {
+        return StatusPageMapper.INSTANCE.entitiesToDtos(statusPageRepository.listAll());
+    }
+
+    /**
+     * Check if a slug is already used.
+     */
+    public ExistResponseDto slugExists(String slug) {
+
+        var exist = statusPageRepository.find("slug", slug).firstResultOptional().isPresent();
+
+        return GeneralMapper.INSTANCE.toExistResponse(slug, exist);
+    }
+
+    /**
+     * Delete a statuspage by ID.
+     */
+    @Transactional
+    public void deleteStatusPage(String id) {
+        statusPageRepository.deleteById(id);
+    }
+
+
+    //----------------------------------------------------------------------------------------------------
+    //  HELPER METHODS
+    //----------------------------------------------------------------------------------------------------
+    public void checkIfExistSlug(String slug, String currentId) {
+        var existing = statusPageRepository.find("slug", slug)
+                .firstResultOptional();
+
+        if (existing.isPresent()) {
+            // CREATE case
+            if (currentId == null) {
+                throw new BadRequestException("A page with slug '" + slug + "' already exists.");
+            }
+
+            // UPDATE case
+            if (!existing.get().id.equals(currentId)) {
+                throw new BadRequestException("A page with slug '" + slug + "' already exists.");
+            }
+        }
+    }
+
+    public void validateArgoConnection(String api, String encryptedSecret) {
+        try {
+            var secret = encryptUtil.decrypt(encryptedSecret);
+            var client = argoWebApiClientFactory.buildClient(api);
+
+            client.fetchReports(secret);
+
+        } catch (Exception ex) {
+            throw new BadRequestException("Invalid ARGO API or Secret");
+        }
+    }
+
+    public void validateGroupsExist(String api, String secret, String report, List<StatusPageGroupDto> groups) {
+
+        var request = new StatusGroupRequestDto();
+        request.api = api;
+        request.secret = secret;
+        request.report = report;
+
+        var argoGroups = statusService.getStatusGroups(request);
+
+        if (argoGroups == null || argoGroups.isEmpty()) {
+            throw new IllegalArgumentException("Unable to retrieve groups from ARGO for report '" + report + "'");
+        }
+
+        // Extract all valid endpoint names from ARGO
+        var validNames = argoGroups.stream()
+                .map(g -> g.name)
+                .collect(java.util.stream.Collectors.toSet());
+
+        // Validate each item inside each group
+        for (var group : groups) {
+            for (var item : group.list) {
+                if (!validNames.contains(item.name)) {
+                    throw new IllegalArgumentException(
+                            "Service '" + item.name + "' is not a valid ARGO item for report '" + report + "'"
+                    );
+                }
+
+                if (!ArgoItemStatusEnum.isValid(item.status)) {
+                    throw new IllegalArgumentException(
+                            "Invalid ARGO status '" + item.status + "' for '" + item.name + "'."
+                    );
+                }
+            }
+        }
+    }
+
+    public void validateTheming(StatusPageConfigDto config) {
+
+        var theming = config.theming;
+
+        // validate logo URL
+        if (theming.logo != null && !theming.logo.isBlank()) {
+            if (!theming.logo.matches("^(https?://).+")) {
+                throw new IllegalArgumentException("Invalid logo URL");
+            }
+        }
+
+        // validate color
+        if (theming.color != null && !theming.color.matches("^#([A-Fa-f0-9]{6})$")) {
+            throw new IllegalArgumentException("Invalid color format, expected #RRGGBB");
+        }
+
+        // validate icon type
+        var validIcons = Set.of("led", "icon", "none");
+        if (!validIcons.contains(theming.status.icon)) {
+            throw new IllegalArgumentException("Invalid icon type: " + theming.status.icon);
+        }
+
+        // validate status text mode
+        var validTextModes = Set.of("text", "badge", "none");
+        if (!validTextModes.contains(theming.status.text)) {
+            throw new IllegalArgumentException("Invalid status text mode: " + theming.status.text);
+        }
+
+        // validate columns
+        var validColumns = Set.of("one", "two");
+        if (!validColumns.contains(theming.columns)) {
+            throw new IllegalArgumentException("Invalid column layout: " + theming.columns);
+        }
+        }
+}

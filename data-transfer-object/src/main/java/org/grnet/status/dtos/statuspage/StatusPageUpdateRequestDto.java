@@ -1,0 +1,50 @@
+package org.grnet.status.dtos.statuspage;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "Request to update an existing status statuspage")
+public class StatusPageUpdateRequestDto {
+
+    @Schema(
+            type = SchemaType.STRING,
+            implementation = String.class,
+            description = "Page name",
+            example = "Test Page"
+    )
+    @JsonProperty("name")
+    @NotNull
+    public String name;
+    @Schema(
+            type = SchemaType.STRING,
+            implementation = String.class,
+            description = "Slug of the statuspage (used in URL)",
+            example = "argo-status"
+    )
+    @JsonProperty("slug")
+    @NotEmpty(message = "slug cannot be empty")
+    public String slug;
+
+    @Schema(
+            type = SchemaType.STRING,
+            implementation = String.class,
+            description = "Report name to retrieve groups from",
+            example = "Critical"
+    )
+    @JsonProperty("report")
+    @NotNull
+    public String report;
+
+    @Schema(
+            type = SchemaType.OBJECT,
+            description = "JSON configuration object (groups, theming, description, etc.)"
+    )
+    @JsonProperty("config")
+    public StatusPageConfigDto config;
+}

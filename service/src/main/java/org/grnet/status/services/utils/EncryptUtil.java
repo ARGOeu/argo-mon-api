@@ -3,6 +3,8 @@ package org.grnet.status.services.utils;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.InternalServerErrorException;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -16,19 +18,21 @@ import java.util.Base64;
 @ApplicationScoped
 public class EncryptUtil {
 
+    @ConfigProperty(name = "api.status.encrypt.secret")
+    String encryptSecret;
+
     /**
      * Encrypts plain text with the given secret key.
      *
      * @param plainText text to encrypt
-     * @param secretKey secret key
      * @return Base64 encoded encrypted text
      */
-    public String encrypt(String plainText, String secretKey) {
+    public String encrypt(String plainText) {
         try {
             byte[] salt = new byte[32];
             new SecureRandom().nextBytes(salt);
 
-            SecretKeySpec keySpec = getAesKeyFromPassword(secretKey, salt);
+            SecretKeySpec keySpec = getAesKeyFromPassword(encryptSecret, salt);
             Cipher cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.ENCRYPT_MODE, keySpec);
             byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
@@ -44,13 +48,12 @@ public class EncryptUtil {
     }
 
     /**
-     * Decrypts text encrypted with {@link #encrypt(String, String)}.
+     * Decrypts text encrypted with {@link #encrypt(String)}.
      *
      * @param encryptedText Base64 encoded encrypted text
-     * @param secretKey secret key
      * @return decrypted plain text
      */
-    public String decrypt(String encryptedText, String secretKey) {
+    public String decrypt(String encryptedText) {
         try {
             byte[] combined = Base64.getDecoder().decode(encryptedText);
             if (combined.length < 33) { // must be at least 33 bytes (32 salt + ≥1 encrypted)
@@ -61,7 +64,7 @@ public class EncryptUtil {
             byte[] encrypted = new byte[combined.length - 32];
             System.arraycopy(combined, 32, encrypted, 0, encrypted.length);
 
-            SecretKeySpec keySpec = getAesKeyFromPassword(secretKey, salt);
+            SecretKeySpec keySpec = getAesKeyFromPassword(encryptSecret, salt);
             Cipher cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.DECRYPT_MODE, keySpec);
             byte[] decrypted = cipher.doFinal(encrypted);
