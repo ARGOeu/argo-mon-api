@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+import java.time.Instant;
+
 @Schema(description = "Request to fetch reports from a target API")
 public class UserProfileDto {
 
@@ -37,4 +39,30 @@ public class UserProfileDto {
         )
         @JsonProperty("name")
         public String name;
+
+        @Schema(type = SchemaType.STRING,
+                implementation = String.class,
+                description = "User's Surname",
+                example = "foo"
+        )
+        @JsonProperty("surname")
+        public String surname;
+
+        @Schema(
+                type = SchemaType.STRING,
+                implementation = String.class,
+                description = "Timestamp of registration",
+                example = "2025-10-22T12:44:48.107Z"
+        )
+        @JsonProperty("registered_at")
+        public Instant registeredAt;
+
+        @Schema(
+                type = SchemaType.STRING,
+                implementation = String.class,
+                description = "Timestamp of last update",
+                example = "2025-10-22T12:44:48.107Z"
+        )
+        @JsonProperty("updated_at")
+        public Instant updatedAt;
 }

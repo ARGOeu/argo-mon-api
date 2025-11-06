@@ -2603,6 +2603,8 @@
       "id": "af134cab-f41c-4675-b141-205f975db679",
       "username": "admin",
       "email": "admin@goo.gr",
+      "firstName": "admin",
+      "lastName": "foo",
       "enabled": true,
       "totp": false,
       "emailVerified": false,
@@ -2642,6 +2644,8 @@
     {
       "id": "eb4123a3-b722-4798-9af5-8957f823657a",
       "username": "alice",
+      "firstName": "alice",
+      "lastName": "foo",
       "email": "alice@foo.gr",
       "enabled": true,
       "totp": false,

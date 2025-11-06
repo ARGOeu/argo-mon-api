@@ -32,4 +32,24 @@ public class Utility {
 
         return id;
     }
+
+    public String getUsername() {
+        try {
+            return tokenIntrospection.getJsonObject().getString("preferred_username");
+        } catch (Exception e) {
+            throw new BadRequestException("Missing 'preferred_username' in access token.");
+        }
+    }
+
+    public String getUserEmail() {
+        return tokenIntrospection.getJsonObject().getString("email", null);
+    }
+
+    public String getUserName() {
+        return tokenIntrospection.getJsonObject().getString("given_name", null);
+    }
+
+    public String getUserSurname() {
+        return tokenIntrospection.getJsonObject().getString("family_name", null);
+    }
 }
