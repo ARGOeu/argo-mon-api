@@ -59,25 +59,29 @@ public class StatusService {
                 .firstResultOptional()
                 .orElseThrow(() -> new IllegalArgumentException("Status page not found for slug: " + slug));
 
+        // Convert entity → DTO (config already deserialized)
         var statusPageDto = StatusPageMapper.INSTANCE.entityToDto(statusPage);
+        var config = statusPageDto.config;
 
+        // Prepare ARGO request
         var request = new StatusGroupRequestDto();
         request.api = statusPageDto.api;
         request.secret = statusPageDto.secret;
         request.report = statusPageDto.report;
 
+        // Fetch live groups
         var allGroups = getStatusGroups(request);
-        var config = StatusPageMapper.INSTANCE.map(statusPage.config);
 
-        // Update each group in the config with the live status
-        config.groups.forEach(group -> group.list.forEach(item -> {
-            allGroups.stream()
-                    .filter(live -> live.name.equals(item.name))
-                    .findFirst()
-                    .ifPresent(live -> item.status = live.status);
-        }));
+        // Update config group statuses in memory
+        config.groups.forEach(group -> group.list.forEach(item ->
+                allGroups.stream()
+                        .filter(live -> live.name.equals(item.name))
+                        .findFirst()
+                        .ifPresent(live -> item.status = live.status)
+        ));
 
         return config;
     }
+
 
 }

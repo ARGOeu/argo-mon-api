@@ -30,6 +30,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#3](https://github.com/ARGOeu/argo-mon-status-api/pull/3) ARGO-5145 Implement Endpoints for Status Page API (Status, Status Pages & CRUD Operations)
 - [#5](https://github.com/ARGOeu/argo-mon-status-api/pull/5) ARGO-5147 argo-mon-status-api pom issue preventing jenkins deployment
 - [#9](https://github.com/ARGOeu/argo-mon-status-api/pull/9) ARGO-5158 Implement UserEndpoint for user registration and profile management
+- [#10](https://github.com/ARGOeu/argo-mon-status-api/pull/10) ARGO-5162 Implement Logo Upload Support for Status Pages
 
 ### Fix
 
