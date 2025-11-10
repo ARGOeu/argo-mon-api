@@ -19,6 +19,7 @@ public class KeycloakTest {
 
     protected String adminToken;
     protected String aliceToken;
+    protected String bobToken;
 
     KeycloakTestClient keycloakClient = new KeycloakTestClient();
 
@@ -27,6 +28,7 @@ public class KeycloakTest {
         RestAssured.baseURI = baseUri.toString();
         adminToken = getAccessToken("admin");
         aliceToken = getAccessToken("alice");
+        bobToken = getAccessToken("bob");
     }
 
     protected String getAccessToken(String username) {

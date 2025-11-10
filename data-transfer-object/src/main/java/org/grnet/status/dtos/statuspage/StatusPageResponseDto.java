@@ -97,5 +97,5 @@ public class StatusPageResponseDto {
             example = "2025-10-22T12:44:48.107Z"
     )
     @JsonProperty("updated_at")
-    public Instant updatedOn;
+    public Instant updatedAt;
 }
