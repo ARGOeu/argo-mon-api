@@ -17,7 +17,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.grnet.status.api.filters.Registration;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.user.UpdateUserProfileDto;
 import org.grnet.status.dtos.user.UserProfileDto;
@@ -85,7 +84,6 @@ public class UserEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/profile")
-    @Registration
     public Response profile() {
 
         var response = userService.getUserProfile(utility.getUserUniqueIdentifier());
@@ -132,7 +130,6 @@ public class UserEndpoint {
     @Path("/profile")
     @PUT
     @Produces(MediaType.APPLICATION_JSON)
-    @Registration
     public Response updateProfile(@Valid @NotNull(message = "The request body is empty.") UpdateUserProfileDto updateUserProfileDto) {
 
         var userProfile = userService.updateUserProfile(utility.getUserUniqueIdentifier(), updateUserProfileDto);
@@ -185,7 +182,6 @@ public class UserEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/register")
-    @Registration
     public Response register() {
 
         var response = userService.registerUser();

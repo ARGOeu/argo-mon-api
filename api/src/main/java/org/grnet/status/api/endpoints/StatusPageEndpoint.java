@@ -19,7 +19,6 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.grnet.status.api.filters.Registration;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
@@ -85,7 +84,6 @@ public class StatusPageEndpoint {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @Registration
     public Response createStatusPage(
             @Valid @NotNull(message = "The request body is empty.")
             StatusPageRequestDto request,
@@ -133,7 +131,6 @@ public class StatusPageEndpoint {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @Registration
     public Response getStatusPage(
             @Parameter(
                     description = "The ID of the status page to retrieve.",
@@ -175,7 +172,6 @@ public class StatusPageEndpoint {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @Registration
     public Response listStatusPages(
             @Parameter(name = "page", in = QUERY,
                     description = "Indicates the page number. Page number must be >= 1.")
@@ -235,7 +231,6 @@ public class StatusPageEndpoint {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @Registration
     public Response updateStatusPage(
             @Parameter(description = "The ID of the status page to update.",
                     required = true,
@@ -284,7 +279,6 @@ public class StatusPageEndpoint {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @Registration
     public Response deleteStatusPage(
             @Parameter(
                     description = "The ID of the status page to delete.",
@@ -327,7 +321,6 @@ public class StatusPageEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/check-slug/{slug}")
-    @Registration
     @Produces(MediaType.APPLICATION_JSON)
     public Response checkSlugExists(@PathParam("slug") String slug) {
 

@@ -17,7 +17,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.grnet.status.api.filters.Registration;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.status.StatusGroupRequestDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
@@ -73,7 +72,6 @@ public class StatusEndpoint {
     @Path("/status/groups")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Registration
     public Response fetchStatusGroups(StatusGroupRequestDto request) {
 
         var reports = statusService.getStatusGroups(request);

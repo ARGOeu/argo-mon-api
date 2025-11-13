@@ -12,6 +12,8 @@ import org.grnet.status.mappers.UserMapper;
 import org.grnet.status.repositories.UserRepository;
 import org.grnet.status.util.Utility;
 
+import java.util.List;
+
 @ApplicationScoped
 public class UserService {
 
@@ -67,6 +69,14 @@ public class UserService {
 
         userRepository.persist(newUser);
         return UserMapper.INSTANCE.userToProfileDto(newUser);
+    }
+
+    @Transactional
+    public List<UserProfileDto> fetchAllUsers() {
+
+        var users = userRepository.listAll();
+
+        return UserMapper.INSTANCE.usersToUserProfileDtos(users);
     }
 
     @Transactional

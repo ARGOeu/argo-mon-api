@@ -151,6 +151,15 @@ public class StatusPageService {
     }
 
 
+    public PageResource<StatusPageResponseDto> getStatusPageByPage(int page, int size, UriInfo uriInfo){
+
+        var statusPages = statusPageRepository.fetchStatusPageByPage(page, size);
+
+        return new PageResource<>(statusPages, StatusPageMapper.INSTANCE.entitiesToDtos(statusPages.list()), uriInfo);
+    }
+
+
+
     /**
      * List all pages.
      */
