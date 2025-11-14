@@ -527,7 +527,7 @@
     {
       "clientId": "frontend-service",
       "name": "frontend-service",
-      "description": "Intended for fc4e-cat-ui",
+      "description": "Intended for status-mon-pages-ui",
       "rootUrl": "",
       "adminUrl": "",
       "baseUrl": "",
