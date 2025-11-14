@@ -5,25 +5,17 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
-import org.grnet.status.dtos.statuspage.StatusPageUpdateRequestDto;
-import org.grnet.status.dtos.tenant.TenantInfoDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.TenantWebApiGetResponse;
 import org.grnet.status.entities.Tenant;
 import org.grnet.status.exceptions.CustomRuntimeException;
-import org.grnet.status.mappers.StatusPageMapper;
 import org.grnet.status.mappers.TenantMapper;
 import org.grnet.status.repositories.TenantRepository;
-import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.grnet.status.services.clients.ArgoWebApiClientFactory;
 import org.grnet.status.services.utils.EncryptUtil;
 
-import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @ApplicationScoped
 
@@ -111,6 +103,30 @@ public class TenantService {
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * Delete a tenant by Id.
+     */
+    @Transactional
+    public void deleteTenantById(String id) {
+        var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
+        var client = argoWebApiClientFactory.buildClient(webapi);
+        var tenant = tenantRepository.findById(id);
+        try {
+            client.deleteTenant(id,decryptedSecret);
+            tenantRepository.delete(tenant);
+        } catch (RuntimeException e) {
+            int status = 500; // default fallback
+            if (e instanceof WebApplicationException) {
+                status = ((WebApplicationException) e).getResponse().getStatus();
+            }
+            var message = e.getMessage();
+            throw new WebApplicationException(message, status);
+        }
+    }
+
+    /**
+>>>>>>> update/delete tenant
      * Delete tenant from the database.
      */
     @Transactional
@@ -144,7 +160,6 @@ public class TenantService {
             throw new RuntimeException(fieldName + " does not match for tenant between ARGO Web API and Argo Mon Status");
         }
     }
-
     /**
      * Update an existing tenant.
      */
@@ -169,5 +184,6 @@ public class TenantService {
         }
         return TenantMapper.INSTANCE.tenantToDto(tenant);
     }
+
 
 }

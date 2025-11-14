@@ -278,8 +278,8 @@ public class AdminEndpoint {
         var tenant = tenantService.getTenantById(id);
 
         return Response.ok().entity(tenant).build();
-    }
-    @Tag(name ="Admin")
+    }@Tag(name = "Admin")
+
     @Operation(
             summary = "Update a tenant.",
             description = "Updates a specific tenant."
@@ -319,6 +319,7 @@ public class AdminEndpoint {
                     type = SchemaType.OBJECT,
                     implementation = InformativeResponse.class))
     )
+
     @PUT
     @Path("/tenants/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -336,4 +337,57 @@ public class AdminEndpoint {
         return Response.ok().entity(updated).build();
     }
 
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Delete Tenant By Id .",
+            description = "Deletes a specific tenant assessment.")
+    @APIResponse(
+            responseCode = "200",
+            description = "The corresponding tenant.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Entity Not Found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @DELETE
+    @Path("/tenants/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response deleteTenant(@Parameter(
+            description = "The ID of the tenant to be deleted.",
+            required = true,
+            example = "c242e43f-9869-4fb0-b881-631bc5746ec0",
+            schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+                              @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id) {
+
+        tenantService.deleteTenantById(id);
+
+        var informativeResponse = new InformativeResponse();
+        informativeResponse.code = 200;
+        informativeResponse.message = "Tenant has been successfully deleted.";
+        return Response.ok().entity(informativeResponse).build();
+    }
 }
