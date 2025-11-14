@@ -4,7 +4,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.TenantWebApiGetResponse;
@@ -33,9 +35,6 @@ public class TenantService {
     String encryptedSecret;
     @ConfigProperty(name = "web.api.url")
     String webapi;
-
-
-
 
     /**
      * Create a tenant
@@ -107,7 +106,28 @@ public class TenantService {
     }
 
     /**
-     * Delete tenant from the database.
+     * Delete a tenant by Id.
+     */
+    @Transactional
+    public void deleteTenantById(String id) {
+        var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
+        var client = argoWebApiClientFactory.buildClient(webapi);
+        var tenant = tenantRepository.findById(id);
+        try {
+            client.deleteTenant(id,decryptedSecret);
+            tenantRepository.delete(tenant);
+        } catch (RuntimeException e) {
+            int status = 500; // default fallback
+            if (e instanceof WebApplicationException) {
+                status = ((WebApplicationException) e).getResponse().getStatus();
+            }
+            var message = e.getMessage();
+            throw new WebApplicationException(message, status);
+        }
+    }
+
+    /**
+     * * Delete all tenants.
      */
     @Transactional
     public void deleteAll() {
@@ -140,5 +160,43 @@ public class TenantService {
             throw new RuntimeException(fieldName + " does not match for tenant between ARGO Web API and Argo Mon Status");
         }
     }
+    /**
+     * Update an existing tenant.
+     */
+    @Transactional
+    public TenantResponseDto updateTenant(String id, TenantRequestDto request) {
 
+        var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
+        var client = argoWebApiClientFactory.buildClient(webapi);
+        var tenant = tenantRepository.findById(id);
+        try {
+            client.updateTenant(id, decryptedSecret, request);
+            TenantMapper.INSTANCE.updateToTenant(request, tenant);
+            tenantRepository.persist(tenant);
+
+        } catch (RuntimeException e) {
+            int status = 500; // default fallback
+            if (e instanceof WebApplicationException) {
+                status = ((WebApplicationException) e).getResponse().getStatus();
+            }
+            var message = e.getMessage();
+            throw new WebApplicationException(message, status);
+        }
+        return TenantMapper.INSTANCE.tenantToDto(tenant);
+    }
+
+    /**
+     * Retrieves a page of tenant objects existing.
+     *
+     * @param page    The index of the page to retrieve (starting from 0).
+     * @param size    The maximum number of assessment objects to include in a page.
+     * @param uriInfo The Uri Info.
+     * @return A list of TemplateSubjectDto objects representing the submitted assessment objects in the requested page.
+     */
+    public PageResource<TenantResponseDto> getTenants(int page, int size, UriInfo uriInfo) {
+
+        var tenants = tenantRepository.fetchTenantsByPage(page, size);
+        return new PageResource<>(tenants,TenantMapper.INSTANCE.tenantsToDtos(tenants.list()), uriInfo);
+
+     }
 }

@@ -7,6 +7,9 @@ import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenant.TenantWebApiCreateResponse;
+import org.grnet.status.dtos.tenant.TenantWebApiResponse;
+
+import java.util.List;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -36,5 +39,23 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-api-key") String apiKey,
             String id
     ) throws WebApplicationException, ProcessingException;
+
+    @PUT
+    @Path("/api/v2/admin/tenants/{id}")
+    TenantWebApiResponse updateTenant(String id,
+                                      @HeaderParam("x-api-key") String apiKey,
+                                      TenantRequestDto request
+    ) throws WebApplicationException, ProcessingException;
+
+    @DELETE
+    @Path("/api/v2/admin/tenants/{id}")
+    TenantWebApiResponse deleteTenant(
+            String id, @HeaderParam("x-api-key") String apiKey) throws WebApplicationException, ProcessingException;
+
+
+    @GET
+    @Path("/api/v2/admin/tenants")
+    TenantWebApiGetResponse getTenants(
+            @HeaderParam("x-api-key") String apiKey) throws WebApplicationException, ProcessingException;
 
 }

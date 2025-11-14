@@ -3,6 +3,7 @@ package org.grnet.status.mappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.grnet.status.dtos.tenant.TenantInfoDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
+import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.entities.Tenant;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
@@ -49,5 +50,16 @@ public interface TenantMapper {
     }
 
     ObjectMapper MAPPER = new ObjectMapper();
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
+    @Mapping(target = "name", source = "info.name")
+    @Mapping(target = "website", source = "info.website")
+    @Mapping(target = "image", source = "info.image")
+    @Mapping(target = "description", source = "info.description")
+    @Mapping(target = "email", source = "info.email")
+    void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
 
 }

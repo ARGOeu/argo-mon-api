@@ -280,5 +280,196 @@ public class AdminEndpoint {
 
         return Response.ok().entity(tenant).build();
     }
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Update a tenant.",
+            description = "Updates a specific tenant."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Tenant updated successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantResponseDto.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Page not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "409",
+            description = "Tenant already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @PUT
+    @Path("/tenants/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response updateTenant(
+            @Parameter(description = "The ID of the status page to update.",
+                    required = true,
+                    example = "e7ab046c-8544-47e6-bd8f-e8aa8b83acb0",
+                    schema = @Schema(type = SchemaType.STRING))
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+
+            @Valid @NotNull(message = "The request body is empty.") TenantRequestDto request) {
+
+        var updated = tenantService.updateTenant(id, request);
+        return Response.ok().entity(updated).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Delete Tenant By Id .",
+            description = "Deletes a specific tenant assessment.")
+    @APIResponse(
+            responseCode = "200",
+            description = "The corresponding tenant.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Entity Not Found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @DELETE
+    @Path("/tenants/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response deleteTenant(@Parameter(
+            description = "The ID of the tenant to be deleted.",
+            required = true,
+            example = "c242e43f-9869-4fb0-b881-631bc5746ec0",
+            schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+                              @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id) {
+
+        tenantService.deleteTenantById(id);
+
+        var informativeResponse = new InformativeResponse();
+        informativeResponse.code = 200;
+        informativeResponse.message = "Tenant has been successfully deleted.";
+        return Response.ok().entity(informativeResponse).build();
+    }
+
+
+
+    @Tag(name = "Assessment")
+    @Operation(
+            summary = "Get list of tenants.",
+            description = "This endpoint returns a list of tenants" +
+                    "By default, the first page of 10 tenant objects will be returned. You can tune the default values by using the query parameters page and size.")
+    @APIResponse(
+            responseCode = "200",
+            description = "List of tenant objects existing.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = PageableTenants.class)))
+    @APIResponse(
+            responseCode = "400",
+            description = "Bad Request",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Entity Not Found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/tenants")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response getTenants(
+            @Parameter(name = "page", in = QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+            @Parameter(name = "size", in = QUERY,
+                    description = "The page size.")
+            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+            @Context UriInfo uriInfo) {
+
+        var assessments = tenantService.getTenants(page - 1, size, uriInfo);
+
+        return Response.ok().entity(assessments).build();
+    }
+
+    public static class PageableTenants extends PageResource<TenantResponseDto> {
+
+        private List<TenantResponseDto> content;
+
+        @Override
+        public List<TenantResponseDto> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<TenantResponseDto> content) {
+            this.content = content;
+        }
+    }
 
 }
