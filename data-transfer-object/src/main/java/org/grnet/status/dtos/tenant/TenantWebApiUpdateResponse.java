@@ -1,0 +1,17 @@
+package org.grnet.status.dtos.tenant;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+import java.util.List;
+
+@Schema(name = "TenantWebApiUpdateResponse", description = "Represents the response of a tenant.")
+@Getter @Setter
+public class TenantWebApiUpdateResponse {
+
+    private int code;
+    private String message;
+}
+
+

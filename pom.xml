@@ -23,6 +23,7 @@
         <module>handler</module>
         <module>exception</module>
         <module>authorization</module>
+        <module>validator</module>
     </modules>
 
     <properties>
@@ -73,6 +74,11 @@
                 <groupId>org.grnet</groupId>
                 <artifactId>status-mappers</artifactId>
             </dependency>
+
+            <dependency>
+                <groupId>org.grnet</groupId>
+                <artifactId>status-validators</artifactId>
+            </dependency>
             <dependency>
                 <groupId>org.grnet</groupId>
                 <artifactId>status-data-transfer-objects</artifactId>
@@ -81,7 +87,15 @@
                 <groupId>org.grnet</groupId>
                 <artifactId>status-services</artifactId>
             </dependency>
-
+            <dependency>
+                <groupId>org.grnet</groupId>
+                <artifactId>status-handlers</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>io.vavr</groupId>
+                <artifactId>vavr</artifactId>
+                <version>0.10.4</version>  <!-- or whatever version you need -->
+            </dependency>
             <!-- Lombok & MapStruct -->
             <dependency>
                 <groupId>org.projectlombok</groupId>
