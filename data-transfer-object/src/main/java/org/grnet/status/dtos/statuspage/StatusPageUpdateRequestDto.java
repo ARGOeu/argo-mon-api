@@ -2,7 +2,8 @@ package org.grnet.status.dtos.statuspage;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -19,7 +20,7 @@ public class StatusPageUpdateRequestDto {
             example = "Test Page"
     )
     @JsonProperty("name")
-    @NotNull
+    @NotBlank(message = "name cannot be blank")
     public String name;
     @Schema(
             type = SchemaType.STRING,
@@ -28,7 +29,7 @@ public class StatusPageUpdateRequestDto {
             example = "argo-status"
     )
     @JsonProperty("slug")
-    @NotEmpty(message = "slug cannot be empty")
+    @NotBlank(message = "slug cannot be blank")
     public String slug;
 
     @Schema(
@@ -38,7 +39,7 @@ public class StatusPageUpdateRequestDto {
             example = "Critical"
     )
     @JsonProperty("report")
-    @NotNull
+    @NotBlank(message = "report cannot be blank")
     public String report;
 
     @Schema(
@@ -46,5 +47,7 @@ public class StatusPageUpdateRequestDto {
             description = "JSON configuration object (groups, theming, description, etc.)"
     )
     @JsonProperty("config")
+    @NotNull(message = "config must not be null")
+    @Valid
     public StatusPageConfigDto config;
 }

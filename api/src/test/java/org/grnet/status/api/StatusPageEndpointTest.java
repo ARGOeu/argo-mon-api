@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.http.TestHTTPEndpoint;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.status.api.endpoints.StatusPageEndpoint;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.argo.ArgoReportsResponse;
@@ -31,6 +32,10 @@ public class StatusPageEndpointTest extends KeycloakTest {
 
     @InjectMock
     ArgoWebApiClientFactory argoWebApiClientFactory;
+
+    @ConfigProperty(name = "base.upload.logo.dir")
+    String baseUploadLogoDir;
+
 
     @BeforeEach
     public void mockArgoClient() throws Exception {
@@ -246,6 +251,114 @@ public class StatusPageEndpointTest extends KeycloakTest {
         assertEquals("Invalid color format, expected #RRGGBB", error.message);
     }
 
+    @Test
+    public void createStatusPageMissingRequiredFields() {
+        var request = new StatusPageRequestDto();
+        request.name = "";
+        request.slug = "";
+        request.api = "";
+        request.secret = "";
+        request.report = "";
+        request.config = null;
+
+        var response = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post()
+                .then()
+                .statusCode(400)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(400, response.code);
+        assert response.errors.contains("name cannot be blank");
+        assert response.errors.contains("slug cannot be blank");
+        assert response.errors.contains("api cannot be blank");
+        assert response.errors.contains("secret cannot be blank");
+        assert response.errors.contains("report cannot be blank");
+        assert response.errors.contains("config must not be null");
+    }
+
+    @Test
+    public void createStatusPageInvalidNestedConfig() {
+        // Minimal valid top-level
+        var request = new StatusPageRequestDto();
+        request.name = "Page with bad config";
+        request.slug = "invalid-config-page";
+        request.api = "https://api.devel.mon.argo.grnet.gr";
+        request.secret = "dummy";
+        request.report = "Critical";
+
+        // (empty title, no groups, missing theming)
+        var invalidConfig = new org.grnet.status.dtos.statuspage.StatusPageConfigDto();
+        invalidConfig.title = "";
+        invalidConfig.groups = java.util.Collections.emptyList();
+        invalidConfig.theming = null;
+        request.config = invalidConfig;
+
+        var response = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post()
+                .then()
+                .statusCode(400)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(400, response.code);
+        assert response.errors.contains("title cannot be blank");
+        assert response.errors.contains("groups cannot be empty");
+    }
+
+    @Test
+    public void createStatusPageInvalidNestedGroup() {
+        var request = new StatusPageRequestDto();
+        request.name = "Bad Group Page";
+        request.slug = "bad-group-page";
+        request.api = "https://api.devel.mon.argo.grnet.gr";
+        request.secret = "dummy";
+        request.report = "Critical";
+
+        var group = new org.grnet.status.dtos.statuspage.StatusPageGroupDto();
+        group.name = "";
+        group.alias = "Alias";
+        group.list = java.util.Collections.emptyList();
+
+        var config = new org.grnet.status.dtos.statuspage.StatusPageConfigDto();
+        config.title = "Valid title";
+        config.description = "desc";
+        config.groups = java.util.List.of(group);
+
+        var theming = new org.grnet.status.dtos.statuspage.StatusPageThemingDto();
+        theming.color = "#ffffff";
+        theming.status = new org.grnet.status.dtos.statuspage.StatusPageThemingStatusDto();
+        theming.status.icon = "led";
+        theming.status.text = "none";
+        theming.columns = "one";
+        config.theming = theming;
+
+        request.config = config;
+
+        var response = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post()
+                .then()
+                .statusCode(400)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(400, response.code);
+        assert response.errors.contains("group name cannot be blank");
+        assert response.errors.contains("groups list cannot be empty");
+    }
+
 
     @Test
     public void getStatusPage() {
@@ -339,6 +452,49 @@ public class StatusPageEndpointTest extends KeycloakTest {
         assertEquals("#00ff00", updated.config.theming.color);
     }
 
+    @Test
+    public void createStatusPageWithLogoUpload() throws Exception {
+
+        // Base64 dummy logo
+        var base64Logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/xcAAwMCAO+n7+QAAAAASUVORK5CYII=";
+
+        var request = new StatusPageRequestDto();
+        request.name = "Page With Logo";
+        request.slug = "page-with-logo-" + UUID.randomUUID();
+        request.api = "https://api.devel.mon.argo.grnet.gr";
+        request.secret = "VaWi0ZBjGrxXPuB0o+KARpH63EKDaiwttfLE54POPtaw4QRxYktsabA+CT76sX0D";
+        request.report = "Critical";
+
+        createTestStatusPageDto(request);
+        request.config.theming.logo = base64Logo;
+
+        var response = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post()
+                .then()
+                .assertThat()
+                .statusCode(201)
+                .extract()
+                .as(StatusPageResponseDto.class);
+
+        // Replace logo by a file URL
+        var logoUrl = response.config.theming.logo;
+        assert logoUrl != null && logoUrl.startsWith("http");
+        assert logoUrl.contains("/logos/");
+
+        // derive filename
+        var fileName = logoUrl.substring(logoUrl.lastIndexOf('/') + 1);
+
+        // use configured upload dir
+        var filePath = java.nio.file.Paths.get(baseUploadLogoDir, fileName);
+        assert java.nio.file.Files.exists(filePath) : "Expected uploaded logo file not found: " + filePath;
+
+        java.nio.file.Files.deleteIfExists(filePath);
+
+    }
 
 
 

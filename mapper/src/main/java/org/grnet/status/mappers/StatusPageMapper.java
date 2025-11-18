@@ -2,6 +2,7 @@ package org.grnet.status.mappers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.statuspage.StatusPageRequestDto;
 import org.grnet.status.dtos.statuspage.StatusPageUpdateRequestDto;
@@ -14,33 +15,60 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 
-@Mapper(imports = {Timestamp.class, Instant.class})
+@Mapper(imports = {StringUtils.class, Timestamp.class, Instant.class})
 public interface StatusPageMapper {
 
     StatusPageMapper INSTANCE = Mappers.getMapper(StatusPageMapper.class);
 
-    @IterableMapping(qualifiedByName = "map")
+    ObjectMapper MAPPER = new ObjectMapper();
+
+    /* ─────────────── ENTITY → DTO ─────────────── */
+
+    @IterableMapping(qualifiedByName = "mapEntity")
     List<StatusPageResponseDto> entitiesToDtos(List<StatusPage> entities);
 
-    @Named("map")
+    @Named("mapEntity")
+    @Mapping(target = "config", expression = "java(jsonToConfig(entity.getConfig()))")
     StatusPageResponseDto entityToDto(StatusPage entity);
 
+
+    /* ─────────────── CREATE ─────────────── */
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
-    @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "slug", source = "slug")
+    @Mapping(target = "config", expression = "java(configToJson(dto.config))")
     StatusPage dtoToEntity(StatusPageRequestDto dto);
 
+
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "api", ignore = true)
+    @Mapping(target = "secret", ignore = true)
     @Mapping(target = "userId", ignore = true)
-    @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "name", expression = "java(StringUtils.isNotBlank(dto.name) ? dto.name : entity.getName())")
+    @Mapping(target = "slug", expression = "java(StringUtils.isNotBlank(dto.slug) ? dto.slug : entity.getSlug())")
+    @Mapping(target = "report", expression = "java(StringUtils.isNotBlank(dto.report) ? dto.report : entity.getReport())")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
+    @Mapping(target = "config", expression = "java(configToJson(dto.config))")
     void updateToEntity(StatusPageUpdateRequestDto dto, @MappingTarget StatusPage entity);
 
 
-    // Helper methods for Timestamp <-> Instant mapping
+    @SneakyThrows
+    default String configToJson(StatusPageConfigDto dto) {
+        if (dto == null) return null;
+        return MAPPER.writeValueAsString(dto);
+    }
+
+    @SneakyThrows
+    default StatusPageConfigDto jsonToConfig(String json) {
+        if (json == null || json.isBlank()) return null;
+        return MAPPER.readValue(json, StatusPageConfigDto.class);
+    }
+
+
     default Instant map(Timestamp timestamp) {
         return timestamp != null ? timestamp.toInstant() : null;
     }
@@ -48,19 +76,4 @@ public interface StatusPageMapper {
     default Timestamp map(Instant instant) {
         return instant != null ? Timestamp.from(instant) : null;
     }
-
-    ObjectMapper MAPPER = new ObjectMapper();
-
-    @SneakyThrows
-    default StatusPageConfigDto map(String json) {
-        if (json == null) return null;
-        return new ObjectMapper().readValue(json, StatusPageConfigDto.class);
-    }
-
-    @SneakyThrows
-    default String map(StatusPageConfigDto dto) {
-        if (dto == null) return null;
-        return new ObjectMapper().writeValueAsString(dto);
-    }
-
 }

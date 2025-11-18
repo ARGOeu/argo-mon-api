@@ -2,6 +2,8 @@ package org.grnet.status.entities;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
@@ -11,44 +13,46 @@ import java.sql.Timestamp;
 
 @Entity
 @Table(name = "t_Status_Page")
+@Getter
+@Setter
 public class StatusPage {
 
     @Id
     @UuidGenerator
-    public String id;
+    private String id;
 
     @NotNull
     @Column(name = "name")
-    public String name;
+    private String name;
 
     @NotNull
     @Column(name = "slug")
-    public String slug;
+    private String slug;
 
     @NotNull
     @Column(name = "user_id")
-    public String userId;
+    private String userId;
 
     @NotNull
     @Column(name = "api")
-    public String api;
+    private String api;
 
     @NotNull
     @Column(name = "secret")
-    public String secret;
+    private String secret;
 
     @NotNull
     @Column
-    public String report;
+    private String report;
 
     @Column(name = "config", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    public String config;
+    @Getter
+    private String config;
 
     @Column(name = "created_at")
-    public Timestamp createdAt;
+    private Timestamp createdAt;
 
     @Column(name = "updated_at")
-    public Timestamp updatedAt;
-
+    private Timestamp updatedAt;
 }

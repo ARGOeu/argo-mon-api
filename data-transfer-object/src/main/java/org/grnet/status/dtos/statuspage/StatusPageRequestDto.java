@@ -1,14 +1,14 @@
 package org.grnet.status.dtos.statuspage;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import jakarta.validation.constraints.NotEmpty;
 
 @Schema(description = "Request DTO for creating or updating a status statuspage")
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class StatusPageRequestDto {
+public class  StatusPageRequestDto {
 
     @Schema(
             type = SchemaType.STRING,
@@ -16,7 +16,7 @@ public class StatusPageRequestDto {
             example = "ARGO Status Page"
     )
     @JsonProperty("name")
-    @NotEmpty(message = "name cannot be empty")
+    @NotBlank(message = "name cannot be blank")
     public String name;
 
     @Schema(
@@ -26,7 +26,7 @@ public class StatusPageRequestDto {
             example = "argo-status"
     )
     @JsonProperty("slug")
-    @NotEmpty(message = "slug cannot be empty")
+    @NotBlank(message = "slug cannot be blank")
     public String slug;
 
     @Schema(
@@ -36,7 +36,7 @@ public class StatusPageRequestDto {
             example = "https://api.devel.mon.argo.grnet.gr"
     )
     @JsonProperty("api")
-    @NotEmpty(message = "api cannot be empty")
+    @NotBlank(message = "api cannot be blank")
     public String api;
 
     @Schema(
@@ -46,7 +46,7 @@ public class StatusPageRequestDto {
             example = "U2FsdGVkX1+a+pJq..."
     )
     @JsonProperty("secret")
-    @NotEmpty(message = "secret cannot be empty")
+    @NotBlank(message = "secret cannot be blank")
     public String secret;
 
     @Schema(
@@ -56,7 +56,7 @@ public class StatusPageRequestDto {
             example = "Critical"
     )
     @JsonProperty("report")
-    @NotEmpty(message = "report cannot be empty")
+    @NotBlank(message = "report cannot be blank")
     public String report;
 
     @Schema(
@@ -64,5 +64,7 @@ public class StatusPageRequestDto {
             description = "JSON configuration object (groups, theming, description, etc.)"
     )
     @JsonProperty("config")
+    @NotNull(message = "config must not be null")
+    @Valid
     public StatusPageConfigDto config;
 }
