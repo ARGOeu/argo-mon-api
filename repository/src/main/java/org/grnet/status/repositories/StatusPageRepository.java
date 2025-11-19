@@ -24,4 +24,18 @@ public class StatusPageRepository implements Repository<StatusPage, String> {
 
         return pageable;
     }
+
+    public PageQuery<StatusPage> fetchStatusPageByPage(int page, int size){
+
+        var panache = find("from StatusPage sp", Sort.by("createdAt", Sort.Direction.Descending)).page(page, size);
+
+        var pageable = new PageQueryImpl<StatusPage>();
+        pageable.list = panache.list();
+        pageable.index = page;
+        pageable.size = size;
+        pageable.count = panache.count();
+        pageable.page = Page.of(page, size);
+
+        return pageable;
+    }
 }

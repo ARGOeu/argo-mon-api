@@ -22,6 +22,7 @@
         <module>enum</module>
         <module>handler</module>
         <module>exception</module>
+        <module>authorization</module>
     </modules>
 
     <properties>

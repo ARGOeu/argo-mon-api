@@ -568,6 +568,7 @@
         "web-origins",
         "acr",
         "voperson_id",
+        "entitlements",
         "roles",
         "profile",
         "email"
@@ -893,7 +894,8 @@
         "profile",
         "roles",
         "email",
-        "voperson_id"
+        "voperson_id",
+        "entitlements"
       ],
       "optionalClientScopes": [
         "address",
@@ -1038,6 +1040,34 @@
             "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "voperson_id"
+          }
+        }
+      ]
+    },
+    {
+      "id": "35a71d37-2b63-4424-b656-9eb858424837",
+      "name": "entitlements",
+      "description": "View your rights to resources",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "id": "c43910c8-333f-4ec6-b8f8-155c2ef76ede",
+          "name": "entitlements",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "aggregate.attrs": "false",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "user.attribute": "entitlements",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "entitlements"
           }
         }
       ]
@@ -1556,7 +1586,8 @@
     "roles",
     "web-origins",
     "acr",
-    "voperson_id"
+    "voperson_id",
+    "entitlements"
   ],
   "defaultOptionalClientScopes": [
     "offline_access",
@@ -2609,7 +2640,8 @@
       "totp": false,
       "emailVerified": false,
       "attributes": {
-        "voperson_id": ["admin_voperson_id"]
+        "voperson_id": ["admin_voperson_id"],
+        "entitlements": ["urn:mace:grnet.gr:einfra:login-devel:group:status-pages:role=super_admin"]
       },
       "credentials": [
         {
