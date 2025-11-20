@@ -7,6 +7,9 @@ import io.restassured.http.ContentType;
 import org.grnet.status.api.endpoints.AdminEndpoint;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.pagination.PageResource;
+import org.grnet.status.dtos.project.ProjectRequestDto;
+import org.grnet.status.dtos.project.ProjectResponseDto;
+import org.grnet.status.dtos.project.ProjectUpdateDto;
 import org.grnet.status.dtos.tenant.*;
 import org.grnet.status.dtos.user.UserProfileDto;
 import org.grnet.status.services.clients.ArgoWebApiClient;
@@ -14,12 +17,16 @@ import org.grnet.status.services.clients.ArgoWebApiClientFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -454,5 +461,123 @@ public class AdminEndpointTest extends KeycloakTest {
                 .extract()
                 .as(InformativeResponse.class);
 
+    }
+
+
+    @Test
+    public void testCreateProject() {
+        var req = buildCreateRequest();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req)
+                .when()
+                .post("/projects")
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(ProjectResponseDto.class);
+
+        assertNotNull(created.id);
+    }
+
+    @Test
+    public void testGetProject() {
+        var req = buildCreateRequest();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req)
+                .post("/projects")
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(ProjectResponseDto.class);
+
+        var fetched = given()
+                .auth().oauth2(adminToken)
+                .get("/projects/" + created.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(ProjectResponseDto.class);
+
+        assertEquals(created.id, fetched.id);
+        assertEquals(created.name, fetched.name);
+    }
+
+    @Test
+    public void testUpdateProject() {
+        var req = buildCreateRequest();
+
+        var created = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req)
+                .post("/projects")
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(ProjectResponseDto.class);
+
+        var update = new ProjectUpdateDto();
+        update.name = "UPDATED NAME " + UUID.randomUUID();
+        update.dataRetentionPolicy = "Retention policy text";
+
+
+        var updated = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(update)
+                .when()
+                .put("/projects/" + created.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(ProjectResponseDto.class);
+
+        assertTrue(updated.name.contains("UPDATED NAME"));
+        assertEquals("Retention policy text", updated.dataRetentionPolicy);
+    }
+
+    @Test
+    public void testDeleteProject() {
+        var req = buildCreateRequest();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req)
+                .post("/projects")
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(ProjectResponseDto.class);
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .delete("/projects/" + created.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(200, response.code);
+        assertEquals("Project has been successfully deleted.", response.message);
+    }
+
+    private ProjectRequestDto buildCreateRequest() {
+
+        var dto = new ProjectRequestDto();
+        dto.name = "Test Project" + UUID.randomUUID();
+        dto.startDate = Timestamp.from(Instant.now());
+        dto.endDate = Timestamp.from(Instant.now());
+        dto.sustainabilityEndDate = Timestamp.from(Instant.now());
+        dto.dataRetentionPolicy = "Retention policy text";
+
+        return dto;
     }
 }
