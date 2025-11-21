@@ -4,6 +4,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.grnet.status.dtos.argo.ArgoReportsResponse;
 import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
+import org.grnet.status.dtos.tenant.TenantRequestDto;
+import org.grnet.status.dtos.tenant.TenantWebApiGetResponse;
+import org.grnet.status.dtos.tenant.TenantWebApiCreateResponse;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -19,4 +22,19 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-api-key") String apiKey,
             @PathParam("report") String report
     ) throws WebApplicationException, ProcessingException;
+
+    @POST
+    @Path("/api/v2/admin/tenants")
+    TenantWebApiCreateResponse createTenant(
+            @HeaderParam("x-api-key") String apiKey,
+            TenantRequestDto request
+    ) throws WebApplicationException, ProcessingException;
+
+    @GET
+    @Path("/api/v2/admin/tenants/{id}")
+    TenantWebApiGetResponse getTenant(
+            @HeaderParam("x-api-key") String apiKey,
+            String id
+    ) throws WebApplicationException, ProcessingException;
+
 }

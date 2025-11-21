@@ -1,0 +1,83 @@
+package org.grnet.status.dtos.tenant;
+
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+@Schema(name = "TenantWebApiResponse", description = "Represents the response of a tenant.")
+public class TenantWebApiCreateResponse {
+
+        private Status status;
+        private Data data;
+
+        // Getters and Setters
+        public Status getStatus() {
+            return status;
+        }
+
+        public void setStatus(Status status) {
+            this.status = status;
+        }
+
+        public Data getData() {
+            return data;
+        }
+
+        public void setData(Data data) {
+            this.data = data;
+        }
+
+        // Nested classes for structure
+        public static class Status {
+            private String message;
+            private String code;
+
+            public String getMessage() {
+                return message;
+            }
+
+            public void setMessage(String message) {
+                this.message = message;
+            }
+
+            public String getCode() {
+                return code;
+            }
+
+            public void setCode(String code) {
+                this.code = code;
+            }
+        }
+
+        public static class Data {
+            private String id;
+            private Links links;
+
+            public String getId() {
+                return id;
+            }
+
+            public void setId(String id) {
+                this.id = id;
+            }
+
+            public Links getLinks() {
+                return links;
+            }
+
+            public void setLinks(Links links) {
+                this.links = links;
+            }
+        }
+
+        public static class Links {
+            private String self;
+
+            public String getSelf() {
+                return self;
+            }
+
+            public void setSelf(String self) {
+                this.self = self;
+            }
+        }
+    }
+
