@@ -1,10 +1,9 @@
 package org.grnet.status.api.endpoints;
 
 import io.quarkus.security.Authenticated;
-import jakarta.enterprise.inject.build.compatible.spi.Registration;
 import jakarta.inject.Inject;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -22,18 +21,12 @@ import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.grnet.status.authorizations.interceptors.CheckEntitlements;
-import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
-import org.grnet.status.dtos.tenant.TenantRequestDto;
-import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.user.UserProfileDto;
-import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.services.StatusPageService;
-import org.grnet.status.services.TenantService;
 import org.grnet.status.services.UserService;
-import org.grnet.status.util.Utility;
 
 import java.util.List;
 
@@ -56,12 +49,6 @@ public class AdminEndpoint {
 
     @Inject
     UserService userService;
-    @Inject
-    TenantService tenantService;
-
-    @Inject
-    Utility utility;
-
 
     @Tag(name = "Admin")
     @Operation(
@@ -177,108 +164,4 @@ public class AdminEndpoint {
             this.content = content;
         }
     }
-
-
-    @Tag(name = "Admin")
-    @Operation(summary = "Create Tenant",
-            description = "Creates a tenant to service and web-api")
-    @APIResponse(
-            responseCode = "200",
-            description = "Secret encrypted successfully",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = TenantResponseDto.class)))
-    @APIResponse(
-            responseCode = "401",
-            description = "User has not been authenticated.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "403",
-            description = "Not permitted.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "409",
-            description = "Tenant already exists.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "500",
-            description = "Internal Server Error.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "501",
-            description = "Not Implemented.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @SecurityRequirement(name = "Authentication")
-    @Path("/tenants")
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Valid TenantRequestDto request) {
-
-        var response = tenantService.create(request,utility.getUserUniqueIdentifier());
-        return Response.ok(response).build();
-    }
-
-
-    @Tag(name = "Admin")
-    @Operation(
-            summary = "Get Tenant By Id .",
-            description = "Returns a specific tenant assessment.")
-    @APIResponse(
-            responseCode = "200",
-            description = "The corresponding tenant.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = TenantResponseDto.class)))
-    @APIResponse(
-            responseCode = "401",
-            description = "User has not been authenticated.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "403",
-            description = "Not permitted.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "404",
-            description = "Entity Not Found.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "500",
-            description = "Internal Server Error.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @SecurityRequirement(name = "Authentication")
-    @GET
-    @Path("/tenants/{id}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Authenticated
-    public Response getTenant(@Parameter(
-                                      description = "The ID of the tenant to retrieve.",
-                                      required = true,
-                                      example = "c242e43f-9869-4fb0-b881-631bc5746ec0",
-                                      schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
-                              @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id) {
-
-        var tenant = tenantService.getTenantById(id);
-
-        return Response.ok().entity(tenant).build();
-    }
-
 }

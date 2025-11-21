@@ -19,15 +19,12 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-
-import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.statuspage.StatusPageRequestDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageUpdateRequestDto;
-import org.grnet.status.repositories.StatusPageRepository;
 import org.grnet.status.services.StatusPageService;
 import org.grnet.status.util.Utility;
 
@@ -140,7 +137,7 @@ public class StatusPageEndpoint {
                     required = true,
                     example = "e7ab046c-8544-47e6-bd8f-e8aa8b83acb0",
                     schema = @Schema(type = SchemaType.STRING))
-            @PathParam("id") @Valid @NotFoundEntity(repository = StatusPageRepository.class, message = "There is no Status Page with the following id:") String id) {
+            @PathParam("id") String id) {
 
         var page = statusPageService.getStatusPageById(id);
         return Response.ok().entity(page).build();

@@ -251,113 +251,113 @@ public class StatusPageEndpointTest extends KeycloakTest {
         assertEquals("Invalid color format, expected #RRGGBB", error.message);
     }
 
-//    @Test
-//    public void createStatusPageMissingRequiredFields() {
-//        var request = new StatusPageRequestDto();
-//        request.name = "";
-//        request.slug = "";
-//        request.api = "";
-//        request.secret = "";
-//        request.report = "";
-//        request.config = null;
-//
-//        var response = given()
-//                .auth().oauth2(aliceToken)
-//                .contentType(ContentType.JSON)
-//                .body(request)
-//                .when()
-//                .post()
-//                .then()
-//                .statusCode(400)
-//                .extract()
-//                .as(InformativeResponse.class);
-//
-//        assertEquals(400, response.code);
-//        assert response.errors.contains("name cannot be blank");
-//        assert response.errors.contains("slug cannot be blank");
-//        assert response.errors.contains("api cannot be blank");
-//        assert response.errors.contains("secret cannot be blank");
-//        assert response.errors.contains("report cannot be blank");
-//        assert response.errors.contains("config must not be null");
-//    }
-//
-//    @Test
-//    public void createStatusPageInvalidNestedConfig() {
-//        // Minimal valid top-level
-//        var request = new StatusPageRequestDto();
-//        request.name = "Page with bad config";
-//        request.slug = "invalid-config-page";
-//        request.api = "https://api.devel.mon.argo.grnet.gr";
-//        request.secret = "dummy";
-//        request.report = "Critical";
-//
-//        // (empty title, no groups, missing theming)
-//        var invalidConfig = new org.grnet.status.dtos.statuspage.StatusPageConfigDto();
-//        invalidConfig.title = "";
-//        invalidConfig.groups = java.util.Collections.emptyList();
-//        invalidConfig.theming = null;
-//        request.config = invalidConfig;
-//
-//        var response = given()
-//                .auth().oauth2(aliceToken)
-//                .contentType(ContentType.JSON)
-//                .body(request)
-//                .when()
-//                .post()
-//                .then()
-//                .statusCode(400)
-//                .extract()
-//                .as(InformativeResponse.class);
-//
-//        assertEquals(400, response.code);
-//        assert response.errors.contains("title cannot be blank");
-//        assert response.errors.contains("groups cannot be empty");
-//    }
-//
-//    @Test
-//    public void createStatusPageInvalidNestedGroup() {
-//        var request = new StatusPageRequestDto();
-//        request.name = "Bad Group Page";
-//        request.slug = "bad-group-page";
-//        request.api = "https://api.devel.mon.argo.grnet.gr";
-//        request.secret = "dummy";
-//        request.report = "Critical";
-//
-//        var group = new org.grnet.status.dtos.statuspage.StatusPageGroupDto();
-//        group.name = "";
-//        group.alias = "Alias";
-//        group.list = java.util.Collections.emptyList();
-//
-//        var config = new org.grnet.status.dtos.statuspage.StatusPageConfigDto();
-//        config.title = "Valid title";
-//        config.description = "desc";
-//        config.groups = java.util.List.of(group);
-//
-//        var theming = new org.grnet.status.dtos.statuspage.StatusPageThemingDto();
-//        theming.color = "#ffffff";
-//        theming.status = new org.grnet.status.dtos.statuspage.StatusPageThemingStatusDto();
-//        theming.status.icon = "led";
-//        theming.status.text = "none";
-//        theming.columns = "one";
-//        config.theming = theming;
-//
-//        request.config = config;
-//
-//        var response = given()
-//                .auth().oauth2(aliceToken)
-//                .contentType(ContentType.JSON)
-//                .body(request)
-//                .when()
-//                .post()
-//                .then()
-//                .statusCode(400)
-//                .extract()
-//                .as(InformativeResponse.class);
-//
-//        assertEquals(400, response.code);
-//        assert response.errors.contains("group name cannot be blank");
-//        assert response.errors.contains("groups list cannot be empty");
-//    }
+    @Test
+    public void createStatusPageMissingRequiredFields() {
+        var request = new StatusPageRequestDto();
+        request.name = "";
+        request.slug = "";
+        request.api = "";
+        request.secret = "";
+        request.report = "";
+        request.config = null;
+
+        var response = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post()
+                .then()
+                .statusCode(400)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(400, response.code);
+        assert response.errors.contains("name cannot be blank");
+        assert response.errors.contains("slug cannot be blank");
+        assert response.errors.contains("api cannot be blank");
+        assert response.errors.contains("secret cannot be blank");
+        assert response.errors.contains("report cannot be blank");
+        assert response.errors.contains("config must not be null");
+    }
+
+    @Test
+    public void createStatusPageInvalidNestedConfig() {
+        // Minimal valid top-level
+        var request = new StatusPageRequestDto();
+        request.name = "Page with bad config";
+        request.slug = "invalid-config-page";
+        request.api = "https://api.devel.mon.argo.grnet.gr";
+        request.secret = "dummy";
+        request.report = "Critical";
+
+        // (empty title, no groups, missing theming)
+        var invalidConfig = new org.grnet.status.dtos.statuspage.StatusPageConfigDto();
+        invalidConfig.title = "";
+        invalidConfig.groups = java.util.Collections.emptyList();
+        invalidConfig.theming = null;
+        request.config = invalidConfig;
+
+        var response = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post()
+                .then()
+                .statusCode(400)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(400, response.code);
+        assert response.errors.contains("title cannot be blank");
+        assert response.errors.contains("groups cannot be empty");
+    }
+
+    @Test
+    public void createStatusPageInvalidNestedGroup() {
+        var request = new StatusPageRequestDto();
+        request.name = "Bad Group Page";
+        request.slug = "bad-group-page";
+        request.api = "https://api.devel.mon.argo.grnet.gr";
+        request.secret = "dummy";
+        request.report = "Critical";
+
+        var group = new org.grnet.status.dtos.statuspage.StatusPageGroupDto();
+        group.name = "";
+        group.alias = "Alias";
+        group.list = java.util.Collections.emptyList();
+
+        var config = new org.grnet.status.dtos.statuspage.StatusPageConfigDto();
+        config.title = "Valid title";
+        config.description = "desc";
+        config.groups = java.util.List.of(group);
+
+        var theming = new org.grnet.status.dtos.statuspage.StatusPageThemingDto();
+        theming.color = "#ffffff";
+        theming.status = new org.grnet.status.dtos.statuspage.StatusPageThemingStatusDto();
+        theming.status.icon = "led";
+        theming.status.text = "none";
+        theming.columns = "one";
+        config.theming = theming;
+
+        request.config = config;
+
+        var response = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post()
+                .then()
+                .statusCode(400)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(400, response.code);
+        assert response.errors.contains("group name cannot be blank");
+        assert response.errors.contains("groups list cannot be empty");
+    }
 
 
     @Test
