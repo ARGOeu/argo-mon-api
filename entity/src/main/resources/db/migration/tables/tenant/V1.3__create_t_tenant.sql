@@ -1,5 +1,5 @@
 -- ------------------------------------------------
--- Version: V1.1
+-- Version: V1.3
 -- Description: Create t_Tenant table for status pages
 -- ------------------------------------------------
 CREATE TABLE t_Tenant (
