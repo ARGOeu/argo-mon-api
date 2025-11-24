@@ -32,10 +32,6 @@
             <artifactId>quarkus-hibernate-orm-panache</artifactId>
             <version>3.28.2</version>
         </dependency>
-        <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-admin-client</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
