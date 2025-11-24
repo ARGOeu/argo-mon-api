@@ -70,6 +70,12 @@
             <artifactId>status-entities</artifactId>
             <version>${revision}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.grnet</groupId>
+            <artifactId>status-validators</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <dependency>
             <groupId>org.grnet</groupId>
             <artifactId>status-data-transfer-objects</artifactId>
