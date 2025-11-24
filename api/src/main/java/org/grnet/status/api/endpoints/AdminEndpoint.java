@@ -391,9 +391,88 @@ public class AdminEndpoint {
         return Response.ok().entity(informativeResponse).build();
     }
 
+//
+//
+//    @Tag(name = "Tenants")
+//    @Operation(
+//            summary = "Get list of tenants.",
+//            description = "This endpoint returns a list of tenants" +
+//                    "By default, the first page of 10 tenant objects will be returned. You can tune the default values by using the query parameters page and size.")
+//    @APIResponse(
+//            responseCode = "200",
+//            description = "List of tenant objects existing.",
+//            content = @Content(schema = @Schema(
+//                    type = SchemaType.OBJECT,
+//                    implementation = PageableTenants.class)))
+//    @APIResponse(
+//            responseCode = "400",
+//            description = "Bad Request",
+//            content = @Content(schema = @Schema(
+//                    type = SchemaType.OBJECT,
+//                    implementation = InformativeResponse.class)))
+//    @APIResponse(
+//            responseCode = "401",
+//            description = "User has not been authenticated.",
+//            content = @Content(schema = @Schema(
+//                    type = SchemaType.OBJECT,
+//                    implementation = InformativeResponse.class)))
+//    @APIResponse(
+//            responseCode = "403",
+//            description = "Not permitted.",
+//            content = @Content(schema = @Schema(
+//                    type = SchemaType.OBJECT,
+//                    implementation = InformativeResponse.class)))
+//    @APIResponse(
+//            responseCode = "404",
+//            description = "Entity Not Found.",
+//            content = @Content(schema = @Schema(
+//                    type = SchemaType.OBJECT,
+//                    implementation = InformativeResponse.class)))
+//    @APIResponse(
+//            responseCode = "500",
+//            description = "Internal Server Error.",
+//            content = @Content(schema = @Schema(
+//                    type = SchemaType.OBJECT,
+//                    implementation = InformativeResponse.class)))
+//    @SecurityRequirement(name = "Authentication")
+//    @GET
+//    @Path("/tenants")
+//    @Produces(MediaType.APPLICATION_JSON)
+//    @Authenticated
+//    public Response getTenantsByPageAndSize(
+//            @Parameter(name = "page", in = QUERY,
+//                    description = "Indicates the page number. Page number must be >= 1.")
+//            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+//            @QueryParam("page")
+//            int page,
+//            @Parameter(name = "size", in = QUERY,
+//                    description = "The page size.")
+//            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
+//            @QueryParam("size")
+//            int size,
+//            @Context UriInfo uriInfo) {
+//
+//        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo);
+//
+//        return Response.ok().entity(assessments).build();
+//    }
+//
+//    public static class PageableTenants extends PageResource<TenantResponseDto> {
+//
+//        private List<TenantResponseDto> content;
+//
+//        @Override
+//        public List<TenantResponseDto> getContent() {
+//            return content;
+//        }
+//
+//        @Override
+//        public void setContent(List<TenantResponseDto> content) {
+//            this.content = content;
+//        }
+//    }
 
-
-    @Tag(name = "Assessment")
+    @Tag(name = "Admin")
     @Operation(
             summary = "Get list of tenants.",
             description = "This endpoint returns a list of tenants" +
@@ -403,7 +482,7 @@ public class AdminEndpoint {
             description = "List of tenant objects existing.",
             content = @Content(schema = @Schema(
                     type = SchemaType.OBJECT,
-                    implementation = PageableTenants.class)))
+                    implementation = List.class)))
     @APIResponse(
             responseCode = "400",
             description = "Bad Request",
@@ -439,37 +518,11 @@ public class AdminEndpoint {
     @Path("/tenants")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    public Response getTenants(
-            @Parameter(name = "page", in = QUERY,
-                    description = "Indicates the page number. Page number must be >= 1.")
-            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
-            @QueryParam("page")
-            int page,
-            @Parameter(name = "size", in = QUERY,
-                    description = "The page size.")
-            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
-            @QueryParam("size")
-            int size,
-            @Context UriInfo uriInfo) {
+    public Response getTenants() {
 
-        var assessments = tenantService.getTenants(page - 1, size, uriInfo);
+        var assessments = tenantService.getTenants();
 
         return Response.ok().entity(assessments).build();
-    }
-
-    public static class PageableTenants extends PageResource<TenantResponseDto> {
-
-        private List<TenantResponseDto> content;
-
-        @Override
-        public List<TenantResponseDto> getContent() {
-            return content;
-        }
-
-        @Override
-        public void setContent(List<TenantResponseDto> content) {
-            this.content = content;
-        }
     }
 
 }

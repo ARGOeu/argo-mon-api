@@ -2,6 +2,7 @@ package org.grnet.status.mappers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.grnet.status.dtos.tenant.TenantInfoDto;
+import org.grnet.status.dtos.tenant.TenantPartialResponse;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.entities.Tenant;
@@ -19,6 +20,9 @@ public interface TenantMapper {
 
     @IterableMapping(qualifiedByName = "map")
     List<TenantResponseDto> tenantsToDtos(List<Tenant> tenants);
+
+    @IterableMapping(qualifiedByName = "map1")
+    List<TenantPartialResponse> tenantsToPartialDtos(List<Tenant> tenants);
 
     @Named("map")
     @Mapping(target = "id", source = "id")
@@ -61,5 +65,12 @@ public interface TenantMapper {
     @Mapping(target = "description", source = "info.description")
     @Mapping(target = "email", source = "info.email")
     void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
+
+    @Named("map1")
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "updatedBy", source = "updatedBy")
+
+    TenantPartialResponse tenantToPartialDto(Tenant tenant);
 
 }

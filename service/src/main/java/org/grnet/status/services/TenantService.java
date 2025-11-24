@@ -7,6 +7,7 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.status.dtos.pagination.PageResource;
+import org.grnet.status.dtos.tenant.TenantPartialResponse;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.TenantWebApiGetResponse;
@@ -18,6 +19,7 @@ import org.grnet.status.services.clients.ArgoWebApiClientFactory;
 import org.grnet.status.services.utils.EncryptUtil;
 
 import java.util.HashSet;
+import java.util.List;
 
 @ApplicationScoped
 
@@ -193,10 +195,22 @@ public class TenantService {
      * @param uriInfo The Uri Info.
      * @return A list of TemplateSubjectDto objects representing the submitted assessment objects in the requested page.
      */
-    public PageResource<TenantResponseDto> getTenants(int page, int size, UriInfo uriInfo) {
+    public PageResource<TenantResponseDto> getTenantsByPageAndSize(int page, int size, UriInfo uriInfo) {
 
-        var tenants = tenantRepository.fetchTenantsByPage(page, size);
+        var tenants = tenantRepository.fetchTenantsByPageAndSize(page, size);
         return new PageResource<>(tenants,TenantMapper.INSTANCE.tenantsToDtos(tenants.list()), uriInfo);
 
      }
+
+
+    /**
+     * Retrieves a page of tenant objects existing.
+     * @return A list of TemplateSubjectDto objects representing the submitted assessment objects in the requested page.
+     */
+    public List<TenantResponseDto> getTenants() {
+
+        var tenants = tenantRepository.fetchTenants();
+        return TenantMapper.INSTANCE.tenantsToDtos(tenants);
+
+    }
 }
