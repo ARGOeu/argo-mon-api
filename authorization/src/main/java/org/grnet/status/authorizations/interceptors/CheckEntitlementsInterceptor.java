@@ -7,7 +7,6 @@ import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
 import jakarta.ws.rs.ForbiddenException;
 import org.grnet.status.authorizations.entitlements.AccessControlService;
-import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,8 +15,6 @@ import java.util.Arrays;
 @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)
 public class CheckEntitlementsInterceptor {
-
-    private static final Logger LOG = Logger.getLogger(CheckEntitlementsInterceptor.class);
 
     @Inject
     AccessControlService accessControlService;
@@ -35,7 +32,6 @@ public class CheckEntitlementsInterceptor {
             if (!accessControlService.isSuperAdmin()) {
                 throw new ForbiddenException("Access denied — super admin privileges required.");
             }
-            LOG.info("Access granted — user is global super_admin (requireAdmin=true).");
             return context.proceed();
         }
 
@@ -50,7 +46,6 @@ public class CheckEntitlementsInterceptor {
             throw new ForbiddenException(String.format("Access denied — required group='%s', role='%s'", group, role)
             );
         }
-        LOG.infof("Access granted for group='%s', role='%s'", group, role);
         return context.proceed();
     }
 }

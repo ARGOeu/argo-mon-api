@@ -48,20 +48,6 @@
             <artifactId>quarkus-smallrye-openapi</artifactId>
         </dependency>
 
-        <!-- OIDC / Keycloak integration -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-oidc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-keycloak-authorization</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-keycloak-admin-rest-client</artifactId>
-        </dependency>
-
         <!-- Health checks -->
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -104,6 +90,11 @@
             <artifactId>status-handlers</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>org.grnet</groupId>
+            <artifactId>status-authorizations</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <!-- Testing -->
 
@@ -130,13 +121,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-validator</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.grnet</groupId>
-            <artifactId>status-authorizations</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 

@@ -81,10 +81,6 @@
                 <groupId>org.grnet</groupId>
                 <artifactId>status-services</artifactId>
             </dependency>
-            <dependency>
-                <groupId>org.grnet</groupId>
-                <artifactId>cat-handlers</artifactId>
-            </dependency>
 
             <!-- Lombok & MapStruct -->
             <dependency>
