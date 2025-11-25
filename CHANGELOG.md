@@ -40,3 +40,5 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 - [#7](https://github.com/ARGOeu/argo-mon-status-api/pull/7) ARGO-5152: Update Keycloak Redirect URIs and Enable CORS for Local UI Development
 - [#8](https://github.com/ARGOeu/argo-mon-status-api/pull/8) ARGO-5156 ARGO-MON-STATUS-API: Downgrade project postgres version to 11
+- [#25](https://github.com/ARGOeu/argo-mon-status-api/pull/25) ARGO-5190 Fix website in tenant to be empty #25
+
