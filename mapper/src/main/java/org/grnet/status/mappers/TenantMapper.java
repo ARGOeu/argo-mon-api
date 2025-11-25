@@ -1,11 +1,9 @@
 package org.grnet.status.mappers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.grnet.status.dtos.statuspage.StatusPageUpdateRequestDto;
 import org.grnet.status.dtos.tenant.TenantInfoDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
-import org.grnet.status.entities.StatusPage;
 import org.grnet.status.entities.Tenant;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;

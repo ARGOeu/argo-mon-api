@@ -364,7 +364,111 @@ public class AdminEndpointTest extends KeycloakTest {
         assertEquals("There is no Tenant with the following id:  " + currentMockId, response1.message);
     }
 
-    //
+    @Test
+    public void deleteTenant() {
+
+        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+
+        var request = new TenantRequestDto();
+        var tenantInfo = new TenantInfoDto();
+        tenantInfo.name = "Tenant Test2";
+        tenantInfo.email = "test@gmail.com";
+        tenantInfo.description = "this is test tenant description";
+        tenantInfo.image = "/images/logo.png";
+        tenantInfo.website = "https://test.tenant.org";
+        request.info = tenantInfo;
+
+        //var webApi = new ArgoWebApiRequest();
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .contentType(ContentType.JSON)
+                .when()
+                .post("/tenants")
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(TenantResponseDto.class);
+
+        var response1 = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .delete("/tenants/{id}", response.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(200, response1.code);
+    }
+
+
+    @Test
+    public void deleteTenantForbidden() {
+
+        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+
+        var request = new TenantRequestDto();
+        var tenantInfo = new TenantInfoDto();
+        tenantInfo.name = "Tenant Test2";
+        tenantInfo.email = "test@gmail.com";
+        tenantInfo.description = "this is test tenant description";
+        tenantInfo.image = "/images/logo.png";
+        tenantInfo.website = "https://test.tenant.org";
+        request.info = tenantInfo;
+
+        //var webApi = new ArgoWebApiRequest();
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .contentType(ContentType.JSON)
+                .when()
+                .post("/tenants")
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(TenantResponseDto.class);
+
+        var error = given()
+                .auth().oauth2(aliceToken)
+                .contentType(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .delete("/tenants/{id}", response.id)
+                .then()
+                .statusCode(403)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(403, error.code);
+        assertEquals("Access denied — super admin privileges required.", error.message);
+
+    }
+
+    @Test
+    public void deleteTenantNotExisting() {
+
+        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+
+        var error = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .delete("/tenants/{id}", currentMockId)
+                .then()
+                .statusCode(404)
+                .extract()
+                .as(InformativeResponse.class);
+        assertEquals(404, error.code);
+
+    }
     @Test
     public void notExistingTenant() {
 
