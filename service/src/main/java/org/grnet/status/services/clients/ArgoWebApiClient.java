@@ -39,6 +39,8 @@ public interface ArgoWebApiClient {
             String id
     ) throws WebApplicationException, ProcessingException;
 
+    @PUT
+    @Path("/api/v2/admin/tenants/{id}")
     TenantWebApiResponse updateTenant(String id,
                                       @HeaderParam("x-api-key") String apiKey,
                                       TenantRequestDto request
