@@ -91,9 +91,7 @@ public class TenantService {
         TenantWebApiGetResponse webApiResponse = null;
         try {
             webApiResponse = client.getTenant(decryptedSecret, id);
-            if (tenant != null) {
-                matchFields(webApiResponse, tenant);
-            }
+
         } catch (RuntimeException e) {
             int status = 500; // default fallback
             if (e instanceof WebApplicationException) {
@@ -102,7 +100,7 @@ public class TenantService {
             var message = e.getMessage();
             throw new WebApplicationException(message, status);
         }
-        return TenantMapper.INSTANCE.tenantToDto(tenant);
+        return TenantMapper.INSTANCE.webApiTenantToDto(tenant,webApiResponse.getData().get(0).getInfo());
 
     }
 
@@ -117,21 +115,21 @@ public class TenantService {
             throw new RuntimeException("Tenant info is missing in the response");
         }
 
-        checkField("Name", info.getName(), tenant.name);
-        checkField("Email", info.getEmail(), tenant.email);
-        checkField("Description", info.getDescription(), tenant.description);
-        checkField("Image", info.getImage(), tenant.image);
-        checkField("Website", info.getWebsite(), tenant.website);
+//        checkField("Name", info.getName(), tenant.name);
+//        checkField("Email", info.getEmail(), tenant.email);
+//        checkField("Description", info.getDescription(), tenant.description);
+//        checkField("Image", info.getImage(), tenant.image);
+//        checkField("Website", info.getWebsite(), tenant.website);
     }
 
-    private void checkField(String fieldName, Object webApiValue, Object tenantValue) {
-        if (webApiValue == null && tenantValue == null) {
-            return; // Both null, considered equal
-        }
-        if (webApiValue == null || tenantValue == null || !webApiValue.equals(tenantValue)) {
-            throw new RuntimeException(fieldName + " does not match for tenant between ARGO Web API and Argo Mon Status");
-        }
-    }
+//    private void checkField(String fieldName, Object webApiValue, Object tenantValue) {
+//        if (webApiValue == null && tenantValue == null) {
+//            return; // Both null, considered equal
+//        }
+//        if (webApiValue == null || tenantValue == null || !webApiValue.equals(tenantValue)) {
+//            throw new RuntimeException(fieldName + " does not match for tenant between ARGO Web API and Argo Mon Status");
+//        }
+//    }
 
     /**
      * Delete a tenant by Id.
