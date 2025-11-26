@@ -4,7 +4,9 @@ public enum ArgoItemStatusEnum {
     CRITICAL,
     OK,
     MISSING,
-    WARNING;
+    WARNING,
+    DOWNTIME,
+    UNKNOWN;
 
     public static boolean isValid(String status) {
         if (status == null) return false;
@@ -16,4 +18,3 @@ public enum ArgoItemStatusEnum {
         }
     }
 }
-

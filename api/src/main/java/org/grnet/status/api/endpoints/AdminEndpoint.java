@@ -4,6 +4,9 @@ import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -130,7 +133,6 @@ public class AdminEndpoint {
     }
 
 
-
     @Tag(name = "Admin")
     @Operation(summary = "Create Tenant",
             description = "Creates a tenant to service and web-api")
@@ -222,17 +224,18 @@ public class AdminEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
     public Response getTenant(@Parameter(
-                                      description = "The ID of the tenant to retrieve.",
-                                      required = true,
-                                      example = "c242e43f-9869-4fb0-b881-631bc5746ec0",
-                                      schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            description = "The ID of the tenant to retrieve.",
+            required = true,
+            example = "c242e43f-9869-4fb0-b881-631bc5746ec0",
+            schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
                               @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id) {
 
         var tenant = tenantService.getTenantById(id);
 
         return Response.ok().entity(tenant).build();
-    }@Tag(name = "Admin")
+    }
 
+    @Tag(name = "Admin")
     @Operation(
             summary = "Update a tenant.",
             description = "Updates a specific tenant."
@@ -334,7 +337,7 @@ public class AdminEndpoint {
             required = true,
             example = "c242e43f-9869-4fb0-b881-631bc5746ec0",
             schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
-                              @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id) {
+                                 @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id) {
 
         tenantService.deleteTenantById(id);
 
@@ -563,7 +566,8 @@ public class AdminEndpoint {
         informativeResponse.code = 200;
         informativeResponse.message = "Project has been successfully deleted.";
 
-        return Response.ok().entity(informativeResponse).build();    }
+        return Response.ok().entity(informativeResponse).build();
+    }
 
     @Tag(name = "Admin")
     @Operation(
@@ -650,4 +654,88 @@ public class AdminEndpoint {
             this.content = content;
         }
     }
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Get list of tenants.",
+            description = "This endpoint returns a list of tenants " +
+                    "By default, the first page of 10 tenant objects will be returned. You can tune the default values by using the query parameters page and size.")
+    @APIResponse(
+            responseCode = "200",
+            description = "List of tenant objects existing.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = PageableTenants.class)))
+    @APIResponse(
+            responseCode = "400",
+            description = "Bad Request",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Entity Not Found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/tenants")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response getTenantsByPageAndSize(
+            @Parameter(name = "page", in = QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+            @Parameter(name = "size", in = QUERY,
+                    description = "The page size.")
+            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+            @Parameter(name = "tenant_name", in = QUERY,
+                    description = "The tenant's name to filter.") @QueryParam("tenant_name") @DefaultValue("") String tenantName,
+            @Parameter(name = "tenant_email", in = QUERY,
+                    description = "The tenant's email.") @QueryParam("tenant_email") @DefaultValue("") String tenantEmail, @Context UriInfo uriInfo) {
+
+        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo, tenantName, tenantEmail);
+
+        return Response.ok().entity(assessments).build();
+    }
+    public static class PageableTenants extends PageResource<TenantResponseDto> {
+
+        private List<TenantResponseDto> content;
+
+        @Override
+        public List<TenantResponseDto> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<TenantResponseDto> content) {
+            this.content = content;
+        }
+
+
+
+    }
+
 }

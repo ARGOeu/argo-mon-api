@@ -250,7 +250,6 @@ public class StatusPageEndpointTest extends KeycloakTest {
 
         assertEquals("Invalid color format, expected #RRGGBB", error.message);
     }
-//
 //    @Test
 //    public void createStatusPageMissingRequiredFields() {
 //        var request = new StatusPageRequestDto();

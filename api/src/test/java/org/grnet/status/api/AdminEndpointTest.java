@@ -21,7 +21,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
-
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,12 +32,9 @@ import static org.mockito.Mockito.when;
 @TestHTTPEndpoint(AdminEndpoint.class)
 public class AdminEndpointTest extends KeycloakTest {
 
-
     @InjectMock
     ArgoWebApiClientFactory argoWebApiClientFactory;
     private String currentMockId;
-//    @Inject
-//    TenantService tenantService;
 
     @BeforeEach
     public void mockArgoClient() throws Exception {
@@ -463,7 +459,6 @@ public class AdminEndpointTest extends KeycloakTest {
 
     }
 
-
     @Test
     public void testCreateProject() {
         var req = buildCreateRequest();
@@ -580,4 +575,145 @@ public class AdminEndpointTest extends KeycloakTest {
 
         return dto;
     }
+//
+//    @Test
+//    public void getTenants() {
+//
+//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+//
+//        var request = new TenantRequestDto();
+//        var tenantInfo = new TenantInfoDto();
+//        tenantInfo.name = "Tenant Test1";
+//        tenantInfo.email = "test@gmail.com";
+//        tenantInfo.description = "this is test tenant description";
+//        tenantInfo.image = "/images/logo.png";
+//        tenantInfo.website = "https://test.tenant.org";
+//        request.info = tenantInfo;
+//
+//        //var webApi = new ArgoWebApiRequest();
+//
+//        var response = given()
+//                .auth().oauth2(adminToken)
+//                .contentType(ContentType.JSON)
+//                .body(request)
+//                .contentType(ContentType.JSON)
+//                .when()
+//                .post("/tenants")
+//                .then()
+//                .statusCode(200)
+//                .extract()
+//                .as(TenantResponseDto.class);
+//
+//        currentMockId = "11ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+//
+//        var request1 = new TenantRequestDto();
+//        var tenantInfo1 = new TenantInfoDto();
+//        tenantInfo1.name = "Tenant Test3";
+//        tenantInfo1.email = "test3@gmail.com";
+//        tenantInfo1.description = "this is test tenant description";
+//        tenantInfo1.image = "/images/logo.png";
+//        tenantInfo1.website = "https://test.tenant.org";
+//        request1.info = tenantInfo1;
+//
+//        //var webApi = new ArgoWebApiRequest();
+//
+//        var response1 = given()
+//                .auth().oauth2(adminToken)
+//                .contentType(ContentType.JSON)
+//                .body(request1)
+//                .contentType(ContentType.JSON)
+//                .when()
+//                .post("/tenants")
+//                .then()
+//                .statusCode(200)
+//                .extract()
+//                .as(TenantResponseDto.class);
+//
+//
+//        var getresponse = given()
+//                .auth().oauth2(adminToken)
+//                .contentType(ContentType.JSON)
+//                .when()
+//                .get("/tenants")
+//                .then()
+//                .assertThat()
+//                .statusCode(200)
+//                .extract()
+//                .as(TenantResponseDto[].class);
+//
+//        assertEquals(2,getresponse.length);
+//    }
+//
+//
+//    @Test
+//    public void getTenantsByName() {
+//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+//
+//        var request = new TenantRequestDto();
+//        var tenantInfo = new TenantInfoDto();
+//        tenantInfo.name = "Tenant Test1";
+//        tenantInfo.email = "test@gmail.com";
+//        tenantInfo.description = "this is test tenant description";
+//        tenantInfo.image = "/images/logo.png";
+//        tenantInfo.website = "https://test.tenant.org";
+//        request.info = tenantInfo;
+//
+//        //var webApi = new ArgoWebApiRequest();
+//
+//        var response = given()
+//                .auth().oauth2(adminToken)
+//                .contentType(ContentType.JSON)
+//                .body(request)
+//                .contentType(ContentType.JSON)
+//                .when()
+//                .post("/tenants")
+//                .then()
+//                .statusCode(200)
+//                .extract()
+//                .as(TenantResponseDto.class);
+//
+//        currentMockId = "11ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+//
+//
+//        var request1 = new TenantRequestDto();
+//        var tenantInfo1 = new TenantInfoDto();
+//        tenantInfo1.name = "Tenant Test2";
+//        tenantInfo1.email = "test@gmail.com";
+//        tenantInfo1.description = "this is test tenant description";
+//        tenantInfo1.image = "/images/logo.png";
+//        tenantInfo1.website = "https://test.tenant.org";
+//        request1.info = tenantInfo1;
+//
+//        //var webApi = new ArgoWebApiRequest();
+//
+//        var response1 = given()
+//                .auth().oauth2(adminToken)
+//                .contentType(ContentType.JSON)
+//                .body(request1)
+//                .contentType(ContentType.JSON)
+//                .when()
+//                .post("/tenants")
+//                .then()
+//                .statusCode(200)
+//                .extract()
+//                .as(TenantResponseDto.class);
+//
+//
+//        var getresponse = given()
+//                .auth().oauth2(adminToken)
+//                .contentType(ContentType.JSON)
+//                .queryParam("name","Test Tenant2")
+//                .when()
+//                .get("/tenants")
+//                .then()
+//                .assertThat()
+//                .statusCode(200)
+//                .extract()
+//                .as(TenantResponseDto[].class);
+//
+//        assertEquals(1,getresponse.length);
+//       //assertEquals("Test Tenant2",getresponse[0].info.name);
+//    }
+
+
 }
