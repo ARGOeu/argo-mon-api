@@ -24,11 +24,16 @@ import org.grnet.status.authorizations.interceptors.CheckEntitlements;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.pagination.PageResource;
+import org.grnet.status.dtos.project.ProjectRequestDto;
+import org.grnet.status.dtos.project.ProjectResponseDto;
+import org.grnet.status.dtos.project.ProjectUpdateDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.user.UserProfileDto;
+import org.grnet.status.repositories.ProjectRepository;
 import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.services.ProjectService;
 import org.grnet.status.services.StatusPageService;
 import org.grnet.status.services.TenantService;
 import org.grnet.status.services.UserService;
@@ -60,7 +65,15 @@ public class AdminEndpoint {
     TenantService tenantService;
 
     @Inject
+    ProjectService projectService;
+
+    @Inject
     Utility utility;
+
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    // ADMIN STATUS PAGES ENDPOINT
+    // --------------------------------------------------------------------------------------------------------------------------
 
     @Tag(name = "Admin")
     @Operation(
@@ -116,20 +129,6 @@ public class AdminEndpoint {
         return Response.ok(pages).build();
     }
 
-    public static class PageableStatusPages extends PageResource<StatusPageResponseDto> {
-
-        private List<StatusPageResponseDto> content;
-
-        @Override
-        public List<StatusPageResponseDto> getContent() {
-            return content;
-        }
-
-        @Override
-        public void setContent(List<StatusPageResponseDto> content) {
-            this.content = content;
-        }
-    }
 
 
     @Tag(name = "Admin")
@@ -343,5 +342,312 @@ public class AdminEndpoint {
         informativeResponse.code = 200;
         informativeResponse.message = "Tenant has been successfully deleted.";
         return Response.ok().entity(informativeResponse).build();
+    }
+
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    // ADMIN PROJECT ENDPOINT
+    // --------------------------------------------------------------------------------------------------------------------------
+
+    @Tag(name = "Admin")
+    @Operation(summary = "Create a project",
+            description = "Create a new project entry.")
+    @APIResponse(
+            responseCode = "201",
+            description = "Project created",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = ProjectResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Project already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/projects")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response createProject(
+            @Valid @NotNull(message = "The request body is empty.")
+            ProjectRequestDto request,
+            @Context UriInfo uriInfo) {
+
+        var response = projectService.createProject(request);
+
+        return Response.created(uriInfo.getAbsolutePathBuilder().path(response.id).build()).entity(response).build();
+    }
+
+
+    @Tag(name = "Admin")
+    @Operation(summary = "Get a project",
+            description = "Returns a specific project.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Get project ",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = ProjectResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Project does not exist.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/projects/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response getProject(
+            @Parameter(
+                    description = "The ID of the project to retrieve.",
+                    required = true,
+                    example = "proj-32262f66f6e1",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(repository = ProjectRepository.class, message = "There is no Project with the following id: ") String id) {
+
+        var project = projectService.getProjectById(id);
+
+        return Response.ok().entity(project).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(summary = "Update a project",
+            description = "Updates a specific project.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Project updated",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = ProjectResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Project does not exist.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Project already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @PUT
+    @Path("/projects/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response updateProject(
+            @Parameter(
+                    description = "The ID of the project to retrieve.",
+                    required = true,
+                    example = "proj-32262f66f6e1",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(repository = ProjectRepository.class, message = "There is no Project with the following id: ") String id,
+            @Valid @NotNull(message = "The request body is empty.")
+            ProjectUpdateDto request) {
+
+        var project = projectService.updateProjectById(id, request);
+
+        return Response.ok().entity(project).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(summary = "Delete a project",
+            description = "Deletes a specific project.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Delete project ",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = ProjectResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Project does not exist.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @DELETE
+    @Path("/projects/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response deleteProject(
+            @Parameter(
+                    description = "The ID of the project to delete.",
+                    required = true,
+                    example = "proj-32262f66f6e1",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(repository = ProjectRepository.class, message = "There is no Project with the following id: ") String id) {
+
+        projectService.deleteById(id);
+
+        var informativeResponse = new InformativeResponse();
+        informativeResponse.code = 200;
+        informativeResponse.message = "Project has been successfully deleted.";
+
+        return Response.ok().entity(informativeResponse).build();    }
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "List all projects",
+            description = "Retrieve a list of all projects."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "List of projects",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = PageableProject.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/projects")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response fetchAllProjects(
+            @Parameter(name = "page", in = QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page") int page,
+            @Parameter(name = "size", in = QUERY,
+                    description = "The page size.")
+            @DefaultValue("10")
+            @Min(value = 1, message = "Page size must be between 1 and 100.")
+            @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size") int size,
+            @Context UriInfo uriInfo) {
+
+        var responseList = projectService.getAllProjectsByPageAndSize(page - 1, size, uriInfo);
+
+        return Response.ok(responseList).build();
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    // ADMIN HELPER METHODS
+    // --------------------------------------------------------------------------------------------------------------------------
+
+    public static class PageableStatusPages extends PageResource<StatusPageResponseDto> {
+
+        private List<StatusPageResponseDto> content;
+
+        @Override
+        public List<StatusPageResponseDto> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<StatusPageResponseDto> content) {
+            this.content = content;
+        }
+    }
+
+
+    public static class PageableProject extends PageResource<ProjectResponseDto> {
+
+        private List<ProjectResponseDto> content;
+
+        @Override
+        public List<ProjectResponseDto> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<ProjectResponseDto> content) {
+            this.content = content;
+        }
     }
 }
