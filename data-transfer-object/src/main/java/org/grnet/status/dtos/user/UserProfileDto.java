@@ -47,22 +47,4 @@ public class UserProfileDto {
         )
         @JsonProperty("surname")
         public String surname;
-
-        @Schema(
-                type = SchemaType.STRING,
-                implementation = String.class,
-                description = "Timestamp of registration",
-                example = "2025-10-22T12:44:48.107Z"
-        )
-        @JsonProperty("registered_at")
-        public Instant registeredAt;
-
-        @Schema(
-                type = SchemaType.STRING,
-                implementation = String.class,
-                description = "Timestamp of last update",
-                example = "2025-10-22T12:44:48.107Z"
-        )
-        @JsonProperty("updated_at")
-        public Instant updatedAt;
 }

@@ -116,52 +116,6 @@ public class AdminEndpoint {
         return Response.ok(pages).build();
     }
 
-    @Tag(name = "Admin")
-    @Operation(summary = "Fetch all users registered to Status Page",
-            description = "Returns a list of all registered users to the Status Page DB.")
-    @APIResponse(
-            responseCode = "200",
-            description = "List of all users",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.ARRAY,
-                    implementation = UserProfileDto.class)))
-    @APIResponse(
-            responseCode = "401",
-            description = "User has not been authenticated.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "403",
-            description = "Not permitted.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "409",
-            description = "Assessment already exists.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @APIResponse(
-            responseCode = "500",
-            description = "Internal Server Error.",
-            content = @Content(schema = @Schema(
-                    type = SchemaType.OBJECT,
-                    implementation = InformativeResponse.class)))
-    @SecurityRequirement(name = "Authentication")
-    @GET
-    @Path("/users")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getAllUsers() {
-
-        var users = userService.fetchAllUsers();
-
-        return Response.ok(users).build();
-    }
-
-
-
     public static class PageableStatusPages extends PageResource<StatusPageResponseDto> {
 
         private List<StatusPageResponseDto> content;

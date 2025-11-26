@@ -88,36 +88,6 @@ public class AdminEndpointTest extends KeycloakTest {
         assertEquals("Access denied — super admin privileges required.", error.message);
     }
 
-    @Test
-    public void superAdminCanFetchAllUsers() {
-        var users = given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .when()
-                .get("/users")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .extract()
-                .as(UserProfileDto[].class);
-    }
-
-    @Test
-    public void normalUserCannotFetchAllUsers() {
-        var error = given()
-                .auth().oauth2(aliceToken)
-                .contentType(ContentType.JSON)
-                .when()
-                .get("/users")
-                .then()
-                .assertThat()
-                .statusCode(403)
-                .extract()
-                .as(InformativeResponse.class);
-
-        assertEquals("Access denied — super admin privileges required.", error.message);
-    }
-
     private TenantWebApiCreateResponse loadMockTenantResponse(String id) {
 
         var tenantWebApiResponse = new TenantWebApiCreateResponse();
