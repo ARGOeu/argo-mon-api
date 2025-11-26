@@ -47,9 +47,6 @@ public class TenantInfoDto {
             description = "Tenant's website",
             example = "www.grnet.gr"
     )
-    @Pattern(
-            regexp = "^(https?://)?([\\w\\-]+\\.)+[\\w\\-]{2,}(/\\S*)?$",
-            message = "Website must be a valid URL")
     @JsonProperty("website")
     public String website;
 
