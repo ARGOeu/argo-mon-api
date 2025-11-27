@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.grnet.status.constraints.UniqueValue;
+import org.grnet.status.repositories.ProjectRepository;
 
 import java.sql.Timestamp;
 
@@ -16,6 +18,7 @@ public class ProjectRequestDto {
             example = "EOSC-Future"
     )
     @JsonProperty("name")
+    @UniqueValue(repository = ProjectRepository.class, fieldName = "name", message = "Project name already exists: ")
     @NotBlank(message = "name cannot be blank")
     public String name;
 
