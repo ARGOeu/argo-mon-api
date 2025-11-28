@@ -1,7 +1,6 @@
 package org.grnet.status.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,10 +21,6 @@ import org.grnet.status.services.utils.EncryptUtil;
 import org.grnet.status.services.utils.ImageUploadUtil;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Base64;
 import java.util.HashSet;
 
 @ApplicationScoped
@@ -231,7 +226,6 @@ public class TenantService {
 
                 var message = e.getMessage();
                 Log.error("ERROR deleting tenant " + t.id + " -> " + status + ": " + message);
-
                 // Optional: if you want to stop the operation:
                 // throw new WebApplicationException(message, status);
 
@@ -260,7 +254,6 @@ public class TenantService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
 
         // ------------------------------
         // 1. Get previous remote state
