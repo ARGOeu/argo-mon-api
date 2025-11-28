@@ -20,9 +20,12 @@ public class TenantInfoDto {
             description = "Tenant's name",
             example = "GRNET"
     )
-    @NotNull(message = "Name must not be null")
     @NotBlank(message = "Name must not be empty")
-    @JsonProperty("name")
+    @Pattern(
+            regexp = "^[A-Z\\- ]+$",
+            message = "Name must contain only uppercase Latin letters, spaces, or hyphens"
+    )@JsonProperty("name")
+
     public String name;
 
     @Schema(
@@ -31,6 +34,7 @@ public class TenantInfoDto {
             example = "grnet@gmail.com"
     )
     @Email(message = "Email must be a valid email address")
+    @NotBlank(message = "Email must not be empty")
     @JsonProperty("email")
     public String email;
 
@@ -39,13 +43,18 @@ public class TenantInfoDto {
             description = "Tenant's description",
             example = "This is the GRNET tenant"
     )
+    @NotBlank(message = "Description must not be empty")
     @JsonProperty("description")
     public String description;
 
     @Schema(
             type = SchemaType.STRING,
             description = "Tenant's website",
-            example = "www.grnet.gr"
+            example = "https://www.grnet.gr"
+    )
+    @Pattern(
+            regexp = "^$|^(https?://).+",
+            message = "Website must be empty or start with http:// or https://"
     )
     @JsonProperty("website")
     public String website;

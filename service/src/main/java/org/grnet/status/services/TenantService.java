@@ -1,12 +1,14 @@
 package org.grnet.status.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.ws.rs.core.UriInfo;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
@@ -17,7 +19,13 @@ import org.grnet.status.mappers.TenantMapper;
 import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.services.clients.ArgoWebApiClientFactory;
 import org.grnet.status.services.utils.EncryptUtil;
+import org.grnet.status.services.utils.ImageUploadUtil;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.HashSet;
 
 @ApplicationScoped
@@ -37,6 +45,18 @@ public class TenantService {
     @ConfigProperty(name = "web.api.url")
     String webapi;
 
+    @ConfigProperty(name = "base.upload.logo.dir")
+    String baseUploadTenantsImagesDir;
+
+    @Inject
+    ImageUploadUtil imageUploadUtil;
+    @ConfigProperty(name = "api.server.url")
+    String apiServerUrl;
+
+
+    @Inject
+    ObjectMapper objectMapper;
+
     /**
      * Create a tenant
      *
@@ -50,6 +70,18 @@ public class TenantService {
 
         var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
         var client = argoWebApiClientFactory.buildClient(webapi);
+        String image = null;
+        try {
+            image = handleImage(request);
+            if (image != null) {
+                request.info.image = image;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        //   var webapiRequest = TenantMapper.INSTANCE.requestToWebApiRequest(request,image);
 
         var tenant = TenantMapper.INSTANCE.dtoToTenant(request.info);
         try {
@@ -100,7 +132,7 @@ public class TenantService {
             var message = e.getMessage();
             throw new WebApplicationException(message, status);
         }
-        return TenantMapper.INSTANCE.webApiTenantToDto(tenant,webApiResponse.getData().get(0).getInfo());
+        return TenantMapper.INSTANCE.webApiTenantToDto(tenant, webApiResponse.getData().get(0).getInfo());
 
     }
 
@@ -115,21 +147,8 @@ public class TenantService {
             throw new RuntimeException("Tenant info is missing in the response");
         }
 
-//        checkField("Name", info.getName(), tenant.name);
-//        checkField("Email", info.getEmail(), tenant.email);
-//        checkField("Description", info.getDescription(), tenant.description);
-//        checkField("Image", info.getImage(), tenant.image);
-//        checkField("Website", info.getWebsite(), tenant.website);
     }
 
-//    private void checkField(String fieldName, Object webApiValue, Object tenantValue) {
-//        if (webApiValue == null && tenantValue == null) {
-//            return; // Both null, considered equal
-//        }
-//        if (webApiValue == null || tenantValue == null || !webApiValue.equals(tenantValue)) {
-//            throw new RuntimeException(fieldName + " does not match for tenant between ARGO Web API and Argo Mon Status");
-//        }
-//    }
 
     /**
      * Delete a tenant by Id.
@@ -142,6 +161,7 @@ public class TenantService {
         try {
             client.deleteTenant(id, decryptedSecret);
             tenantRepository.delete(tenant);
+            imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir,tenant.name);
         } catch (RuntimeException e) {
             int status = 500; // default fallback
             if (e instanceof WebApplicationException) {
@@ -190,6 +210,16 @@ public class TenantService {
         var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
         var client = argoWebApiClientFactory.buildClient(webapi);
         var tenant = tenantRepository.findById(id);
+        String image = null;
+        try {
+            image = handleImage(request);
+            if (image != null) {
+                request.info.image = image;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         try {
             client.updateTenant(id, decryptedSecret, request);
             TenantMapper.INSTANCE.updateToTenant(request, tenant);
@@ -223,4 +253,15 @@ public class TenantService {
     }
 
 
+    private String handleImage(TenantRequestDto request) throws IOException {
+
+        var image = request.info.image;
+        if (image != null && image.startsWith("data:image/")) {
+            imageUploadUtil.validateBase64Image(image);
+            var savedPath = imageUploadUtil.saveBase64Image(baseUploadTenantsImagesDir, image, request.info.name, "/logos/");
+
+            return apiServerUrl + savedPath;
+        }
+        return null;
+    }
 }

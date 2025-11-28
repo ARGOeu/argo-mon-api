@@ -12,7 +12,7 @@ import java.util.Base64;
 public class ImageUploadUtil {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-    public String saveBase64Image(String baseDir, String base64, String filenameWithoutExt) {
+    public String saveBase64Image(String baseDir, String base64, String filenameWithoutExt,String subPath) {
 
         try {
             if (base64 == null || base64.isBlank()) {
@@ -59,7 +59,7 @@ public class ImageUploadUtil {
             }
 
             // Return relative path (for DB storage or response)
-            return "/logos/" + filenameWithoutExt + ext;
+            return subPath + filenameWithoutExt + ext;
 
         } catch (IllegalArgumentException e) {
             throw new BadRequestException("Invalid base64 encoding");
