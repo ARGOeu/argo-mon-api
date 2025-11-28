@@ -19,12 +19,12 @@ public class TenantResponseDto {
 
     @Schema(
             type = SchemaType.OBJECT,
-            implementation = TenantInfoDto.class,
+            implementation = TenantWebApiRequest.TenantWebApiInfo.class,
             description = "Tenant Web ApiInfo "
     )
     @JsonProperty("info")
     @Valid
-    public TenantInfoDto info;
+    public TenantWebApiRequest.TenantWebApiInfo info;
 
 
     @Schema(

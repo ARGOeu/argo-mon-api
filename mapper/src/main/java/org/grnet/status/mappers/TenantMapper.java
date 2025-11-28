@@ -55,7 +55,7 @@ public interface TenantMapper {
     default TenantResponseDto webApiTenantToDto(Tenant tenant, TenantWebApiGetResponse.Info info) {
         TenantResponseDto dto = new TenantResponseDto();
         dto.id = tenant.id;
-        TenantInfoDto dtoInfo = new TenantInfoDto();
+        TenantWebApiRequest.TenantWebApiInfo dtoInfo = new TenantWebApiRequest.TenantWebApiInfo();
         dtoInfo.name = info.getName();
         dtoInfo.email = info.getEmail();
         dtoInfo.website = info.getWebsite();
@@ -111,4 +111,18 @@ public interface TenantMapper {
     @Mapping(target = "email", source = "info.email")
     void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
 
+//
+//    @Named("map2")
+//    default TenantWebApiRequest requestToWebApiRequest(TenantRequestDto requestDto,String image) {
+//        TenantWebApiRequest dto = new TenantWebApiRequest();
+//        TenantWebApiRequest.TenantWebApiInfo info=new TenantWebApiRequest.TenantWebApiInfo();
+//        info.name=requestDto.info.name;
+//        info.description=requestDto.info.description;
+//        info.website=requestDto.info.website;
+//        info.email=requestDto.info.email;
+//        info.image=image;
+//        dto.info=info;
+//
+//        return dto;
+//    }
 }

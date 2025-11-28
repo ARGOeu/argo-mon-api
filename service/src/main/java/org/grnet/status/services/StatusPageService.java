@@ -70,7 +70,7 @@ public class StatusPageService {
         var logo = request.config.theming.logo;
         if (logo != null && logo.startsWith("data:image/")) {
             imageUploadUtil.validateBase64Image(logo);
-            var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId());
+            var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId(),"/logos/");
             var fullUrl = apiServerUrl + savedPath;
             entity.setConfig(updateLogo(entity.getConfig(), fullUrl));
         }
@@ -104,7 +104,7 @@ public class StatusPageService {
 
         if (logo != null && logo.startsWith("data:image/")) {
             imageUploadUtil.validateBase64Image(logo);
-            var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId());
+            var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId(),"/logos/");
             var fullUrl = apiServerUrl + savedPath;
             entity.setConfig(updateLogo(entity.getConfig(), fullUrl));
 
