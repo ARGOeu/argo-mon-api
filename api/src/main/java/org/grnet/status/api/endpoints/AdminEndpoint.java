@@ -17,6 +17,7 @@ import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
@@ -603,9 +604,33 @@ public class AdminEndpoint {
     @Path("/projects")
     @Produces(MediaType.APPLICATION_JSON)
     public Response fetchAllProjects(
+            @Parameter(name = "Search", in = QUERY,
+                    description = "Search term applied on the Project. ")
+            @QueryParam("search") String search,
+            @Parameter(name = "sort", in = QUERY,
+                    schema = @Schema(type = SchemaType.STRING, defaultValue = "startDate"),
+                    examples = {
+                            @ExampleObject(name = "Start Date", value = "startDate"),
+                            @ExampleObject(name = "End Date", value = "endDate"),
+                            @ExampleObject(name = "Name", value = "name"),
+                            @ExampleObject(name = "Created At", value = "createdAt"),
+                            @ExampleObject(name = "Updated At", value = "updatedAt")
+                    },
+                    description = "Field used for sorting the project list.")
+            @DefaultValue("startDate")
+            @QueryParam("sort") String sort,
+            @Parameter(name = "Order", in = QUERY,
+                    schema = @Schema(type = SchemaType.STRING, defaultValue = "DESC"),
+                    examples = {
+                            @ExampleObject(name = "Ascending", value = "ASC"),
+                            @ExampleObject(name = "Descending", value = "DESC")},
+                    description = "The \"order\" parameter specifies the order in which the sorted results should be returned.")
+            @DefaultValue("DESC")
+            @QueryParam("order") String order,
             @Parameter(name = "page", in = QUERY,
                     description = "Indicates the page number. Page number must be >= 1.")
-            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @DefaultValue("1")
+            @Min(value = 1, message = "Page number must be >= 1.")
             @QueryParam("page") int page,
             @Parameter(name = "size", in = QUERY,
                     description = "The page size.")
@@ -615,7 +640,7 @@ public class AdminEndpoint {
             @QueryParam("size") int size,
             @Context UriInfo uriInfo) {
 
-        var responseList = projectService.getAllProjectsByPageAndSize(page - 1, size, uriInfo);
+        var responseList = projectService.getAllProjectsByPageAndSize(page - 1, size, search, sort, order, uriInfo);
 
         return Response.ok(responseList).build();
     }
