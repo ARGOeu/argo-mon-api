@@ -61,8 +61,14 @@ public class TenantInfoDto {
 
     @Schema(
             type = SchemaType.STRING,
-            description = "Tenant's image url",
-            example = "/images/profile.jpg"
+            description = "Tenant's image URL or base64 encoded image data URI. " +
+                    "Example URL: /images/profile.jpg, or data URI: data:image/png;base64,iVBORw0KGgo...",
+            example = "https://images/profile.jpg"
+    )
+    @Pattern(
+            regexp = "(^https?://.*\\.(jpg|jpeg|png|gif)(\\?.*)?$)|(^data:image\\/([a-zA-Z]+);base64,[A-Za-z0-9+/=]+$)",
+            message = "Must be a valid image URL (jpg, jpeg, png, gif) or base64 encoded data URI",
+            flags = Pattern.Flag.CASE_INSENSITIVE
     )
     @JsonProperty("image")
     public String image;

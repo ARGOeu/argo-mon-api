@@ -64,9 +64,15 @@ public class TenantService {
      * @param userId  , the creator of the tenant
      * @return, TenantResponseDto representing the tenant's info
      */
-
     @Transactional
     public TenantResponseDto create(TenantRequestDto request, String userId) {
+
+
+        var existTenantOpt = tenantRepository.fetchTenantByName(request.info.name);
+        if (existTenantOpt.isPresent()) {
+            var message = "Tenant with id: " + existTenantOpt.get().id + " already exists in ARGO Mon Status API";
+            throw new CustomRuntimeException(409, message, new HashSet<>());
+        }
 
         var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
         var client = argoWebApiClientFactory.buildClient(webapi);
@@ -82,35 +88,49 @@ public class TenantService {
             throw new RuntimeException(e);
         }
 
-
-        //   var webapiRequest = TenantMapper.INSTANCE.requestToWebApiRequest(request,image);
-
         var tenant = TenantMapper.INSTANCE.dtoToTenant(request.info);
+        boolean tenantCreatedRemotely = false;
+        String remoteTenantId = null;
+
         try {
-            var apiResponse = client.createTenant(decryptedSecret, request);   // returns POJO
-            tenant.id = apiResponse.getData().getId();
+            var apiResponse = client.createTenant(decryptedSecret, request);
+            remoteTenantId = apiResponse.getData().getId();
+            tenantCreatedRemotely = true;
+
+            tenant.id = remoteTenantId;
             tenant.updatedBy = userId;
-            var existTenant = tenantRepository.findById(tenant.id);
-            if (existTenant != null) {
-                var message = "Tenant with id: " + tenant.id + " already exists in ARGO Mon Status API";
-                throw new CustomRuntimeException(409, message, new HashSet<>());
-            }
             tenantRepository.persist(tenant);
+
             return TenantMapper.INSTANCE.tenantToDto(tenant);
 
-        } catch (WebApplicationException e) {
-            int status = e.getResponse().getStatus();
-            var message = e.getMessage();
-            if (status == 409) {
-                var optTenant = tenantRepository.fetchTenantByName(request.info.name);
-                if (optTenant.isPresent()) {
-                    message = message + ". Existing tenant in Argo Mon Status API has id: " + optTenant.get().id;
-                } else {
-                    message = message + ". Tenant exists in Argo Web Api but not in Argo Mon Status API";
+        } catch (Exception e) {
+            // If tenant was created remotely, but something failed locally, rollback remote creation
+            if (tenantCreatedRemotely && remoteTenantId != null) {
+                try {
+                    client.deleteTenant( remoteTenantId,decryptedSecret); // Make sure you have this method in your client
+                } catch (Exception rollbackEx) {
+                    // Log rollback failure, but do not mask original exception
+                    System.err.println("Rollback failed for tenant id " + remoteTenantId + ": " + rollbackEx.getMessage());
                 }
             }
-            throw new WebApplicationException(message, status);
 
+            if (e instanceof WebApplicationException) {
+                WebApplicationException wae = (WebApplicationException) e;
+                int status = wae.getResponse().getStatus();
+                var message = wae.getMessage();
+                if (status == 409) {
+                    var optTenant = tenantRepository.fetchTenantByName(request.info.name);
+                    if (optTenant.isPresent()) {
+                        message = message + ". Existing tenant in Argo Mon Status API has id: " + optTenant.get().id;
+                    } else {
+                        message = message + ". Tenant exists in Argo Web Api but not in Argo Mon Status API";
+                    }
+                }
+                throw new WebApplicationException(message, status);
+            }
+
+            // rethrow original exception
+            throw e;
         }
     }
 
@@ -157,25 +177,32 @@ public class TenantService {
      */
     @Transactional
     public void deleteTenantById(String id) {
+
         var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
         var client = argoWebApiClientFactory.buildClient(webapi);
+
         var tenant = tenantRepository.findById(id);
+
         try {
-            client.deleteTenant(id, decryptedSecret);
+            // First delete from DB (within transaction)
             tenantRepository.delete(tenant);
-            imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir,tenant.name);
+            imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir, tenant.name);
+
+            // Only after DB deletion succeeded, delete from external API
+            client.deleteTenant(id, decryptedSecret);
+
         } catch (RuntimeException e) {
-            int status = 500; // default fallback
+            int status = 500; // fallback
+
             if (e instanceof WebApplicationException) {
                 status = ((WebApplicationException) e).getResponse().getStatus();
             }
-            var message = e.getMessage();
-            throw new WebApplicationException(message, status);
+
+            throw new WebApplicationException(e.getMessage(), status);
         }
     }
-
     /**
-     * * Delete all tenants.
+     * Delete all tenants.
      */
     @Transactional
     public void deleteAll() {
@@ -183,67 +210,114 @@ public class TenantService {
         var tenants = tenantRepository.fetchTenants();
 
         tenants.forEach(t -> {
-            var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
-            var client = argoWebApiClientFactory.buildClient(webapi);
-
             try {
+                // 1. Delete from DB first (inside transaction)
+                tenantRepository.delete(t);
+                imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir, t.name);
+
+                // 2. Only after DB delete succeeds, call external API
+                var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
+                var client = argoWebApiClientFactory.buildClient(webapi);
                 client.deleteTenant(t.id, decryptedSecret);
 
             } catch (RuntimeException e) {
+
+                // If DB delete fails -> API delete is NOT executed, as desired
+
                 int status = 500;
                 if (e instanceof WebApplicationException) {
                     status = ((WebApplicationException) e).getResponse().getStatus();
                 }
-                var message = e.getMessage();
-                Log.info("INFO -- STATUS : " + status + " " + message);
-                //  throw new WebApplicationException(message, status);
-            }
-            tenantRepository.delete(t);
 
+                var message = e.getMessage();
+                Log.error("ERROR deleting tenant " + t.id + " -> " + status + ": " + message);
+
+                // Optional: if you want to stop the operation:
+                // throw new WebApplicationException(message, status);
+
+                // Or continue with the next tenant
+            }
         });
     }
 
     /**
      * Update an existing tenant.
      */
+
     @Transactional
     public TenantResponseDto updateTenant(String id, TenantRequestDto request) {
-
         var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
         var client = argoWebApiClientFactory.buildClient(webapi);
-        var tenant = tenantRepository.findById(id);
 
         try {
-            var incomingImage = request.info.image;
-            if (incomingImage != null && incomingImage.startsWith("data:image/")) {
-                imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir, tenant.name);
-
+            var image = request.info.image;
+            if (image != null && image.startsWith("data:image/")) {
                 var imageUrl = handleImage(request);
-                if (imageUrl != null) {
-                    request.info.image = imageUrl;
-                }
+                request.info.image = imageUrl;
             }
-            // else: no new base64 image → do nothing with files
+            // If not Base64, leave image as-is (null or external URL)
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
+
+        // ------------------------------
+        // 1. Get previous remote state
+        // ------------------------------
+        TenantRequestDto previousRemoteState = null;
+        try {
+            var remoteExisting = client.getTenant(decryptedSecret, id);
+            previousRemoteState = TenantMapper.INSTANCE.webApiTenantToTenantRequestDto(
+                    remoteExisting.getData().get(0).getInfo()
+            );
+        } catch (Exception e) {
+            throw new WebApplicationException("Cannot fetch remote state for rollback", 500);
+        }
+
+        // ------------------------------
+        // 2. Update remote API first
+        // ------------------------------
         try {
             client.updateTenant(id, decryptedSecret, request);
-            TenantMapper.INSTANCE.updateToTenant(request, tenant);
-            tenantRepository.persist(tenant);
-
-        } catch (RuntimeException e) {
-            int status = 500; // default fallback
-            if (e instanceof WebApplicationException) {
-                status = ((WebApplicationException) e).getResponse().getStatus();
-            }
-            var message = e.getMessage();
-            throw new WebApplicationException(message, status);
+        } catch (Exception e) {
+            throw new WebApplicationException("Remote API update failed: " + e.getMessage(), 502);
         }
+
+        // ------------------------------
+        // 3. Now try DB update
+        // ------------------------------
+        var tenant = tenantRepository.findById(id);
+        if (tenant == null) {
+            // rollback remote because DB tenant missing
+            client.updateTenant(id, decryptedSecret, previousRemoteState);
+            throw new WebApplicationException("Tenant not found in DB", 404);
+        }
+
+        try {
+            TenantMapper.INSTANCE.updateToTenant(request, tenant);
+            tenantRepository.persist(tenant);  // may fail
+            tenantRepository.flush();          // force DB error here
+        } catch (Exception dbException) {
+
+            // ------------------------------
+            // 4. DB FAILED → rollback remote
+            // ------------------------------
+            try {
+                client.updateTenant(id, decryptedSecret, previousRemoteState);
+            } catch (Exception rollbackEx) {
+                throw new WebApplicationException("DB failed AND remote rollback failed: " + rollbackEx.getMessage(), 500);
+            }
+
+            throw new WebApplicationException( "DB update failed, remote rolled back: " + dbException.getMessage(), 500);
+        }
+
+        // All succeeded
         return TenantMapper.INSTANCE.tenantToDto(tenant);
     }
+
+
+
 
     /**
      * Retrieves a page of tenant objects existing.
@@ -253,10 +327,9 @@ public class TenantService {
      * @param uriInfo The Uri Info.
      * @return A list of TemplateSubjectDto objects representing the submitted assessment objects in the requested page.
      */
-    public PageResource<TenantResponseDto> getTenantsByPageAndSize(int page, int size, UriInfo uriInfo, String
-            tenantName, String tenantEmail) {
+    public PageResource<TenantResponseDto> getTenantsByPageAndSize(int page, int size, UriInfo uriInfo, String search,String sort, String order) {
 
-        var tenants = tenantRepository.fetchTenantsByPageAndSize(page, size, tenantName, tenantEmail);
+        var tenants = tenantRepository.fetchTenantsByPageAndSize(page, size, search,sort,order);
         return new PageResource<>(tenants, TenantMapper.INSTANCE.tenantsToDtos(tenants.list()), uriInfo);
 
     }
@@ -269,6 +342,5 @@ public class TenantService {
         var savedPath = imageUploadUtil.saveBase64Image(baseUploadTenantsImagesDir, image, request.info.name, "/logos/");
 
         return apiServerUrl + savedPath;
-
     }
 }
