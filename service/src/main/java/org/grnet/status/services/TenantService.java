@@ -70,12 +70,14 @@ public class TenantService {
 
         var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
         var client = argoWebApiClientFactory.buildClient(webapi);
-        String image = null;
         try {
-            image = handleImage(request);
-            if (image != null) {
-                request.info.image = image;
+            var image = request.info.image;
+            if (image != null && image.startsWith("data:image/")) {
+                var imageUrl = handleImage(request);
+                request.info.image = imageUrl;
             }
+            // If not Base64, leave image as-is (null or external URL)
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -210,12 +212,19 @@ public class TenantService {
         var decryptedSecret = encryptUtil.decrypt(encryptedSecret);
         var client = argoWebApiClientFactory.buildClient(webapi);
         var tenant = tenantRepository.findById(id);
-        String image = null;
+
         try {
-            image = handleImage(request);
-            if (image != null) {
-                request.info.image = image;
+            var incomingImage = request.info.image;
+            if (incomingImage != null && incomingImage.startsWith("data:image/")) {
+                imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir, tenant.name);
+
+                var imageUrl = handleImage(request);
+                if (imageUrl != null) {
+                    request.info.image = imageUrl;
+                }
             }
+            // else: no new base64 image → do nothing with files
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -256,12 +265,10 @@ public class TenantService {
     private String handleImage(TenantRequestDto request) throws IOException {
 
         var image = request.info.image;
-        if (image != null && image.startsWith("data:image/")) {
-            imageUploadUtil.validateBase64Image(image);
-            var savedPath = imageUploadUtil.saveBase64Image(baseUploadTenantsImagesDir, image, request.info.name, "/logos/");
+        imageUploadUtil.validateBase64Image(image);
+        var savedPath = imageUploadUtil.saveBase64Image(baseUploadTenantsImagesDir, image, request.info.name, "/logos/");
 
-            return apiServerUrl + savedPath;
-        }
-        return null;
+        return apiServerUrl + savedPath;
+
     }
 }
