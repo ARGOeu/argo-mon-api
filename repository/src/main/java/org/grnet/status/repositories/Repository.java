@@ -15,10 +15,4 @@ public interface Repository<E, ID> extends PanacheRepositoryBase<E, ID> {
     default Optional<E> searchByIdOptional(ID id){
         return findByIdOptional(id);
     }
-
-    default boolean existsByField(String fieldName, Object value) {
-        return find(fieldName + " = ?1", value)
-                .firstResultOptional()
-                .isPresent();
-    }
 }

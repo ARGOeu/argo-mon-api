@@ -1,72 +1,24 @@
 package org.grnet.status.repositories;
 
-import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.apache.commons.lang3.StringUtils;
 import org.grnet.status.entities.*;
-
-import java.util.HashMap;
-import java.util.Set;
-import java.util.StringJoiner;
 
 
 @ApplicationScoped
 public class ProjectRepository implements Repository<Project, String> {
 
-    public PageQuery<Project> fetchProjectByPage(int page, int size, String search, String sort, String order) {
+    public PageQuery<Project> fetchProjectByPage(int page, int size){
 
-        var joiner = new StringJoiner(" ");
+        var panache = find("from Project p", Sort.by("createdAt", Sort.Direction.Descending)).page(page, size);
 
-        joiner.add("from Project p");
+        var pageable = new PageQueryImpl<Project>();
+        pageable.list = panache.list();
+        pageable.index = page;
+        pageable.size = size;
+        pageable.count = panache.count();
+        pageable.page = Page.of(page, size);
 
-        var params = new HashMap<String, Object>();
-
-        if (StringUtils.isNotBlank(search)) {
-            joiner.add("where lower(p.name) like lower(:search)");
-            params.put("search", "%" + search.trim() + "%");
-        }
-
-        var allowedSortFields = Set.of(
-                "name",
-                "startDate",
-                "endDate",
-                "sustainabilityEndDate",
-                "createdAt",
-                "updatedAt"
-        );
-
-        if (StringUtils.isBlank(sort) || !allowedSortFields.contains(sort)) {
-            sort = "startDate"; // default
-        }
-
-        var direction = "ASC".equalsIgnoreCase(order) ? "ASC" : "DESC";
-
-        joiner.add("order by p." + sort + " " + direction);
-
-        PanacheQuery<Project> panache;
-
-        if (params.isEmpty()) {
-            panache = find(joiner.toString());
-        } else {
-            panache = find(joiner.toString(), params);
-        }
-
-        panache = panache.page(page, size);
-
-        var result = new PageQueryImpl<Project>();
-        result.list = panache.list();
-        result.index = page;
-        result.size = size;
-        result.count = panache.count();
-        result.page = Page.of(page, size);
-
-        return result;
-    }
-
-    public boolean existsByNameForOtherId(String name, String id) {
-        return find("name = ?1 AND id <> ?2", name, id)
-                .firstResultOptional()
-                .isPresent();
+        return pageable;
     }
 }
