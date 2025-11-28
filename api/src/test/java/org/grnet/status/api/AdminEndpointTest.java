@@ -11,6 +11,7 @@ import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.project.ProjectUpdateDto;
 import org.grnet.status.dtos.tenant.*;
+import org.grnet.status.dtos.user.UserProfileDto;
 import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.grnet.status.services.clients.ArgoWebApiClientFactory;
 import org.junit.jupiter.api.BeforeEach;

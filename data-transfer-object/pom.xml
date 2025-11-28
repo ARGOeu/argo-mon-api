@@ -58,12 +58,6 @@
             <version>${revision}</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.grnet</groupId>
-            <artifactId>status-validators</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 
     <build>

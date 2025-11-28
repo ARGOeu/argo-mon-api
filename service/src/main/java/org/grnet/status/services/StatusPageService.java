@@ -66,8 +66,6 @@ public class StatusPageService {
         entity.setUserId(userId);
         statusPageRepository.persist(entity);
 
-        apiServerUrl = apiServerUrl.replaceAll("/+$", "");
-
         // --- handle logo
         var logo = request.config.theming.logo;
         if (logo != null && logo.startsWith("data:image/")) {
@@ -100,9 +98,6 @@ public class StatusPageService {
 
         // --- Apply updates for name, slug, report, config ---
         StatusPageMapper.INSTANCE.updateToEntity(request, entity);
-
-        apiServerUrl = apiServerUrl.replaceAll("/+$", "");
-
 
         // --- Handle logo *after* mapper to avoid overwrite ---
         var logo = request.config.theming.logo;
