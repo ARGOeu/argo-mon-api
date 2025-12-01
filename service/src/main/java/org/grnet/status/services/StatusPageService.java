@@ -104,6 +104,7 @@ public class StatusPageService {
 
         if (logo != null && logo.startsWith("data:image/")) {
             imageUploadUtil.validateBase64Image(logo);
+            imageUploadUtil.deleteImageIfExists(baseUploadLogoDir, id);
             var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId(),"/logos/");
             var fullUrl = apiServerUrl + savedPath;
             entity.setConfig(updateLogo(entity.getConfig(), fullUrl));
@@ -116,7 +117,6 @@ public class StatusPageService {
             entity.setConfig(updateLogo(entity.getConfig(), logo));
         }
 
-        // ✅ No persist(), no flush() — entity is managed; changes auto-saved at commit
         return StatusPageMapper.INSTANCE.entityToDto(entity);
     }
 
@@ -327,6 +327,16 @@ public class StatusPageService {
             return objectMapper.writeValueAsString(root);
         } catch (Exception e) {
             throw new RuntimeException("Failed to remove logo from config JSON", e);
+        }
+    }
+
+    public String extractLogo(String configJson) {
+        if (configJson == null || configJson.isBlank()) return null;
+        try {
+            var root = (ObjectNode) objectMapper.readTree(configJson);
+            return root.path("theming").path("logo").asText(null);
+        } catch (Exception e) {
+            return null;
         }
     }
 }
