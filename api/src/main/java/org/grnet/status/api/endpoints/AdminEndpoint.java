@@ -17,6 +17,7 @@ import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
@@ -711,12 +712,32 @@ public class AdminEndpoint {
             @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
             @QueryParam("size")
             int size,
-            @Parameter(name = "tenant_name", in = QUERY,
-                    description = "The tenant's name to filter.") @QueryParam("tenant_name") @DefaultValue("") String tenantName,
-            @Parameter(name = "tenant_email", in = QUERY,
-                    description = "The tenant's email.") @QueryParam("tenant_email") @DefaultValue("") String tenantEmail, @Context UriInfo uriInfo) {
+            @Parameter(name = "search", in = QUERY,
+                    description = "The \"search\" parameter is a query parameter that allows clients to specify a text string that will be used to search for matches in specific fields in Tenant entity. The search will be conducted in the following fields : tenants' name, tenant's email.") @QueryParam("search") String search,
+            @Parameter(name = "sort", in = QUERY,
+                    schema = @Schema(type = SchemaType.STRING, defaultValue = ""),
+                    examples = {@ExampleObject(name = "Tenant name", value = "name"), @ExampleObject(name = "Created At", value = "createdAt")},
+                    description = "The \"sort\" parameter allows clients to specify the field by which they want the results to be sorted.") @DefaultValue("createdAt") @QueryParam("sort") String sort,
+            @Parameter(name = "order",
+                    in = QUERY,
+                    schema = @Schema(type = SchemaType.STRING, defaultValue = ""),
+                    examples = {@ExampleObject(name = "Ascending", value = "ASC"), @ExampleObject(name = "Descending", value = "DESC")},
+                    description = "The \"order\" parameter specifies the order in which the sorted results should be returned.") @DefaultValue("DESC") @QueryParam("order") String order,
+            @Context UriInfo uriInfo) {
+        var orderValues = List.of("ASC", "DESC");
+        var sortValues = List.of("name", "createdAt");
 
-        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo, tenantName, tenantEmail);
+        if (!orderValues.contains(order)) {
+
+            throw new BadRequestException("The available values of order parameter are : " + orderValues);
+        }
+
+        if (!sortValues.contains(sort)) {
+
+            throw new BadRequestException("The available values of sort parameter are : " + sortValues);
+        }
+
+        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo, search,sort,order);
 
         return Response.ok().entity(assessments).build();
     }

@@ -111,18 +111,21 @@ public interface TenantMapper {
     @Mapping(target = "email", source = "info.email")
     void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
 
-//
-//    @Named("map2")
-//    default TenantWebApiRequest requestToWebApiRequest(TenantRequestDto requestDto,String image) {
-//        TenantWebApiRequest dto = new TenantWebApiRequest();
-//        TenantWebApiRequest.TenantWebApiInfo info=new TenantWebApiRequest.TenantWebApiInfo();
-//        info.name=requestDto.info.name;
-//        info.description=requestDto.info.description;
-//        info.website=requestDto.info.website;
-//        info.email=requestDto.info.email;
-//        info.image=image;
-//        dto.info=info;
-//
-//        return dto;
-//    }
+
+
+    @Named("map4")
+    default TenantRequestDto webApiTenantToTenantRequestDto(TenantWebApiGetResponse.Info info) {
+        TenantRequestDto dto = new TenantRequestDto();
+        TenantInfoDto dtoInfo = new TenantInfoDto();
+        dtoInfo.name = info.getName();
+        dtoInfo.email = info.getEmail();
+        dtoInfo.website = info.getWebsite();
+        dtoInfo.description = info.getDescription();
+        dtoInfo.image = info.getImage();
+        dtoInfo.createdAt = Instant.from(DATE_TIME_FMT.parse(info.getCreated()));
+        dtoInfo.updatedAt = Instant.from(DATE_TIME_FMT.parse(info.getUpdated()));
+        dto.info = dtoInfo;
+        return dto;
+    }
+
 }
