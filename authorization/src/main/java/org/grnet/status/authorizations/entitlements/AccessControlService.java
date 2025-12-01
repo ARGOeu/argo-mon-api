@@ -10,7 +10,7 @@ import java.util.List;
 @ApplicationScoped
 public class AccessControlService {
 
-    @ConfigProperty(name = "api.status.pages.entitlements.parent.group")
+    @ConfigProperty(name = "api.auth.entitlements.parent.group")
     String parentGroup;
 
     @Inject
