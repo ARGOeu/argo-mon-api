@@ -1,16 +1,17 @@
 package org.grnet.status.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.sql.Timestamp;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "t_Tenant")
-
+@Getter @Setter
 public class Tenant {
 
     @Id
@@ -35,6 +36,7 @@ public class Tenant {
 
     @Column(name = "image")
     public String image;
+
     @NotNull
     @Column(name = "created_at")
     public Timestamp createdAt;
@@ -42,4 +44,13 @@ public class Tenant {
     @Column(name = "updated_at")
     public Timestamp updatedAt;
 
+    @ManyToMany(cascade = CascadeType.PERSIST)  // cascade persist so saving Tenant saves new Contacts
+    @JoinTable(
+            name = "tenant_contact",
+            joinColumns = @JoinColumn(name = "tenant_id"),
+            inverseJoinColumns = @JoinColumn(name = "contact_id")
+    )
+    private Set<Contact> contacts = new HashSet<>();
+
+    // getters/setters
 }

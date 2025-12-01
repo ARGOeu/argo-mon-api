@@ -24,6 +24,7 @@
         <module>exception</module>
         <module>authorization</module>
         <module>validator</module>
+
     </modules>
 
     <properties>
@@ -90,6 +91,11 @@
             <dependency>
                 <groupId>org.grnet</groupId>
                 <artifactId>status-handlers</artifactId>
+            </dependency>
+
+            <dependency>
+                <groupId>org.grnet</groupId>
+                <artifactId>status-enums</artifactId>
             </dependency>
             <dependency>
                 <groupId>io.vavr</groupId>

@@ -17,6 +17,7 @@
     <version>${revision}</version>
 
     <dependencies>
+
         <!-- PostgreSQL JDBC driver (required by Quarkus for database access) -->
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -53,6 +54,16 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.grnet</groupId>
+            <artifactId>status-enums</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.grnet</groupId>
+            <artifactId>status-exceptions</artifactId>
+            <version>${revision}</version>
         </dependency>
     </dependencies>
 

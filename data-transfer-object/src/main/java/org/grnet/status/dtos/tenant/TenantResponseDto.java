@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
-
-import java.time.Instant;
+import java.util.List;
 
 @Schema(name = "TenantResponseDto", description = "Represents the response of a tenant.")
 public class TenantResponseDto {
@@ -36,4 +35,7 @@ public class TenantResponseDto {
     @JsonProperty("updated_by")
     public String updatedBy;
 
+    @Schema(type = SchemaType.ARRAY, implementation = ContactDto.class, description = "List of contacts")
+    @JsonProperty("contacts")
+    public List<ContactDto> contacts;
 }
