@@ -6,6 +6,8 @@ import jakarta.validation.Valid;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+import java.util.List;
+
 @Schema(name = "TenantRequestDto", description = "Represents the configuration of a tenant.")
 public class TenantRequestDto {
 
@@ -17,4 +19,8 @@ public class TenantRequestDto {
     @JsonProperty("info")
     @Valid
     public TenantInfoDto info;
+
+    @JsonProperty("contacts")
+    public List<ContactDto> contacts;
+
 }

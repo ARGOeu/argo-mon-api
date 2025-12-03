@@ -2,7 +2,9 @@ package org.grnet.status.mappers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.grnet.status.dtos.tenant.*;
+import org.grnet.status.entities.Contact;
 import org.grnet.status.entities.Tenant;
+import org.grnet.status.enums.ContactType;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
@@ -13,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Mapper(imports = {Timestamp.class, Instant.class})
@@ -68,6 +71,29 @@ public interface TenantMapper {
         return dto;
     }
 
+    @Named("contactToDto")
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "contactName")
+    @Mapping(target = "email", source = "contactEmail")
+    @Mapping(target = "type", source = "contactType", qualifiedByName = "mapTypeToString")
+    ContactDto contactToDto(Contact contact);
+
+
+    @Named("contactsToDtos")
+    default List<ContactDto> contactsToDtos(Set<Contact> contacts) {
+        if (contacts == null) {
+            return List.of();
+        }
+        return contacts.stream()
+                .map(this::contactToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Named("mapTypeToString")
+    default String mapTypeToString(ContactType contactType) {
+        return contactType != null ? contactType.name() : null;
+    }
+
     @IterableMapping(qualifiedByName = "map1")
     List<TenantResponseDto> tenantsToDtos(List<Tenant> tenants);
 
@@ -81,9 +107,13 @@ public interface TenantMapper {
     @Mapping(target = "info.createdAt", source = "createdAt")
     @Mapping(target = "info.updatedAt", source = "updatedAt")
     @Mapping(target = "updatedBy", source = "updatedBy")
+    @Mapping(target = "contacts", source = "contacts", qualifiedByName = "contactsToDtos")
     TenantResponseDto tenantToDto(Tenant tenant);
 
+
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "contacts", ignore = true)
+
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
@@ -103,15 +133,31 @@ public interface TenantMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "contacts", ignore = true)
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "name", source = "info.name")
     @Mapping(target = "website", source = "info.website")
     @Mapping(target = "image", source = "info.image")
     @Mapping(target = "description", source = "info.description")
     @Mapping(target = "email", source = "info.email")
+
     void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
 
+    @IterableMapping(qualifiedByName = "map3")
+    List<Contact> dtosToContacts(List<ContactDto> dtos);
 
+    @Named("map3")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "contactName", source = "name")
+    @Mapping(target = "contactEmail", source = "email")
+    @Mapping(target = "contactType", source = "type")
+    @Mapping(target = "tenants", ignore = true)
+    Contact dtoToContact(ContactDto dto);
+
+    @Named("mapType")
+    default ContactType mapType(String type) {
+        return ContactType.valueOf(type.toUpperCase());
+    }
 
     @Named("map4")
     default TenantRequestDto webApiTenantToTenantRequestDto(TenantWebApiGetResponse.Info info) {

@@ -32,17 +32,16 @@ import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.project.ProjectUpdateDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
+import org.grnet.status.dtos.tenant.ContactDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.user.UserProfileDto;
 import org.grnet.status.repositories.ProjectRepository;
 import org.grnet.status.repositories.TenantRepository;
-import org.grnet.status.services.ProjectService;
-import org.grnet.status.services.StatusPageService;
-import org.grnet.status.services.TenantService;
-import org.grnet.status.services.UserService;
+import org.grnet.status.services.*;
 import org.grnet.status.util.Utility;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUERY;
@@ -74,7 +73,8 @@ public class AdminEndpoint {
     @Inject
     Utility utility;
 
-
+    @Inject
+    ContactService contactService;
     // --------------------------------------------------------------------------------------------------------------------------
     // ADMIN STATUS PAGES ENDPOINT
     // --------------------------------------------------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ public class AdminEndpoint {
     @Path("/tenants")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Valid TenantRequestDto request) {
+    public Response create(@Valid TenantRequestDto request) throws IOException {
 
         var response = tenantService.create(request, utility.getUserUniqueIdentifier());
         return Response.ok(response).build();
@@ -288,7 +288,7 @@ public class AdminEndpoint {
                     schema = @Schema(type = SchemaType.STRING))
             @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
 
-            @Valid @NotNull(message = "The request body is empty.") TenantRequestDto request) {
+            @Valid @NotNull(message = "The request body is empty.") TenantRequestDto request) throws IOException {
 
         var updated = tenantService.updateTenant(id, request);
         return Response.ok().entity(updated).build();
@@ -679,6 +679,7 @@ public class AdminEndpoint {
             this.content = content;
         }
     }
+
     @Tag(name = "Admin")
     @Operation(
             summary = "Get list of tenants.",
@@ -761,10 +762,11 @@ public class AdminEndpoint {
             throw new BadRequestException("The available values of sort parameter are : " + sortValues);
         }
 
-        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo, search,sort,order);
+        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo, search, sort, order);
 
         return Response.ok().entity(assessments).build();
     }
+
     public static class PageableTenants extends PageResource<TenantResponseDto> {
 
         private List<TenantResponseDto> content;
@@ -778,7 +780,85 @@ public class AdminEndpoint {
         public void setContent(List<TenantResponseDto> content) {
             this.content = content;
         }
+    }
 
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Get list of contacts.",
+            description = "This endpoint returns a list of contacts " +
+                    "By default, the first page of 10 contact objects will be returned. You can tune the default values by using the query parameters page and size.")
+    @APIResponse(
+            responseCode = "200",
+            description = "List of tenant objects existing.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = PageableContacts.class)))
+    @APIResponse(
+            responseCode = "400",
+            description = "Bad Request",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Entity Not Found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/contacts")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response getContactsByPageAndSize(
+            @Parameter(name = "page", in = QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+            @Parameter(name = "size", in = QUERY,
+                    description = "The page size.")
+            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+            @Context UriInfo uriInfo) {
+
+        var contacts = contactService.getContactsByPageAndSize(page - 1, size, uriInfo);
+
+        return Response.ok().entity(contacts).build();
+    }
+
+    public static class PageableContacts extends PageResource<ContactDto> {
+
+        private List<ContactDto> content;
+
+        @Override
+        public List<ContactDto> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<ContactDto> content) {
+            this.content = content;
+        }
 
 
     }
