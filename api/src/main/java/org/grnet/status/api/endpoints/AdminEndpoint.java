@@ -32,6 +32,7 @@ import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.project.ProjectUpdateDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.tenant.ContactDto;
+import org.grnet.status.dtos.tenant.ContactFullDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenantproject.TenantProjectDeleteDto;
@@ -1101,7 +1102,7 @@ public class AdminEndpoint {
             throw new BadRequestException("The available values of sort parameter are : " + sortValues);
         }
 
-        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo, search,sort,order);
+        var assessments = tenantService.getTenantsByPageAndSize(page - 1, size, uriInfo, search, sort, order);
 
         return Response.ok().entity(assessments).build();
     }
@@ -1197,17 +1198,17 @@ public class AdminEndpoint {
         }
     }
 
-    public static class PageableContacts extends PageResource<ContactDto> {
+    public static class PageableContacts extends PageResource<ContactFullDto> {
 
-        private List<ContactDto> content;
+        private List<ContactFullDto> content;
 
         @Override
-        public List<ContactDto> getContent() {
+        public List<ContactFullDto> getContent() {
             return content;
         }
 
         @Override
-        public void setContent(List<ContactDto> content) {
+        public void setContent(List<ContactFullDto> content) {
             this.content = content;
         }
 
@@ -1243,5 +1244,56 @@ public class AdminEndpoint {
         }
     }
 
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Get list of contact types.",
+            description = "This endpoint returns a list of contact types ")
+    @APIResponse(
+            responseCode = "200",
+            description = "List of contact types existing.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.ARRAY,
+                    implementation = List.class)))
+    @APIResponse(
+            responseCode = "400",
+            description = "Bad Request",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Entity Not Found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/contact-types")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    public Response getContactTypes() {
+
+        var contactTypes = contactService.getContactTypes();
+
+        return Response.ok().entity(contactTypes).build();
+    }
 
 }

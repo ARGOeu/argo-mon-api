@@ -1,9 +1,16 @@
 package org.grnet.status.mappers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.inject.Inject;
 import org.grnet.status.dtos.tenant.*;
+import org.grnet.status.dtos.tenant.metadata.TenantMetadata;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiRequest;
 import org.grnet.status.entities.Contact;
+import org.grnet.status.entities.ContactTenantJunction;
 import org.grnet.status.entities.Tenant;
+import org.grnet.status.entities.TenantPartial;
 import org.grnet.status.enums.ContactType;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
@@ -12,24 +19,28 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Mapper(imports = {Timestamp.class, Instant.class})
 public interface TenantMapper {
+    @Inject
+    ObjectMapper objectMapper = new ObjectMapper();
 
     TenantMapper INSTANCE = Mappers.getMapper(TenantMapper.class);
     static final DateTimeFormatter DATE_TIME_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"));
 
 
+    @Mapping(target = "info", source = "info")
+    @Mapping(target = "topology", source = "metadata.instance.topology")
+    TenantWebApiRequest toWebApiRequest(TenantRequestDto dto);
+
+
     default List<TenantResponseDto> webApiTenantsToDtos(
             List<Tenant> tenants,
             List<TenantWebApiGetResponse> webApiGetResponses
-    ) {
+    ) throws JsonProcessingException {
         List<TenantResponseDto> dtos = new ArrayList<>();
 
         // Build map: tenantId -> Tenant
@@ -43,11 +54,10 @@ public interface TenantMapper {
                 continue;
             }
 
-            var item = response.getData().get(0); // id + info
-            var tenant = tenantMap.get(item.getId());
+            var tenant = tenantMap.get(response.getData().get(0).getId());
 
             if (tenant != null) {
-                dtos.add(webApiTenantToDto(tenant, item.getInfo()));
+                dtos.add(webApiTenantToDto(tenant, response));
             }
         }
 
@@ -55,19 +65,23 @@ public interface TenantMapper {
     }
 
     @Named("map")
-    default TenantResponseDto webApiTenantToDto(Tenant tenant, TenantWebApiGetResponse.Info info) {
+    default TenantResponseDto webApiTenantToDto(Tenant tenant, TenantWebApiGetResponse webApiGetResponse) throws JsonProcessingException {
         TenantResponseDto dto = new TenantResponseDto();
         dto.id = tenant.id;
-        TenantWebApiRequest.TenantWebApiInfo dtoInfo = new TenantWebApiRequest.TenantWebApiInfo();
-        dtoInfo.name = info.getName();
-        dtoInfo.email = info.getEmail();
-        dtoInfo.website = info.getWebsite();
-        dtoInfo.description = info.getDescription();
-        dtoInfo.image = info.getImage();
-        dtoInfo.createdAt = Instant.from(DATE_TIME_FMT.parse(info.getCreated()));
-        dtoInfo.updatedAt = Instant.from(DATE_TIME_FMT.parse(info.getUpdated()));
+        TenantInfoDto dtoInfo = new TenantInfoDto();
+        dtoInfo.name = webApiGetResponse.getData().get(0).getInfo().getName();
+        dtoInfo.email = webApiGetResponse.getData().get(0).getInfo().getEmail();
+        dtoInfo.website = webApiGetResponse.getData().get(0).getInfo().getWebsite();
+        dtoInfo.description = webApiGetResponse.getData().get(0).getInfo().getDescription();
+        dtoInfo.image = webApiGetResponse.getData().get(0).getInfo().getImage();
+        dtoInfo.createdAt = Instant.from(DATE_TIME_FMT.parse(webApiGetResponse.getData().get(0).getInfo().getCreated()));
+        dtoInfo.updatedAt = Instant.from(DATE_TIME_FMT.parse(webApiGetResponse.getData().get(0).getInfo().getUpdated()));
         dto.info = dtoInfo;
         dto.updatedBy = tenant.updatedBy;
+        dto.metadata = mapMetadataObject(tenant.getMetadata());
+        if (dto.metadata != null && dto.metadata.instance!=null && dto.metadata.instance.topology!=null) {
+            dto.metadata.instance.topology.feed = webApiGetResponse.getData().get(0).getTopology().getFeed();
+        }
         return dto;
     }
 
@@ -78,6 +92,14 @@ public interface TenantMapper {
     @Mapping(target = "type", source = "contactType", qualifiedByName = "mapTypeToString")
     ContactDto contactToDto(Contact contact);
 
+    @Named("contactFullToDto")
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "email", source = "email")
+    @Mapping(target = "type", source = "type", qualifiedByName = "mapTypeToString")
+    @Mapping(target = "tenants", source = "tenants", qualifiedByName = "tenantPartialsToResponses")
+    ContactFullDto contactFullToDto(ContactTenantJunction contactTenantJunction);
+
 
     @Named("contactsToDtos")
     default List<ContactDto> contactsToDtos(Set<Contact> contacts) {
@@ -86,6 +108,30 @@ public interface TenantMapper {
         }
         return contacts.stream()
                 .map(this::contactToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Named("contactsFullToDtos")
+    default List<ContactFullDto> contactsFullToDtos(Set<ContactTenantJunction> contactTenantJunctions) {
+        if (contactTenantJunctions == null) {
+            return List.of();
+        }
+        return contactTenantJunctions.stream()
+                .map(this::contactFullToDto)
+                .collect(Collectors.toList());
+    }
+
+
+    @Named("tenantPartialToResponse")
+    TenantPartialResponse tenantPartialToResponse(TenantPartial tenantPartial);
+
+    @Named("tenantPartialsToResponses")
+    default List<TenantPartialResponse> tenantPartialsToResponses(List<TenantPartial> tenants) {
+        if (tenants == null) {
+            return Collections.emptyList();
+        }
+        return tenants.stream()
+                .map(this::tenantPartialToResponse)
                 .collect(Collectors.toList());
     }
 
@@ -174,4 +220,37 @@ public interface TenantMapper {
         return dto;
     }
 
+    public default Tenant mapMetadata(TenantRequestDto dto, Tenant tenant) {
+        // Convert metadata object → JSON string for DB
+        try {
+            String metadataJson = objectMapper.writeValueAsString(dto.metadata);
+            tenant.setMetadata(metadataJson);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert metadata DTO to JSON", e);
+        }
+        return tenant;
+    }
+
+    default TenantMetadata mapMetadataObject(String metadataJson) {
+        if (metadataJson == null || metadataJson.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(metadataJson, TenantMetadata.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to deserialize metadata JSON", e);
+        }
+    }
+
+    // Map TenantMetadata → String JSON
+    default String mapMetadataToString(TenantMetadata metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize metadata JSON", e);
+        }
+    }
 }

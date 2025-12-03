@@ -26,14 +26,6 @@ public class TenantPartialResponse {
     @Valid
     public String name;
 
-
-    @Schema(
-            type = SchemaType.STRING,
-            implementation = String.class,
-            description = "User ID of the creator",
-            example = "alice_voperson_id"
-    )
-    @JsonProperty("updated_by")
-    public String updatedBy;
-
+    public TenantPartialResponse(String tenantId, String tenantName) {
+    }
 }

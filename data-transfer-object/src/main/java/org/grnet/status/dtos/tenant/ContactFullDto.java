@@ -6,10 +6,13 @@ import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.grnet.status.constraints.ValidContactType;
+import org.grnet.status.entities.Contact;
 
-@Schema(name = "ContactDto", description = "Represents the configuration of a contact info.")
+import java.util.List;
 
-public class ContactDto {
+@Schema(name = "ContactFullDto", description = "Represents the configuration of a contact info.")
+
+public class ContactFullDto {
     @Schema(
             type = SchemaType.STRING,
             description = "Contacts's id",
@@ -49,4 +52,16 @@ public class ContactDto {
     @ValidContactType
     public String type;
 
+    @Schema(
+            type = SchemaType.ARRAY,
+            implementation = List.class,
+            description = "The List of Tenants the contact is related with",
+            example = "[{9e2c9890-56c7-432a-bd6e-32e1da6eaa84-5, Tenant A}, {9e2c9890-56c7-432a-bd6e-32e1da6eaa84-6,TenantB}]"
+    )
+    @JsonProperty("tenants")
+
+    public List<TenantPartialResponse> tenants;
+
+    public ContactFullDto(Contact c, List<TenantPartialResponse> orDefault) {
+    }
 }
