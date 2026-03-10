@@ -24,7 +24,7 @@
         <module>exception</module>
         <module>authorization</module>
         <module>validator</module>
-
+        <module>endpoint-scanner</module>
     </modules>
 
     <properties>

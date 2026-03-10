@@ -19,6 +19,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.authorizations.interceptors.CheckEntitlements;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.encrypt.EncryptRequestDto;
@@ -89,6 +90,7 @@ public class ReportEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/encrypt")
     @CheckEntitlements(roles = {"member"})
+    @SecuredEndpoint(resource = "Users", action = "POST", path = "/encrypt", description = "report")
     public Response encrypt(EncryptRequestDto request) {
 
         var response = reportService.encrypt(request);

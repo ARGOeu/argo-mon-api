@@ -20,6 +20,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.authorizations.interceptors.CheckEntitlements;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.user.UserProfileDto;
@@ -38,7 +39,7 @@ import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUE
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER)
-@CheckEntitlements(group = "members")
+//@CheckEntitlements(group = "members")
 public class UserEndpoint {
 
     @Inject
@@ -98,7 +99,8 @@ public class UserEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/profile")
-    @CheckEntitlements(byPassAuthorization = true)
+    @SecuredEndpoint(resource = "Users", action = "GET", path = "gggg", description = "fffff")
+    //@CheckEntitlements(byPassAuthorization = true)
     public Response profile() {
 
         var response = userService.getUserProfile(utility.getUserUniqueIdentifier());
@@ -152,6 +154,7 @@ public class UserEndpoint {
     @Path("/registration")
     @Produces(MediaType.APPLICATION_JSON)
     @CheckEntitlements(byPassAuthorization = true)
+    @SecuredEndpoint(resource = "Users", action = "POST", path = "/gggg/fffff", description = "Lalalala")
     public Response registerMember() {
 
         groupManagementService.addMember("members", utility.getUsername());
@@ -209,6 +212,7 @@ public class UserEndpoint {
     @Path("/pages")
     @CheckEntitlements(roles = {"member"})
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(resource = "Users", action = "GET", path = "/pages", description = "pages")
     public Response getAllStatusPagesForUser(
             @Parameter(name = "search", in = QUERY,
                     description = "The \"search\" parameter is a query parameter that allows clients to specify a text string that will be used to search for matches in specific fields in Project entity. " +

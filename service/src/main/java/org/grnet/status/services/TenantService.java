@@ -66,7 +66,7 @@ public class TenantService {
     @Inject
     GroupManagement groupManagement;
 
-    @ConfigProperty(name = "api.auth.entitlements.parent.group")
+    @ConfigProperty(name = "api.auth.entitlements.parent-group")
     String namespace;
 
     @Inject
