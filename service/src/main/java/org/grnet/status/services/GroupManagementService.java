@@ -38,13 +38,13 @@ public class GroupManagementService {
     @Inject
     MailerService mailerService;
 
-    @ConfigProperty(name = "api.auth.entitlements.parent.group")
+    @ConfigProperty(name = "api.auth.entitlements.parent-group")
     String parentGroup;
 
     @ConfigProperty(name = "api.ui.url")
     String uiBaseUrl;
 
-    @ConfigProperty(name = "api.auth.entitlements.parent.group")
+    @ConfigProperty(name = "api.auth.entitlements.parent-group")
     String namespace;
 
     /**

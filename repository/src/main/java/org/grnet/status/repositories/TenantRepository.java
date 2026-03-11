@@ -1,8 +1,10 @@
 package org.grnet.status.repositories;
 
+import io.quarkus.arc.Unremovable;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.commons.lang3.StringUtils;
+import org.grnet.endpoint.scanner.runtime.entities.ResourceRepository;
 import org.grnet.status.entities.*;
 
 import java.util.Optional;
@@ -12,6 +14,7 @@ import java.util.*;
  * Repository responsible for managing Tenant entities.
  */
 @ApplicationScoped
+@ResourceRepository("Tenant")
 public class TenantRepository implements Repository<Tenant, String> {
 
     /**

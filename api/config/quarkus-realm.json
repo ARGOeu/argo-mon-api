@@ -2750,7 +2750,6 @@
       "firstName": "Local",
       "lastName": "Admin",
       "enabled": true,
-
       "attributes": {
         "voperson_id": ["local_admin_voperson_id"],
 
@@ -2758,7 +2757,8 @@
           "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:LOCALTENANT:role=admin",
           "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANT-TEST:role=admin",
           "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:role=admin",
-          "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:members:role=member"
+          "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:members:role=member",
+          "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:topology:5:role=admin"
         ]
       },
 

@@ -29,7 +29,7 @@ public class CheckEntitlementsInterceptor {
     @Inject
     Instance<GroupIdResolver> resolverInstances;
 
-    @ConfigProperty(name = "api.auth.entitlements.parent.group")
+    @ConfigProperty(name = "api.auth.entitlements.parent-group")
     String parentGroup;
 
 
