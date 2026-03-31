@@ -2750,7 +2750,6 @@
       "firstName": "Local",
       "lastName": "Admin",
       "enabled": true,
-
       "attributes": {
         "voperson_id": ["local_admin_voperson_id"],
 

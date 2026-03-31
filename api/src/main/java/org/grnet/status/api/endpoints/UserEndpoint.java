@@ -20,6 +20,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.authorizations.interceptors.CheckEntitlements;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.user.UserProfileDto;
@@ -38,7 +39,7 @@ import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUE
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER)
-@CheckEntitlements(group = "members")
+//@CheckEntitlements(group = "members")
 public class UserEndpoint {
 
     @Inject
@@ -207,8 +208,9 @@ public class UserEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/pages")
-    @CheckEntitlements(roles = {"member"})
+  //  @CheckEntitlements(roles = {"member"})
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response getAllStatusPagesForUser(
             @Parameter(name = "search", in = QUERY,
                     description = "The \"search\" parameter is a query parameter that allows clients to specify a text string that will be used to search for matches in specific fields in Project entity. " +

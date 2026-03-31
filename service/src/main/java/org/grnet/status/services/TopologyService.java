@@ -13,7 +13,8 @@ import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.grnet.status.services.clients.WebApiService;
 import org.jboss.logging.Logger;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TopologyService {
@@ -148,5 +149,87 @@ public class TopologyService {
             throw e;
         }
     }
+    public void findTheRules() {
 
+        String parentGroup = "status-pages";
+        String path = "/tenants/{id}/topology/{topology-id}/endpoints";
+
+        List<String> pathParts = parsePath(path);
+
+        Set<String> rules = new HashSet<>();
+        String[] entitlements = {
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:LOCALTENANT:role=admin",
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANT-TEST:role=admin",
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:role=admin",
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANT-TEST:role=viewer",
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:role=viewer",
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:topology:5:role=viewer",
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:topology:6:role=viewer",
+                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:members:role=member"
+        };
+        for (String ent : entitlements) {
+
+            String[] parts = normalize(ent, parentGroup);
+            if (parts == null) continue;
+
+            String template = buildTemplate(parts, pathParts);
+
+            rules.add(".*:" + template);
+        }
+
+        rules.forEach(System.out::println);
+    }
+    private String buildTemplate(String[] entParts, List<String> pathParts) {
+
+        List<String> result = new ArrayList<>();
+
+        int pathIndex = 0;
+
+        for (int i = 0; i < entParts.length; i++) {
+
+            String entPart = entParts[i];
+
+            // role=... always keep as-is
+            if (entPart.startsWith("role=")) {
+                result.add(entPart);
+                continue;
+            }
+
+            if (pathIndex >= pathParts.size()) {
+                result.add(entPart);
+                continue;
+            }
+
+            String pathPart = pathParts.get(pathIndex);
+
+            if (pathPart.startsWith("{") && pathPart.endsWith("}")) {
+                // replace with placeholder
+                result.add(pathPart);
+            } else {
+                // must match static segment
+                if (pathPart.equals(entPart)) {
+                    result.add(entPart);
+                } else {
+                    // mismatch → stop alignment
+                    result.add(entPart);
+                }
+            }
+
+            pathIndex++;
+        }
+
+        return String.join(":", result);
+    }
+    private String[] normalize(String ent, String parentGroup) {
+        int idx = ent.indexOf("group:" + parentGroup);
+        if (idx == -1) return null;
+
+        String relevant = ent.substring(idx + ("group:" + parentGroup).length() + 1);
+        return relevant.split(":");
+    }
+    private List<String> parsePath(String path) {
+        return Arrays.stream(path.split("/"))
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
 }

@@ -23,6 +23,9 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
+import org.grnet.endpoint.scanner.runtime.resolvers.DynamicResolver;
+import org.grnet.endpoint.scanner.runtime.resolvers.TestResolver;
 import org.grnet.status.api.resolvers.CheckDateFormat;
 import org.grnet.status.api.resolvers.TenantNameResolver;
 import org.grnet.status.authorizations.dtos.GroupUserResponse;
@@ -77,7 +80,7 @@ import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUE
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER)
-@CheckEntitlements(group = "tenants")
+//@CheckEntitlements(group = "tenants")
 public class TenantEndpoint {
 
     @Inject
@@ -227,8 +230,11 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response getTenant(
             @Parameter(description = "The ID of the tenant to retrieve.",
@@ -286,8 +292,11 @@ public class TenantEndpoint {
     @PUT
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response updateTenant(
             @Parameter(
@@ -338,8 +347,11 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/{id}/projects")
-    @CheckEntitlements(roles = {"admin", "viewer"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin", "viewer"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Produces(MediaType.APPLICATION_JSON)
     public Response getProjectsByTenant(
@@ -420,8 +432,11 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/{id}/members")
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Produces(MediaType.APPLICATION_JSON)
     public Response getMembersByTenant(
@@ -485,8 +500,11 @@ public class TenantEndpoint {
     @Path("/{id}/invitation")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response createInvitation(
             @Parameter(
@@ -541,8 +559,11 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/invitations")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response getInvitations(
             @Parameter(
@@ -638,8 +659,11 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @PATCH
     @Path("/{id}/invitations/{invitation_id}")
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -698,8 +722,11 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/members/{member_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response deleteMemberFromGroup(
@@ -762,8 +789,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/aggregation-profiles/{profile_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response listSpecificAggregationProfiles(
@@ -824,8 +855,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/aggregation-profiles")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response listAllAggregationProfiles(
@@ -881,8 +916,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/metric-profiles/{profile_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response listSpecificMetricProfiles(
@@ -943,8 +982,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/metric-profiles")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response listAllMetricProfiles(
@@ -1000,8 +1043,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/operations-profiles/{profile_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response listSpecificOperationsProfiles(
@@ -1062,8 +1109,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/operations-profiles")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response listAllOperationsProfiles(
@@ -1131,8 +1182,12 @@ public class TenantEndpoint {
     @Path("/{id}/reports")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response fetchReports(
             @Parameter(description = "The ID of the tenant.",
@@ -1195,8 +1250,12 @@ public class TenantEndpoint {
     @Path("/{id}/reports/{report-id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response fetchReportByID(
             @Parameter(description = "The ID of the tenant to retrieve report.",
@@ -1263,8 +1322,12 @@ public class TenantEndpoint {
     @POST
     @Path("/{id}/reports/{report-id}/set-node-report")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response setNodeReport(
             @Parameter(
@@ -1322,8 +1385,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/reports/{report-id}/groups")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response fetchStatusGroups(
             @Parameter(
@@ -1388,8 +1455,12 @@ public class TenantEndpoint {
     @Path("/{id}/pages")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response createStatusPage(
             @Parameter(
@@ -1443,8 +1514,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/pages/{page-id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response getStatusPage(
             @Parameter(
@@ -1496,8 +1571,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/pages")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response listStatusPages(
             @Parameter(
@@ -1564,8 +1643,12 @@ public class TenantEndpoint {
     @PUT
     @Path("/{id}/pages/{page-id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response updateStatusPage(
             @Parameter(
@@ -1624,8 +1707,12 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/pages/{page-id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response deleteStatusPage(
             @Parameter(
@@ -1678,8 +1765,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/pages/check-slug/{slug}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response checkSlugExists(
             @Parameter(
@@ -1727,8 +1818,12 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/check-readiness")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response checkReadiness(
             @Parameter(
@@ -1750,7 +1845,7 @@ public class TenantEndpoint {
     )
     @APIResponse(
             responseCode = "200",
-            description = "Tenant's readiness details.",
+            description = "Tenant's node details.",
             content = @Content(schema = @Schema(
                     type = SchemaType.OBJECT,
                     implementation = WebApiNodeResponse.class)))
@@ -1775,8 +1870,12 @@ public class TenantEndpoint {
     @PUT
     @Path("/{id}/set-node")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response updateTenantNode(
             @Parameter(
@@ -1893,8 +1992,11 @@ public class TenantEndpoint {
     @Path("/{id}/notify-ams-check-readiness")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
 
     public Response notifyAms(
@@ -1951,9 +2053,10 @@ public class TenantEndpoint {
     @Path("/{id}/status")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
+
 
     public Response getTenantStatus(@Parameter(
             description = "The ID of the tenant to retrieve status.",
@@ -2071,8 +2174,12 @@ public class TenantEndpoint {
     @Path("/{id}/topology/groups")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response fetchGroupTopologies(
             @Parameter(description = "The ID of the tenant.",
@@ -2140,8 +2247,12 @@ public class TenantEndpoint {
     @Path("/{id}/topology/endpoints")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response fetchEndpointTopologies(
             @Parameter(description = "The ID of the tenant.",
@@ -2210,8 +2321,12 @@ public class TenantEndpoint {
     @Path("/{id}/topology/service-types")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response fetchServiceTypes(
             @Parameter(description = "The ID of the tenant.",
@@ -2279,8 +2394,12 @@ public class TenantEndpoint {
     @Path("/{id}/topology/groups")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response createGroupTopologies(
             @Parameter(description = "The ID of the tenant.",
@@ -2357,8 +2476,12 @@ public class TenantEndpoint {
     @Path("/{id}/topology/endpoints")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response createEndpointTopologies(
             @Parameter(description = "The ID of the tenant.",
@@ -2436,8 +2559,12 @@ public class TenantEndpoint {
     @Path("/{id}/topology/service-types")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     public Response createServiceTypes(
             @Parameter(description = "The ID of the tenant.",
@@ -2502,8 +2629,12 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/topology/groups")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response deleteGroupTopologies(
@@ -2562,8 +2693,12 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/topology/endpoints")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response deleteEndpointTopologies(
@@ -2621,8 +2756,12 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/topology/service-types")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    @CheckEntitlements(roles = {"admin"}, resolvers = {
+//            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
+//    })
+
+    @SecuredEndpoint(resolvers = {
+            @TestResolver(idResolver = DynamicResolver.class, pathId = "id")
     })
     @Authenticated
     public Response deleteServiceTypes(

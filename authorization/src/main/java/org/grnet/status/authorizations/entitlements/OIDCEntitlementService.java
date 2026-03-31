@@ -18,7 +18,7 @@ public class OIDCEntitlementService {
     @ConfigProperty(name = "api.auth.entitlements.namespace")
     String namespace;
 
-    @ConfigProperty(name = "api.auth.entitlements.parent.group")
+    @ConfigProperty(name = "api.auth.entitlements.parent-group")
     String parentGroup;
 
 

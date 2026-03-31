@@ -16,6 +16,12 @@
     <name>status-api</name>
     <version>${revision}</version>
     <dependencies>
+        <dependency>
+            <groupId>org.grnet</groupId>
+            <artifactId>quarkus-auth</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- Quarkus core runtime -->
         <dependency>
             <groupId>io.quarkus</groupId>

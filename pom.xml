@@ -50,7 +50,12 @@
         <keycloak.version>26.0.6</keycloak.version>
 
     </properties>
-
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/ARGOeu/quarkus-auth</url>
+        </repository>
+    </repositories>
     <dependencyManagement>
         <dependencies>
             <!-- Quarkus platform BOM -->
@@ -131,6 +136,7 @@
     </dependencyManagement>
 
     <build>
+
         <!-- Include static files (e.g. META-INF/resources/js) in build output -->
         <resources>
             <resource>

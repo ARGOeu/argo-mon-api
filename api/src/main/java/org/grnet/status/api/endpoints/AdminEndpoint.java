@@ -23,12 +23,10 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.grnet.status.api.resolvers.TenantNameResolver;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.authorizations.dtos.GroupUserResponse;
 import org.grnet.status.authorizations.dtos.MemberRequest;
 import org.grnet.status.authorizations.dtos.PartialGroup;
-import org.grnet.status.authorizations.interceptors.CheckEntitlements;
-import org.grnet.status.authorizations.interceptors.Resolver;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.pagination.PageResource;
@@ -39,14 +37,13 @@ import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.tenant.ContactFullDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
-import org.grnet.status.dtos.tenant.invitations.TenantInvitationResponse;
-import org.grnet.status.dtos.tenantproject.TenantProjectDeleteDto;
-import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
-import org.grnet.status.dtos.tenantproject.TenantProjectDto;
-import org.grnet.status.enums.TenantGroupStatus;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
+import org.grnet.status.dtos.tenant.invitations.TenantInvitationResponse;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
+import org.grnet.status.dtos.tenantproject.TenantProjectDto;
+import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
+import org.grnet.status.enums.TenantGroupStatus;
 import org.grnet.status.repositories.ProjectRepository;
 import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.services.*;
@@ -67,7 +64,7 @@ import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUE
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER)
-@CheckEntitlements
+//@CheckEntitlements
 public class AdminEndpoint {
 
 
@@ -141,6 +138,7 @@ public class AdminEndpoint {
     @Path("/tenants")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response create(@Valid TenantRequestDto request) throws IOException {
 
         var response = tenantService.create(request, utility.getUserUniqueIdentifier());
@@ -187,6 +185,7 @@ public class AdminEndpoint {
     @DELETE
     @Path("/tenants/{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response deleteTenant(@Parameter(
             description = "The ID of the tenant to be deleted.",
             required = true,
@@ -247,6 +246,7 @@ public class AdminEndpoint {
     @Path("/tenants/{id}/group")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
+    @SecuredEndpoint
     public Response createGroupTenant(
             @Parameter(description = "The ID of the tenant to retrieve.",
                     required = true,
@@ -306,6 +306,7 @@ public class AdminEndpoint {
     @GET
     @Path("/tenants")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response getTenantsByPageAndSize(
             @Parameter(name = "page", in = QUERY,
                     description = "Indicates the page number. Page number must be >= 1.")
@@ -389,6 +390,7 @@ public class AdminEndpoint {
     @Path("/projects")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response createProject(
             @Valid @NotNull(message = "The request body is empty.")
             ProjectRequestDto request,
@@ -437,6 +439,7 @@ public class AdminEndpoint {
     @GET
     @Path("/projects/{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response getProject(
             @Parameter(
                     description = "The ID of the project to retrieve.",
@@ -494,6 +497,7 @@ public class AdminEndpoint {
     @PUT
     @Path("/projects/{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response updateProject(
             @Parameter(
                     description = "The ID of the project to retrieve.",
@@ -547,6 +551,7 @@ public class AdminEndpoint {
     @DELETE
     @Path("/projects/{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response deleteProject(
             @Parameter(
                     description = "The ID of the project to delete.",
@@ -598,6 +603,7 @@ public class AdminEndpoint {
     @GET
     @Path("/projects")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response fetchAllProjects(
             @Parameter(name = "Search", in = QUERY,
                     description = "Search term applied on the Project. ")
@@ -678,6 +684,7 @@ public class AdminEndpoint {
     @GET
     @Path("/projects/{id}/tenants")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response getTenantsByProject(
             @Parameter(
                     description = "The ID of the project to retrieve.",
@@ -781,6 +788,7 @@ public class AdminEndpoint {
     @Path("/tenant-project")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response assignProjectToTenants(
             @Valid @NotNull TenantProjectRequestDto request) {
 
@@ -868,6 +876,7 @@ public class AdminEndpoint {
     @Path("/contacts")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
+    @SecuredEndpoint
     public Response getContactsByPageAndSize(
             @Parameter(name = "page", in = QUERY,
                     description = "Indicates the page number. Page number must be >= 1.")
@@ -971,6 +980,7 @@ public class AdminEndpoint {
     @GET
     @Path("/members")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response fetchMembers(
             @Parameter(name = "search", in = QUERY,
                     description = "Search term applied on members (user id, username, email, first name, last name).")
@@ -1033,6 +1043,7 @@ public class AdminEndpoint {
     @Path("/tenants/{id}/notify-ams")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response notifyAms(
             @Parameter(
                     description = "The ID of the tenant to start automation process.",
@@ -1085,6 +1096,7 @@ public class AdminEndpoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/tenants/{id}/manual/status")
+    @SecuredEndpoint
     public Response updateStatus(
             @PathParam("id")
             @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
@@ -1134,6 +1146,7 @@ public class AdminEndpoint {
     @GET
     @Path("/invitations")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
     public Response getInvitation(
 
             @Parameter(name = "search", in = QUERY,
@@ -1218,6 +1231,7 @@ public class AdminEndpoint {
     @Path("/tenants/{id}/members")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
+    @SecuredEndpoint
     public Response addMemberToGroup(
             @Parameter(description = "The ID of the tenant.",
                     required = true,

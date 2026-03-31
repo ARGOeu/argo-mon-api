@@ -22,6 +22,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.authorizations.interceptors.CheckEntitlements;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
@@ -46,7 +47,7 @@ import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUE
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER)
 @Tag(name = "User")
-@CheckEntitlements(group = "members")
+//@CheckEntitlements(group = "members")
 public class TenantInvitationEndpoint {
 
     @Inject
@@ -93,11 +94,12 @@ public class TenantInvitationEndpoint {
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"member"})
+    //  @CheckEntitlements(roles = {"member"})
+    @SecuredEndpoint
     public Response getInvitationById(
             @PathParam("id")
             @Valid @NotFoundEntity(repository = TenantInvitationRepository.class, message = "There is no Invitation with the following id: ")
-            String id)  {
+            String id) {
 
         var response = tenantInvitationService.getInvitationById(id, utility.getUserEmail());
 
@@ -149,7 +151,8 @@ public class TenantInvitationEndpoint {
     @Path("/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"member"})
+    @SecuredEndpoint
+    //  @CheckEntitlements(roles = {"member"})
     public Response respond(
             @PathParam("id")
             @Valid @NotFoundEntity(repository = TenantInvitationRepository.class, message = "There is no Invitation with the following id: ") String id,
@@ -160,6 +163,7 @@ public class TenantInvitationEndpoint {
 
         return Response.ok(response).build();
     }
+
     @Operation(
             summary = "Get all invitations.",
             description = "Returns all invitation for the authenticated user. "
@@ -197,7 +201,8 @@ public class TenantInvitationEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"member"})
+   // @CheckEntitlements(roles = {"member"})
+    @SecuredEndpoint
     public Response getInvite(
             @Parameter(name = "page", in = QUERY,
                     description = "Page number. Must be >= 1.")
@@ -211,13 +216,11 @@ public class TenantInvitationEndpoint {
             @Min(value = 1, message = "Page size must be between 1 and 100.")
             @Max(value = 100, message = "Page size must be between 1 and 100.")
             @QueryParam("size")
-            int size, @Context UriInfo uriInfo)
-    {
-        var response = tenantInvitationService.getAllInvitationsByUser(utility.getUserEmail(), page - 1 , size, uriInfo);
+            int size, @Context UriInfo uriInfo) {
+        var response = tenantInvitationService.getAllInvitationsByUser(utility.getUserEmail(), page - 1, size, uriInfo);
 
         return Response.ok(response).build();
     }
-
 
 
     // --------------------------------------------------------------------------------------------------------------------------
