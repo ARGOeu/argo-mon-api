@@ -234,4 +234,7 @@ public class GroupManagementService {
 
         groupManagement.removeMemberFromGroup(parentPath, memberId);
     }
+    public List<String> getGroupRoles( String groupId) {
+        return groupManagement.getGroupRoles(groupId);
+    }
 }

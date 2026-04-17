@@ -313,4 +313,22 @@ public class AuthGroupManagement implements GroupManagement {
             }
         }
     }
+    @Override
+    public List<String> getGroupRoles(String groupId) {
+        Group group = this.groupClient.getGroup(groupId);
+
+        if (group.attributes == null ||
+                !group.attributes.containsKey("defaultConfiguration") ||
+                group.attributes.get("defaultConfiguration").isEmpty()) {
+            throw new IllegalStateException("Missing defaultConfiguration for group " + groupId);
+        }
+
+        String configId = group.attributes.get("defaultConfiguration").get(0);
+
+        GroupMembership config = this.groupClient.getConfiguration(groupId, configId);
+
+        return config != null && config.groupRoles != null
+                ? config.groupRoles
+                : List.of();
+    }
 }

@@ -44,6 +44,8 @@ public interface GroupManagement {
 
     void removeMemberFromGroup(String fullPath, String memberId);
 
+    List<String> getGroupRoles(String groupId);
+
     default void collectGroupRecursive(Group group, List<PartialGroup> groups) {
 
         groups.add(new PartialGroup(group.id, group.name,group.path));

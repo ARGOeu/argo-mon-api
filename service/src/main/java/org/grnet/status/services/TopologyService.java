@@ -149,87 +149,314 @@ public class TopologyService {
             throw e;
         }
     }
+//    public void findTheRules() {
+//
+//        String parentGroup = "status-pages";
+//        String path = "/tenants/{id}/topology/{topology-id}/endpoints";
+//
+//        List<String> pathParts = parsePath(path);
+//
+//        Set<String> rules = new HashSet<>();
+//        String[] entitlements = {
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:LOCALTENANT:role=admin",
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANT-TEST:role=admin",
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:role=admin",
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANT-TEST:role=viewer",
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:role=viewer",
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:topology:5:role=viewer",
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:topology:6:role=viewer",
+//                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:members:role=member"
+//        };
+//        for (String ent : entitlements) {
+//
+//            String[] parts = normalize(ent, parentGroup);
+//            if (parts == null) continue;
+//
+//            String template = buildTemplate(parts, pathParts);
+//
+//            rules.add(".*:" + template);
+//        }
+//
+//        rules.forEach(System.out::println);
+//    }
+//    private String buildTemplate(String[] entParts, List<String> pathParts) {
+//
+//        List<String> result = new ArrayList<>();
+//
+//        int pathIndex = 0;
+//
+//        for (int i = 0; i < entParts.length; i++) {
+//
+//            String entPart = entParts[i];
+//
+//            // role=... always keep as-is
+//            if (entPart.startsWith("role=")) {
+//                result.add(entPart);
+//                continue;
+//            }
+//
+//            if (pathIndex >= pathParts.size()) {
+//                result.add(entPart);
+//                continue;
+//            }
+//
+//            String pathPart = pathParts.get(pathIndex);
+//
+//            if (pathPart.startsWith("{") && pathPart.endsWith("}")) {
+//                // replace with placeholder
+//                result.add(pathPart);
+//            } else {
+//                // must match static segment
+//                if (pathPart.equals(entPart)) {
+//                    result.add(entPart);
+//                } else {
+//                    // mismatch → stop alignment
+//                    result.add(entPart);
+//                }
+//            }
+//
+//            pathIndex++;
+//        }
+//
+//        return String.join(":", result);
+//    }
+//    private String[] normalize(String ent, String parentGroup) {
+//        int idx = ent.indexOf("group:" + parentGroup);
+//        if (idx == -1) return null;
+//
+//        String relevant = ent.substring(idx + ("group:" + parentGroup).length() + 1);
+//        return relevant.split(":");
+//    }
+//    private List<String> parsePath(String path) {
+//        return Arrays.stream(path.split("/"))
+//                .filter(s -> !s.isEmpty())
+//                .collect(Collectors.toList());
+//    }
+//
+
+
     public void findTheRules() {
 
-        String parentGroup = "status-pages";
-        String path = "/tenants/{id}/topology/{topology-id}/endpoints";
+                List<String> entitlements = List.of(
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:LOCALTENANT:role=admin",
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:TENANT-TEST:role=admin",
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:TENANTB:role=admin",
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:TENANT-TEST:role=viewer",
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:TENANTB:role=viewer",
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:TENANTB:topology:5:role=viewer",
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:TENANTB:topology:6:role=viewer",
+                        "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:members:role=member"
+                );
 
-        List<String> pathParts = parsePath(path);
 
-        Set<String> rules = new HashSet<>();
-        String[] entitlements = {
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:LOCALTENANT:role=admin",
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANT-TEST:role=admin",
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:role=admin",
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANT-TEST:role=viewer",
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:role=viewer",
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:topology:5:role=viewer",
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:tenants:TENANTB:topology:6:role=viewer",
-                "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:members:role=member"
-        };
-        for (String ent : entitlements) {
+                // Step 1: Infer raw patterns
+                List<String> rawPatterns = inferPatterns(entitlements);
 
-            String[] parts = normalize(ent, parentGroup);
-            if (parts == null) continue;
+                // Step 2: Merge patterns (IMPORTANT)
+                List<String> finalPatterns = mergePatterns(rawPatterns);
 
-            String template = buildTemplate(parts, pathParts);
-
-            rules.add(".*:" + template);
-        }
-
-        rules.forEach(System.out::println);
-    }
-    private String buildTemplate(String[] entParts, List<String> pathParts) {
-
-        List<String> result = new ArrayList<>();
-
-        int pathIndex = 0;
-
-        for (int i = 0; i < entParts.length; i++) {
-
-            String entPart = entParts[i];
-
-            // role=... always keep as-is
-            if (entPart.startsWith("role=")) {
-                result.add(entPart);
-                continue;
+                System.out.println("Final Patterns:");
+                finalPatterns.forEach(System.out::println);
             }
 
-            if (pathIndex >= pathParts.size()) {
-                result.add(entPart);
-                continue;
+            // =========================
+            // PIPELINE
+            // =========================
+
+            public List<String> inferPatterns(List<String> entitlements) {
+
+                Map<String, List<List<String>>> clusters = cluster(entitlements);
+
+                List<String> results = new ArrayList<>();
+
+                for (List<List<String>> group : clusters.values()) {
+
+                    TrieNode root = new TrieNode();
+
+                    for (List<String> tokens : group) {
+                        insert(root, tokens);
+                    }
+
+                    buildPatterns(root, new StringBuilder("*"), 0, results);
+                }
+
+                return results;
             }
 
-            String pathPart = pathParts.get(pathIndex);
+            // =========================
+            // CLUSTERING
+            // =========================
 
-            if (pathPart.startsWith("{") && pathPart.endsWith("}")) {
-                // replace with placeholder
-                result.add(pathPart);
-            } else {
-                // must match static segment
-                if (pathPart.equals(entPart)) {
-                    result.add(entPart);
-                } else {
-                    // mismatch → stop alignment
-                    result.add(entPart);
+            private Map<String, List<List<String>>> cluster(List<String> entitlements) {
+
+                Map<String, List<List<String>>> clusters = new HashMap<>();
+
+                for (String e : entitlements) {
+
+                    List<String> tokens = Arrays.asList(e.split(":"));
+
+                    String key = normalizeStructure(tokens);
+
+                    clusters.computeIfAbsent(key, k -> new ArrayList<>())
+                            .add(tokens);
+                }
+
+                return clusters;
+            }
+
+            private String normalizeStructure(List<String> tokens) {
+
+                List<String> normalized = new ArrayList<>();
+
+                for (String t : tokens) {
+                    if (t.contains("=")) {
+                        normalized.add("ATTR");
+                    } else if (t.matches("\\d+")) {
+                        normalized.add("NUM");
+                    } else {
+                        normalized.add("STR");
+                    }
+                }
+
+                return String.join("-", normalized);
+            }
+
+            // =========================
+            // TRIE
+            // =========================
+
+            static class TrieNode {
+                Map<String, TrieNode> children = new HashMap<>();
+            }
+
+            private void insert(TrieNode root, List<String> tokens) {
+                TrieNode node = root;
+
+                for (String token : tokens) {
+                    node = node.children.computeIfAbsent(token, k -> new TrieNode());
                 }
             }
 
-            pathIndex++;
+            private void buildPatterns(TrieNode node,
+                                       StringBuilder current,
+                                       int depth,
+                                       List<String> results) {
+
+                if (node.children.isEmpty()) {
+                    results.add(current.toString());
+                    return;
+                }
+
+                if (node.children.size() == 1) {
+
+                    Map.Entry<String, TrieNode> entry =
+                            node.children.entrySet().iterator().next();
+
+                    StringBuilder next = new StringBuilder(current);
+                    next.append(":").append(entry.getKey());
+
+                    buildPatterns(entry.getValue(), next, depth + 1, results);
+
+                } else {
+
+                    String var = "{var" + depth + "}";
+
+                    StringBuilder next = new StringBuilder(current);
+                    next.append(":").append(var);
+
+                    TrieNode representative = node.children.values().iterator().next();
+
+                    buildPatterns(representative, next, depth + 1, results);
+                }
+            }
+
+            // =========================
+            // MERGING PHASE (KEY FIX)
+            // =========================
+
+            public List<String> mergePatterns(List<String> patterns) {
+
+                List<String> result = new ArrayList<>(patterns);
+
+                boolean changed;
+
+                do {
+                    changed = false;
+
+                    for (int i = 0; i < result.size(); i++) {
+                        for (int j = i + 1; j < result.size(); j++) {
+
+                            String p1 = result.get(i);
+                            String p2 = result.get(j);
+
+                            List<String> t1 = split(p1);
+                            List<String> t2 = split(p2);
+
+                            if (isPrefixCompatible(t1, t2)) {
+
+                                String merged = mergeTwo(t1, t2);
+
+                                result.set(i, merged);
+                                result.remove(j);
+
+                                changed = true;
+                                break;
+                            }
+                        }
+                        if (changed) break;
+                    }
+
+                } while (changed);
+
+                return result;
+            }
+
+            private List<String> split(String pattern) {
+                return Arrays.asList(pattern.split(":"));
+            }
+
+            /**
+             * Checks if two patterns share a prefix structure allowing merging
+             */
+            private boolean isPrefixCompatible(List<String> a, List<String> b) {
+
+                int min = Math.min(a.size(), b.size());
+
+                for (int i = 0; i < min; i++) {
+
+                    String t1 = a.get(i);
+                    String t2 = b.get(i);
+
+                    if (!t1.equals(t2) &&
+                            !t1.startsWith("{var") &&
+                            !t2.startsWith("{var")) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /**
+             * Merge two patterns into a more specific generalized one
+             */
+            private String mergeTwo(List<String> a, List<String> b) {
+
+                int max = Math.max(a.size(), b.size());
+                List<String> merged = new ArrayList<>();
+
+                for (int i = 0; i < max; i++) {
+
+                    String t1 = i < a.size() ? a.get(i) : null;
+                    String t2 = i < b.size() ? b.get(i) : null;
+
+                    if (Objects.equals(t1, t2)) {
+                        merged.add(t1);
+                    } else {
+                        merged.add("{var" + i + "}");
+                    }
+                }
+
+                return String.join(":", merged);
+            }
         }
-
-        return String.join(":", result);
-    }
-    private String[] normalize(String ent, String parentGroup) {
-        int idx = ent.indexOf("group:" + parentGroup);
-        if (idx == -1) return null;
-
-        String relevant = ent.substring(idx + ("group:" + parentGroup).length() + 1);
-        return relevant.split(":");
-    }
-    private List<String> parsePath(String path) {
-        return Arrays.stream(path.split("/"))
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
-    }
-}

@@ -868,4 +868,13 @@ public class DevGroupManagement implements GroupManagement {
     public void removeMemberFromGroup(String fullPath, String memberId) {
         LOG.debugf("DEV: removeMemberFromGroup skipped (user=%s, group=%s)", memberId, fullPath);
     }
+    @Override
+    public List<String> getGroupRoles(String groupId) {
+        var response = fetchGroupMembers("", 0, 100, null);
+
+        return response.results.stream()
+                .flatMap(r -> r.groupRoles != null ? r.groupRoles.stream() : List.<String>of().stream())
+                .distinct()
+                .toList();
+    }
 }
