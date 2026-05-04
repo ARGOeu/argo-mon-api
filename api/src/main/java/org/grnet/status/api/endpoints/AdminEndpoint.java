@@ -29,10 +29,12 @@ import org.grnet.status.authorizations.dtos.MemberRequest;
 import org.grnet.status.authorizations.dtos.PartialGroup;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.RoleEndpointAssignmentResponse;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.project.ProjectUpdateDto;
+import org.grnet.status.dtos.role.RoleEndpointAssignmentRequest;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.tenant.ContactFullDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
@@ -89,7 +91,8 @@ public class AdminEndpoint {
     @Inject
     GroupManagementService groupManagementService;
 
-
+@Inject
+RoleEndpointService roleEndpointService;
     // --------------------------------------------------------------------------------------------------------------------------
     // ADMIN TENANT ENDPOINT
     // --------------------------------------------------------------------------------------------------------------------------
@@ -1340,4 +1343,111 @@ public class AdminEndpoint {
         }
     }
 
+    @Tag(name = "Admin")
+    @Operation(summary = "Assign secured endpoint to roles",
+            description = "Assign secured endpoint to roles")
+    @APIResponse(
+            responseCode = "200",
+            description = "Secured endpoints assigned successfully",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Tenant already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/roles/assign-endpoints")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
+
+    public Response bulkAssign(RoleEndpointAssignmentRequest request) {
+
+        roleEndpointService.assignRolesToEndpoints(request);
+        var informativeResponse = new InformativeResponse();
+        informativeResponse.code = 200;
+        informativeResponse.message = "SecuredEndpoints assigned successfully";
+
+        return Response.ok().entity(informativeResponse).build();
+    }
+    @Tag(name = "Admin")
+    @Operation(summary = "Retrieve assigned secured endpoint to roles",
+            description = "Retrieve assigned secured endpoint to roles")
+    @APIResponse(
+            responseCode = "200",
+            description = "Secret encrypted successfully",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Tenant already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+
+    @GET
+    @Path("/roles/assigned-endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
+    public Response getAssignedEndpointsPerRole() {
+
+        RoleEndpointAssignmentResponse response =
+                roleEndpointService.getAssignedEndpointsPerRole();
+
+        return Response.ok(response).build();
+    }
 }
