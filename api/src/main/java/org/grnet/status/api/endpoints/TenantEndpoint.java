@@ -24,11 +24,11 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.ParamRef;
+import org.grnet.endpoint.scanner.runtime.ParamType;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
+import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
 import org.grnet.status.api.resolvers.CheckDateFormat;
-import org.grnet.status.api.resolvers.TenantNameResolver;
-import org.grnet.status.authorizations.dtos.GroupUserResponse;
-import org.grnet.status.authorizations.interceptors.CheckEntitlements;
-import org.grnet.status.authorizations.interceptors.Resolver;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
@@ -55,6 +55,7 @@ import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
 import org.grnet.status.dtos.topology.*;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
+import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.repositories.StatusPageRepository;
 import org.grnet.status.repositories.TenantInvitationRepository;
 import org.grnet.status.repositories.TenantRepository;
@@ -76,7 +77,6 @@ import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUE
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER)
-@CheckEntitlements(group = "tenants")
 public class TenantEndpoint {
 
     @Inject
@@ -147,7 +147,8 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(byPassAuthorization = true)
+    @SecuredEndpoint
+
     public Response listTenants(
             @Parameter(name = "search", in = QUERY,
                     description = "Search tenants by name.")
@@ -188,7 +189,6 @@ public class TenantEndpoint {
 
         return Response.ok().entity(result).build();
     }
-
     @Operation(
             summary = "Get Tenant By Id .",
             description = "Returns a specific tenant assessment.")
@@ -226,9 +226,18 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
+
     public Response getTenant(
             @Parameter(description = "The ID of the tenant to retrieve.",
                     required = true,
@@ -285,9 +294,14 @@ public class TenantEndpoint {
     @PUT
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH
+                    )
+            }
+    )
     public Response updateTenant(
             @Parameter(
                     description = "The ID of the tenant to retrieve.",
@@ -337,10 +351,15 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/{id}/projects")
-    @CheckEntitlements(roles = {"admin", "viewer"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH
+                    )
+            }
+    )
     public Response getProjectsByTenant(
             @Parameter(
                     description = "The ID of the project to retrieve.",
@@ -419,10 +438,15 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/{id}/members")
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH
+                    )
+            }
+    )
     public Response getMembersByTenant(
             @Parameter(
                     description = "The ID of the tenant to retrieve.",
@@ -484,9 +508,15 @@ public class TenantEndpoint {
     @Path("/{id}/invitation")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
     public Response createInvitation(
             @Parameter(
                     description = "The ID of the tenant to create an invitation.",
@@ -540,9 +570,15 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/invitations")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                                    referTo = TenantResource.class
+                    )
+            }
+    )
     public Response getInvitations(
             @Parameter(
                     description = "The ID of the tenant under which the invitation was created.",
@@ -637,11 +673,17 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @PATCH
     @Path("/{id}/invitations/{invitation_id}")
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
     public Response revoke(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -697,10 +739,15 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/members/{member_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH
+                    )
+            }
+    )
     public Response deleteMemberFromGroup(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -761,10 +808,15 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/aggregation-profiles/{profile_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH
+                    )
+            }
+    )
     public Response listSpecificAggregationProfiles(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -823,10 +875,17 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/aggregation-profiles")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response listAllAggregationProfiles(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -880,10 +939,17 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/metric-profiles/{profile_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response listSpecificMetricProfiles(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -942,10 +1008,17 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/metric-profiles")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response listAllMetricProfiles(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -999,10 +1072,17 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/operations-profiles/{profile_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response listSpecificOperationsProfiles(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -1061,10 +1141,17 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/operations-profiles")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response listAllOperationsProfiles(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -1130,9 +1217,16 @@ public class TenantEndpoint {
     @Path("/{id}/reports")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response fetchReports(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -1194,9 +1288,16 @@ public class TenantEndpoint {
     @Path("/{id}/reports/{report-id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response fetchReportByID(
             @Parameter(description = "The ID of the tenant to retrieve report.",
                     required = true,
@@ -1262,9 +1363,16 @@ public class TenantEndpoint {
     @POST
     @Path("/{id}/reports/{report-id}/set-node-report")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response setNodeReport(
             @Parameter(
                     description = "The ID of the tenant.",
@@ -1321,9 +1429,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/reports/{report-id}/groups")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response fetchStatusGroups(
             @Parameter(
                     description = "The ID of the tenant to retrieve report.",
@@ -1387,9 +1502,16 @@ public class TenantEndpoint {
     @Path("/{id}/pages")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response createStatusPage(
             @Parameter(
                     description = "The ID of the tenant to create pages under.",
@@ -1442,9 +1564,6 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/pages/{page-id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     public Response getStatusPage(
             @Parameter(
                     description = "The ID of the tenant to retrieve report.",
@@ -1495,9 +1614,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/pages")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response listStatusPages(
             @Parameter(
                     description = "The ID of the tenant to retrieve pages.",
@@ -1563,9 +1689,16 @@ public class TenantEndpoint {
     @PUT
     @Path("/{id}/pages/{page-id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response updateStatusPage(
             @Parameter(
                     description = "The ID of the tenant to retrieve report.",
@@ -1623,9 +1756,16 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/pages/{page-id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response deleteStatusPage(
             @Parameter(
                     description = "The ID of the tenant to retrieve report.",
@@ -1677,9 +1817,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/pages/check-slug/{slug}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response checkSlugExists(
             @Parameter(
                     description = "The ID of the tenant to retrieve report.",
@@ -1726,9 +1873,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/check-readiness")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response checkReadiness(
             @Parameter(
                     description = "The ID of the tenant to check readiness.",
@@ -1773,10 +1927,17 @@ public class TenantEndpoint {
                     implementation = InformativeResponse.class)))
     @PUT
     @Path("/{id}/set-node")
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     public Response updateTenantNode(
             @Parameter(
                     description = "The ID of the tenant to check readiness.",
@@ -1825,9 +1986,16 @@ public class TenantEndpoint {
     @PUT
     @Path("/{id}/feeds/topology")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response updateTenantFeedTopology(
             @Parameter(
                     description = "The ID of the tenant to check readiness.",
@@ -1915,9 +2083,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/feeds/topology")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response getTenantFeedTopology(
             @Parameter(
                     description = "The ID of the tenant.",
@@ -2031,10 +2206,16 @@ public class TenantEndpoint {
     @Path("/{id}/notify-ams-check-readiness")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
 
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response notifyAms(
             @Parameter(
                     description = "The ID of the tenant to start automation process.",
@@ -2089,9 +2270,16 @@ public class TenantEndpoint {
     @Path("/{id}/status")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
 
     public Response getTenantStatus(@Parameter(
             description = "The ID of the tenant to retrieve status.",
@@ -2150,8 +2338,16 @@ public class TenantEndpoint {
     @Path("/contact-types")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @CheckEntitlements(byPassAuthorization = true)
+    @SecuredEndpoint(
+            params = {
 
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response getContactTypes() {
 
         var contactTypes = contactService.getContactTypes();
@@ -2209,9 +2405,16 @@ public class TenantEndpoint {
     @Path("/{id}/topology/groups")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response fetchGroupTopologies(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2278,9 +2481,16 @@ public class TenantEndpoint {
     @Path("/{id}/topology/endpoints")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response fetchEndpointTopologies(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2348,9 +2558,16 @@ public class TenantEndpoint {
     @Path("/{id}/topology/service-types")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response fetchServiceTypes(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2417,9 +2634,16 @@ public class TenantEndpoint {
     @Path("/{id}/topology/groups")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response createGroupTopologies(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2495,9 +2719,16 @@ public class TenantEndpoint {
     @Path("/{id}/topology/endpoints")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response createEndpointTopologies(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2574,9 +2805,16 @@ public class TenantEndpoint {
     @Path("/{id}/topology/service-types")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"viewer", "admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response createServiceTypes(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2640,10 +2878,17 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/topology/groups")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response deleteGroupTopologies(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2700,10 +2945,17 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/topology/endpoints")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response deleteEndpointTopologies(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2759,10 +3011,17 @@ public class TenantEndpoint {
     @DELETE
     @Path("/{id}/topology/service-types")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
     @Authenticated
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response deleteServiceTypes(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2814,9 +3073,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/capabilities/availability")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response getAvailability(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2898,9 +3164,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/capabilities/status")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response getStatus(
             @Parameter(description = "The ID of the tenant.",
                     required = true,
@@ -2965,9 +3238,16 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/capabilities/summary/{item}")
     @Produces(MediaType.APPLICATION_JSON)
-    @CheckEntitlements(roles = {"admin"}, resolvers = {
-            @Resolver(idResolver = TenantNameResolver.class, pathId = "id")
-    })
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo= TenantResource.class
+                    )
+            }
+    )
     public Response getSummary(
             @Parameter(
                     description = "The ID of the tenant.",
