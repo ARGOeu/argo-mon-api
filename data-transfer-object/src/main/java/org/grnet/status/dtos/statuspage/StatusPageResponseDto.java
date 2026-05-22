@@ -51,7 +51,7 @@ public class StatusPageResponseDto {
             type = SchemaType.STRING,
             implementation = String.class,
             description = "Report name to display status groups for",
-            example = "Critical"
+            example = "CORE"
     )
     @JsonProperty("report")
     public String report;

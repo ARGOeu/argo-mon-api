@@ -22,6 +22,15 @@ public class StatusPageThemingDto {
     public String option;
 
     @Schema(
+            type = SchemaType.BOOLEAN,
+            implementation = Boolean.class,
+            description = "Defines whether the selected theme should display a logo",
+            example = "true"
+    )
+    @JsonProperty("has_logo")
+    public Boolean hasLogo;
+
+    @Schema(
             type = SchemaType.STRING,
             implementation = String.class,
             description = "Logo for the status page — can be a Base64 data URI or HTTPS URL",
