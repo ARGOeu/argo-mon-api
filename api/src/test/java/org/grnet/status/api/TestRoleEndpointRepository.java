@@ -39,27 +39,3 @@ public class TestRoleEndpointRepository implements RoleEndpointRepository {
     }
     @Override
     public void delete(Long id) {
-
-    }
-
-    @Override
-    public void deleteByRoleIdAndEndpointId(String roleId, String securedEndpointId) {
-
-    }
-
-    @Override
-    public void deleteByRoleIdAndEndpointIds(String roleId, List<String> securedEndpointId) {
-
-    }
-
-    @Override
-    public void deleteByRoleId(String roleId) {
-
-    }
-
-    @Override
-    public List<RoleEndpoint> findAll() {
-        return List.of();
-    }
-
-}
