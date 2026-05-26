@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.spi.CDI;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
@@ -15,10 +14,11 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.AuthGroupManagement;
-import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.GroupManagement;
+import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUser;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.UserGroupInfoDto;
 import org.grnet.endpoint.scanner.runtime.context.RoleEndpointContext;
+import org.grnet.endpoint.scanner.runtime.entitlements.EntitlementUtils;
 import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
@@ -54,6 +54,7 @@ import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.services.clients.AmsService;
 import org.grnet.status.services.clients.WebApiService;
 import org.grnet.status.services.utils.ImageUploadUtil;
+import org.grnet.status.util.Utility;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -88,6 +89,9 @@ public class TenantService {
 
     @Inject
     GroupManagementService groupManagementService;
+
+    @Inject
+    Utility utility;
 
     @ConfigProperty(name = "api.auth.entitlements.parent-group")
     String namespace;
@@ -888,42 +892,87 @@ public class TenantService {
 
         var tenant = tenantRepository.findById(tenantId);
 
-        var response = groupManagementService.getMembers("tenants/" + tenant.name, page * size, size, "");
-
-        var members = response
-                .results
+        var members = groupManagementService.getAllApplicationMembers("")
                 .stream()
-                .map(g -> g.user)
-                .map(gu -> {
-                    List<UserGroupInfoDto> list= new ArrayList();
-                    if (gu.attributes != null && gu.attributes.getLocalEntitlements() != null) {
+                .map(user -> mapTenantMember(user, tenantId, tenant.name))
+                .filter(user -> user.tenants != null && !user.tenants.isEmpty())
+                .toList();
 
-                        list = CDI.current()
-                                .select(UserEntitlementsService.class)
-                                .get()
-                                .parseLocalEntitlements(gu.attributes.getLocalEntitlements(), "tenant_admin", TenantResource.TENANT.resourceName());
-                    }
+        Log.infof("Fetched %s application members from AGM", members.size());
 
-                    var user = new GroupUserResponse();
-                    user.id = gu.id;
-                    user.email = gu.email;
-                    user.username = gu.username;
-                    user.firstName = gu.firstName;
-                    user.lastName = gu.lastName;
-                    user.tenants = list;
-                    return user;
-                })
-                .collect(Collectors.toList());
+        var partition = utility.partition(new ArrayList<>(members), size);
+
+        var pageableMembers = partition.get(page) == null
+                ? Collections.<GroupUserResponse>emptyList()
+                : partition.get(page);
 
         var pageable = new PageQueryImpl<GroupUserResponse>();
-
-        pageable.list = members;
+        pageable.list = pageableMembers;
         pageable.index = page;
         pageable.size = size;
-        pageable.count = response.count;
+        pageable.count = members.size();
         pageable.page = Page.of(page, size);
 
         return new PageResource<>(pageable, uriInfo);
+    }
+
+
+    private GroupUserResponse mapTenantMember(GroupUser gu, String tenantId, String tenantName) {
+
+        var user = new GroupUserResponse();
+        user.id = gu.id;
+        user.email = gu.email;
+        user.username = gu.username;
+        user.firstName = gu.firstName;
+        user.lastName = gu.lastName;
+        user.uid = gu.getUid();
+        user.tenants = new ArrayList<>();
+
+        if (gu.attributes == null) {
+            Log.infof("User %s has NULL attributes", gu.username);
+            return user;
+        }
+
+        if (gu.attributes.getLocalEntitlements() == null) {
+            Log.infof("User %s has NULL localEntitlements", gu.username);
+            return user;
+        }
+
+        var parsedEntitlements = EntitlementUtils.parseEntitlements(
+                gu.attributes.getLocalEntitlements()
+        );
+
+        var extractedRoles = EntitlementUtils.extractResourceRoles(parsedEntitlements);
+
+        extractedRoles.forEach(entitlement ->
+                Log.infof(
+                        "User=%s role=%s resource=%s resourceId=%s expectedTenantId=%s",
+                        gu.username,
+                        entitlement.role(),
+                        entitlement.resource(),
+                        entitlement.resourceId(),
+                        tenantId
+                )
+        );
+
+        var tenantRoles = extractedRoles
+                .stream()
+                .filter(entitlement ->
+                        TenantResource.TENANT.resourceName()
+                                .equals(entitlement.resource()))
+                .filter(entitlement ->
+                        tenantId.equals(entitlement.resourceId()))
+                .map(entitlement -> {
+                    var dto = new UserGroupInfoDto();
+                    dto.name = tenantName;
+                    dto.role = entitlement.role();
+                    return dto;
+                })
+                .toList();
+
+        user.tenants.addAll(tenantRoles);
+
+        return user;
     }
 
 

@@ -330,7 +330,7 @@ public class TenantInvitationService {
         // Admins mail (ACCEPT/REJECT)
         try {
 
-            var admins = groupManagementService.getTenantMembersByRole(TenantResource.TENANT.resourceName(), "admin");
+            var admins = groupManagementService.getTenantMembersByRole(response.tenantId, "tenant_admin");
 
             if (admins == null) {
                 Log.warn("AGM returned null admins list");
