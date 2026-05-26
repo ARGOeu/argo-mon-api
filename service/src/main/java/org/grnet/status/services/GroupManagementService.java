@@ -129,7 +129,7 @@ public class GroupManagementService {
      * @param resourceId resource identifier
      * @return resolved resource name or the original identifier
      */
-    private String resolveResourceName(String resource, String resourceId) {
+    String resolveResourceName(String resource, String resourceId) {
 
         if (TenantResource.TENANT.resourceName().equals(resource)) {
             return tenantRepository.findByIdOptional(resourceId)
