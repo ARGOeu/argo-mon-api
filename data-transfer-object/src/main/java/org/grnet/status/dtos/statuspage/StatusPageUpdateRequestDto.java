@@ -36,7 +36,7 @@ public class StatusPageUpdateRequestDto {
             type = SchemaType.STRING,
             implementation = String.class,
             description = "Report Identifier to retrieve groups from",
-            example = "Critical"
+            example = "cf010255-cda3-49d8-92d1-926c2c6cf9eb"
     )
     @JsonProperty("report-id")
     @NotBlank(message = "report cannot be blank")

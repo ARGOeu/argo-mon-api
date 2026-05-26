@@ -27,7 +27,7 @@ public class StatusGroupRequestDto {
             type = SchemaType.STRING,
             implementation = String.class,
             description = "Name of the report",
-            example = "Critical"
+            example = "CORE"
     )
     @JsonProperty("report")
     public String report;

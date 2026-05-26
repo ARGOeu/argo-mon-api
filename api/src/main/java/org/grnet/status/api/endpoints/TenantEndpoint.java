@@ -1246,7 +1246,7 @@ public class TenantEndpoint {
             String id,
             @Parameter(description = "The ID of the report to retrieve.",
                     required = true,
-                    example = "a242ffb7-6e4d-4406-8b2d-0c665b75b21d",
+                    example = "cf010255-cda3-49d8-92d1-926c2c6cf9eb",
                     schema = @Schema(type = SchemaType.STRING))
             @PathParam("report-id")
             @Valid String reportId) {
@@ -1388,7 +1388,7 @@ public class TenantEndpoint {
             @Parameter(
                     description = "The ID of the report to retrieve.",
                     required = true,
-                    example = "a242ffb7-6e4d-4406-8b2d-0c665b75b21d",
+                    example = "cf010255-cda3-49d8-92d1-926c2c6cf9eb",
                     schema = @Schema(type = SchemaType.STRING))
             @PathParam("report-id") @Valid String reportId) {
 

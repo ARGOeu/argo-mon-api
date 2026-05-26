@@ -25,6 +25,7 @@ import org.grnet.status.entities.Page;
 import org.grnet.status.entities.PageQueryImpl;
 import org.grnet.status.entities.StatusPage;
 import org.grnet.status.enums.ArgoItemStatusEnum;
+import org.grnet.status.enums.ThemeOption;
 import org.grnet.status.mappers.GeneralMapper;
 import org.grnet.status.mappers.StatusPageMapper;
 import org.grnet.status.repositories.StatusPageRepository;
@@ -123,20 +124,22 @@ public class StatusPageService {
 
         apiServerUrl = apiServerUrl.replaceAll("/+$", "");
 
-        // handle logo only for theme_1
+        // handle logo
         var theming = request.config.theming;
         var logo = theming.logo;
 
-        if ("theme_1".equalsIgnoreCase(theming.option)
-                && logo != null
-                && logo.startsWith("data:image/")) {
+        if (Boolean.TRUE.equals(theming.hasLogo)) {
+            if (logo.startsWith("data:image/")) {
 
-            imageUploadUtil.validateBase64Image(logo);
-            var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId(), "/logos/");
-            var fullUrl = apiServerUrl + savedPath;
-            entity.setConfig(updateLogo(entity.getConfig(), fullUrl));
+                imageUploadUtil.validateBase64Image(logo);
+                var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId(), "/logos/");
+                var fullUrl = apiServerUrl + savedPath;
+                entity.setConfig(updateLogo(entity.getConfig(), fullUrl));
+            } else {
+                entity.setConfig(updateLogo(entity.getConfig(), logo));
+            }
 
-        } else if ("theme_2".equalsIgnoreCase(theming.option)) {
+        } else {
             entity.setConfig(removeLogo(entity.getConfig()));
         }
 
@@ -174,26 +177,18 @@ public class StatusPageService {
         var theming = request.config.theming;
         var logo = theming.logo;
 
-        if ("theme_2".equalsIgnoreCase(theming.option)) {
+        if (Boolean.TRUE.equals(theming.hasLogo) && logo != null && !logo.isBlank()) {
+
             imageUploadUtil.deleteImageIfExists(baseUploadLogoDir, entity.getId());
-            entity.setConfig(removeLogo(entity.getConfig()));
 
-        } else if ("theme_1".equalsIgnoreCase(theming.option)) {
+            if (logo.startsWith("data:image/")) {
 
-            if (logo != null && logo.startsWith("data:image/")) {
                 imageUploadUtil.validateBase64Image(logo);
-                imageUploadUtil.deleteImageIfExists(baseUploadLogoDir, entity.getId());
                 var savedPath = imageUploadUtil.saveBase64Image(baseUploadLogoDir, logo, entity.getId(), "/logos/");
-                var fullUrl = apiServerUrl + savedPath;
-                entity.setConfig(updateLogo(entity.getConfig(), fullUrl));
-
-            } else if (logo == null || logo.isBlank()) {
-                imageUploadUtil.deleteImageIfExists(baseUploadLogoDir, entity.getId());
-                entity.setConfig(removeLogo(entity.getConfig()));
-
-            } else {
-                entity.setConfig(updateLogo(entity.getConfig(), logo));
+                logo = apiServerUrl + savedPath;
             }
+
+            entity.setConfig(updateLogo(entity.getConfig(), logo));
         }
 
         return StatusPageMapper.INSTANCE.entityToDto(entity);
@@ -540,31 +535,35 @@ public class StatusPageService {
         var theming = config.theming;
 
         // Validate theme option
-        var validThemeOption = Set.of("theme_1", "theme_2");
-        if (!validThemeOption.contains(theming.option)) {
-            throw new IllegalArgumentException("Validating Theme... Invalid option type: " + theming.option);
+        if (!ThemeOption.isValid(theming.option)) {
+            throw new IllegalArgumentException(
+                    "Validating Theme... Invalid option type: " + theming.option);
         }
 
-        // theme_2 does not support logo
-        if ("theme_2".equalsIgnoreCase(theming.option)
-                && theming.logo != null
-                && !theming.logo.isBlank()) {
-            throw new IllegalArgumentException("Validating Theme... Logo is not supported for theme_2.");
+        if (Boolean.TRUE.equals(theming.hasLogo)
+                && (theming.logo == null || theming.logo.isBlank())) {
+
+            throw new IllegalArgumentException("Validating Theme... Logo is required.");
         }
 
-        // Validate logo (new Base64 upload or existing HTTPS URL) if theme_1
-        if ("theme_1".equalsIgnoreCase(theming.option)
+        // Validate logo only when enabled
+        if (Boolean.TRUE.equals(theming.hasLogo)
                 && theming.logo != null
                 && !theming.logo.isBlank()) {
 
             var logo = theming.logo.trim();
 
             if (logo.startsWith("data:image/")) {
+
                 if (!logo.contains("base64,")) {
-                    throw new IllegalArgumentException("Validating Theme... Invalid Base64 image format for logo");
+                    throw new IllegalArgumentException(
+                            "Validating Theme... Invalid Base64 image format for logo");
                 }
+
             } else if (!logo.matches("^(https?://).+")) {
-                throw new IllegalArgumentException("Validating Theme... Invalid logo format. Expected a Base64 data URI or HTTPS URL.");
+
+                throw new IllegalArgumentException(
+                        "Validating Theme... Invalid logo format. Expected a Base64 data URI or HTTPS URL.");
             }
         }
 

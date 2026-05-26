@@ -11,8 +11,8 @@ public class StatusGroupResponseDto {
     @Schema(
             type = SchemaType.STRING,
             implementation = String.class,
-            description = "Encrypted access token",
-            example = "ATLAND"
+            description = "Item name",
+            example = "WIKI"
     )
     @JsonProperty("name")
     public String name;
@@ -20,7 +20,7 @@ public class StatusGroupResponseDto {
     @Schema(
             type = SchemaType.STRING,
             implementation = String.class,
-            description = "Encrypted access token",
+            description = "Item status",
             example = "OK"
     )
     @JsonProperty("status")
