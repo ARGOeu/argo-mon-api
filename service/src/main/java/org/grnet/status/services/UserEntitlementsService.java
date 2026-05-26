@@ -5,7 +5,9 @@ import jakarta.inject.Inject;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.UserGroupInfoDto;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.endpoint.scanner.runtime.entitlements.EntitlementProvider;
+import org.grnet.endpoint.scanner.runtime.entitlements.EntitlementUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
@@ -16,6 +18,9 @@ public class UserEntitlementsService {
 
     @Inject
     AccessControlService accessControlService;
+
+    @Inject
+    GroupManagementService groupManagementService;
     /**
      * Retrieves the authenticated user's entitlements and converts them to group information.
      *
@@ -25,9 +30,24 @@ public class UserEntitlementsService {
 
         var entitlements = entitlementProvider.fetchEntitlements();
 
-        return entitlements.stream()
+        var groups = new ArrayList<UserGroupInfoDto>();
+
+        groups.addAll(entitlements.stream()
+                .filter(entitlement -> entitlement.getHierarchy().size() <= 2)
                 .map(this::toInfo)
-                .toList();
+                .toList());
+
+        groups.addAll(EntitlementUtils.extractResourceRoles(entitlements)
+                .stream()
+                .map(entitlement -> {
+                    var dto = new UserGroupInfoDto();
+                    dto.name = groupManagementService.resolveResourceName(entitlement.resource(), entitlement.resourceId());
+                    dto.role = entitlement.role();
+                    return dto;
+                })
+                .toList());
+
+        return groups;
     }
 
     /**

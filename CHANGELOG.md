@@ -129,6 +129,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#127](https://github.com/ARGOeu/argo-mon-status-api/pull/127) ARGO-5537 Improve Argo Web API error handling and logging in Status API
 - [#133](https://github.com/ARGOeu/argo-mon-status-api/pull/133) ARGO-5551 INIT_POEM cannot be changed to completed
 - [#142](https://github.com/ARGOeu/argo-mon-status-api/pull/142) ARGO-5582 Implement entitlement-based tenant member resolution
+- [#143](https://github.com/ARGOeu/argo-mon-status-api/pull/143) ARGO-5583 Update user profile entitlement mapping to support resource-based tenant roles
 
 ### Removed
 

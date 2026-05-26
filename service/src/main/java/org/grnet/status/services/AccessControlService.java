@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class AccessControlService {
-    //
+
     @Inject
     EntitlementProvider entitlementProvider;
 
@@ -45,32 +45,6 @@ public class AccessControlService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Determines whether the user's role satisfies the required role.
-     *
-     * @param userRole     role from entitlement
-     * @param requiredRole required role
-     * @return true if role requirement is satisfied
-     */
-    private boolean roleMatches(String userRole, String requiredRole) {
-        if (requiredRole == null || requiredRole.isBlank()) {
-            return true;
-        }
-
-        if ("member".equals(requiredRole)) {
-            return "member".equals(userRole) || "viewer".equals(userRole) || "admin".equals(userRole);
-        }
-
-        if ("viewer".equals(requiredRole)) {
-            return "viewer".equals(userRole) || "admin".equals(userRole);
-        }
-
-        if ("admin".equals(requiredRole)) {
-            return "admin".equals(userRole);
-        }
-
-        return requiredRole.equals(userRole);
-    }
 
     /**
      * Checks whether the authenticated user has the super_admin role.
@@ -81,33 +55,6 @@ public class AccessControlService {
         return entitlementProvider.isSuperAdmin();
     }
 
-    /**
-     * Checks whether the provided entitlements include the super_admin role.
-     *
-     * @param entitlements list of entitlements
-     * @return true if super administrator role is present
-     */
-    private boolean isSuperAdmin(List<Entitlement> entitlements) {
-        return entitlements.stream()
-                .anyMatch(e -> "super_admin".equals(e.getRole()));
-    }
-
-    /**
-     * Determines whether an entitlement hierarchy covers the target hierarchy.
-     *
-     * @param entitlementHierarchy entitlement hierarchy
-     * @param targetHierarchy      target hierarchy
-     * @return true if entitlement hierarchy covers target hierarchy
-     */
-    public boolean hierarchyCovers(List<String> entitlementHierarchy, List<String> targetHierarchy) {
-
-        if (entitlementHierarchy.size() > targetHierarchy.size()) return false;
-        for (int i = 0; i < entitlementHierarchy.size(); i++) {
-            if (!entitlementHierarchy.get(i).equals(targetHierarchy.get(i))) return false;
-        }
-
-        return true;
-    }
 
     /**
      * Retrieves and parses entitlements from the authenticated OIDC token filtered by subgroup.

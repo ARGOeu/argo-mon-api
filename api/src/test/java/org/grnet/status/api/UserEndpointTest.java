@@ -40,7 +40,7 @@ public class UserEndpointTest extends KeycloakTest {
     // -------------------------------------------------------------------------
     @BeforeEach
     void setupRepo() {
-        TestRoleEndpointRepository testRepo = new TestRoleEndpointRepository();
+        var testRepo = new TestRoleEndpointRepository();
         QuarkusMock.installMockForType(testRepo, RoleEndpointRepository.class);
         this.roleEndpointRepository = testRepo;
     }

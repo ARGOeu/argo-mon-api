@@ -17,7 +17,6 @@ import org.grnet.status.dtos.tenant.invitations.TenantInvitationResponse;
 import org.grnet.status.dtos.tenant.invitations.TenantInvitationRequest;
 import org.grnet.status.enums.InvitationAction;
 import org.grnet.status.enums.InvitationStatus;
-import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.exceptions.BadRequestException;
 import org.grnet.status.mappers.TenantInvitationMapper;
 import org.grnet.status.repositories.TenantInvitationRepository;

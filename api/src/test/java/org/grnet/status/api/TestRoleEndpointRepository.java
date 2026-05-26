@@ -37,7 +37,6 @@ public class TestRoleEndpointRepository implements RoleEndpointRepository {
     public RoleEndpoint findById(Long id) {
         return null;
     }
-
     @Override
     public void delete(Long id) {
 
