@@ -1,13 +1,12 @@
 package org.grnet.status.api;
 
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
-import org.grnet.endpoint.scanner.runtime.entities.RoleEndpointRepository;
+import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.status.dtos.*;
 import org.grnet.status.dtos.general.ExistResponseDto;
@@ -51,29 +50,20 @@ public class TenantEndpointTest extends KeycloakTest {
 
     private String currentMockId;
 
+    @Inject
+    TestRoleEndpointRepository testRoleEndpointRepository;
+
+
     @BeforeEach
     public void mockArgoClient() throws Exception {
         when(argoWebApiClient.createTenant(any(), any())).thenAnswer(invocation -> loadMockTenantResponse(currentMockId));
         when(argoWebApiClient.getTenant(any(), any())).thenAnswer(invocation -> loadMockTenantGetResponse(currentMockId));
     }
 
-    // -------------------------------------------------------------------------
-    // SETUP ROLE REPOSITORY
-    // -------------------------------------------------------------------------
     @BeforeEach
-    void setupRepo() {
-        TestRoleEndpointRepository testRepo = new TestRoleEndpointRepository();
-        QuarkusMock.installMockForType(testRepo, RoleEndpointRepository.class);
-        this.roleEndpointRepository = testRepo;
-    }
-
-    // -------------------------------------------------------------------------
-    // RESET STATE
-    // -------------------------------------------------------------------------
-    @BeforeEach
-    void reset() {
+    public void resetMocks() {
         entitlementProvider.reset();
-        ((TestRoleEndpointRepository) roleEndpointRepository).reset();
+        testRoleEndpointRepository.reset();
     }
 
     @BeforeEach

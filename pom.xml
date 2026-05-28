@@ -48,6 +48,8 @@
         <!-- Keycloak Version-->
         <keycloak.version>26.0.6</keycloak.version>
 
+        <quarkus-auth.version>1.0.0-SNAPSHOT</quarkus-auth.version>
+
     </properties>
     <repositories>
         <repository>
@@ -68,7 +70,7 @@
             <dependency>
                 <groupId>org.grnet</groupId>
                 <artifactId>quarkus-auth</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
+                <version>${quarkus-auth.version}</version>
             </dependency>
             <dependency>
                 <groupId>${quarkus.platform.group-id}</groupId>
@@ -76,12 +78,6 @@
                 <version>${quarkus.platform.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.grnet</groupId>
-                <artifactId>quarkus-auth</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
             </dependency>
 
             <!-- Internal modules -->

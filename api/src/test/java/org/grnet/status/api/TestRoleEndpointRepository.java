@@ -4,7 +4,8 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
 import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
-import org.grnet.endpoint.scanner.runtime.entities.RoleEndpointRepository;
+import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,12 @@ public class TestRoleEndpointRepository implements RoleEndpointRepository {
     public RoleEndpoint findById(Long id) {
         return null;
     }
+
+    @Override
+    public void update(RoleEndpoint entity) {
+
+    }
+
     @Override
     public void delete(Long id) {
 

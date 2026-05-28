@@ -7,7 +7,7 @@ import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
-import org.grnet.endpoint.scanner.runtime.entities.RoleEndpointRepository;
+import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.status.api.endpoints.TenantInvitationEndpoint;
 import org.grnet.status.dtos.Status;
@@ -53,14 +53,16 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
     @Inject
     RoleEndpointRepository roleEndpointRepository;
 
+    @Inject
+    TestRoleEndpointRepository testRoleEndpointRepository;
+
     @BeforeEach
-    void setupRepo() {
-        TestRoleEndpointRepository testRepo = new TestRoleEndpointRepository();
-
-        QuarkusMock.installMockForType(testRepo, RoleEndpointRepository.class);
-
-        this.roleEndpointRepository = testRepo;
+    public void resetMocks() {
+        entitlementProvider.reset();
+        testRoleEndpointRepository.reset();
     }
+
+
     @BeforeEach
     public void mockArgoClient() throws Exception {
         when(argoWebApiClient.createTenant(any(), any())).thenAnswer(invocation -> loadMockTenantResponse(currentMockId));
