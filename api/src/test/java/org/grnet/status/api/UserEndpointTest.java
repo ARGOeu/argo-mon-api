@@ -2,12 +2,11 @@ package org.grnet.status.api;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.http.TestHTTPEndpoint;
-import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
-import org.grnet.endpoint.scanner.runtime.entities.RoleEndpointRepository;
+import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.status.api.endpoints.UserEndpoint;
 import org.grnet.status.dtos.InformativeResponse;
@@ -35,23 +34,16 @@ public class UserEndpointTest extends KeycloakTest {
     RoleEndpointRepository roleEndpointRepository;
     @InjectMock
     GroupManagementService groupManagementService;
+    @Inject
+    TestRoleEndpointRepository testRoleEndpointRepository;
+
     // -------------------------------------------------------------------------
     // SETUP ROLE REPOSITORY
     // -------------------------------------------------------------------------
     @BeforeEach
-    void setupRepo() {
-        var testRepo = new TestRoleEndpointRepository();
-        QuarkusMock.installMockForType(testRepo, RoleEndpointRepository.class);
-        this.roleEndpointRepository = testRepo;
-    }
-
-    // -------------------------------------------------------------------------
-    // RESET STATE
-    // -------------------------------------------------------------------------
-    @BeforeEach
-    void reset() {
+    public void resetMocks() {
         entitlementProvider.reset();
-        ((TestRoleEndpointRepository) roleEndpointRepository).reset();
+        testRoleEndpointRepository.reset();
     }
 
     // -------------------------------------------------------------------------
@@ -87,7 +79,14 @@ public class UserEndpointTest extends KeycloakTest {
 
         mockTenantViewer();
 
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of( new RoleEndpoint( 1L, "members", "members", "GET_/v1/profile", LocalDateTime.now(), null)));
+        testRoleEndpointRepository.set(
+                List.of(new RoleEndpoint(
+                        1L,
+                        "members",
+                        "members",
+                        "GET_/v1/profile",
+                        LocalDateTime.now(),
+                        null)));
 
         var response = given()
                 .auth().oauth2(tenantViewer)
