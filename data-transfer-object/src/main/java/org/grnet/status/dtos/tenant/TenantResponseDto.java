@@ -1,5 +1,6 @@
 package org.grnet.status.dtos.tenant;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
@@ -79,4 +80,10 @@ public class TenantResponseDto {
     @JsonProperty("group-status")
     public TenantGroupStatus groupStatus;
 
+    @Schema(
+            description = "Error message if tenant enrichment from external services failed.",
+            implementation =  String.class,
+            examples = "Tenant error")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String error;
 }
