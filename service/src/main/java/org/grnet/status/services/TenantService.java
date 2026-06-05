@@ -429,17 +429,10 @@ public class TenantService {
 
         ArrayList<TenantResponseDto> tenantList = new ArrayList<>();
         var tenants = tenantRepository.fetchTenantsByPageAndSize(page, size, search, sort, order);
-        tenants.list().stream().forEach(t -> {
-            TenantResponseDto webtenant = null;
-            try {
-                var webTenantGetResponse = webApiService.retrieveTenantWebApi(t.id);
-                webtenant = TenantMapper.INSTANCE.webApiTenantToDto(t, webTenantGetResponse);
-                webtenant.groupStatus = getGroupStatus(t);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-            tenantList.add(webtenant);
-        });
+
+        tenants.list().forEach(t ->
+                tenantList.add(mapTenantSafely(t))
+        );
         return new PageResource<>(tenants, tenantList, uriInfo);
     }
 
@@ -474,17 +467,9 @@ public class TenantService {
 
         var tenantList = new ArrayList<TenantResponseDto>();
 
-        tenants.list().forEach(t -> {
-            TenantResponseDto webtenant = null;
-            try {
-                var webTenantGetResponse = webApiService.retrieveTenantWebApi(t.id);
-                webtenant = TenantMapper.INSTANCE.webApiTenantToDto(t, webTenantGetResponse);
-                webtenant.groupStatus = getGroupStatus(t);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-            tenantList.add(webtenant);
-        });
+        tenants.list().forEach(t ->
+                tenantList.add(mapTenantSafely(t))
+        );
         return new PageResource<>(tenants, tenantList, uriInfo);
     }
 
@@ -1753,5 +1738,48 @@ public class TenantService {
                     j.properties = null;
                     j.setMode(event.modeValue());
                 });
+    }
+    private TenantResponseDto mapTenantSafely(Tenant tenant) {
+
+        try {
+
+            var webTenantGetResponse = webApiService.retrieveTenantWebApi(tenant.id);
+
+            var webtenant = TenantMapper.INSTANCE.webApiTenantToDto(
+                    tenant,
+                    webTenantGetResponse
+            );
+
+            webtenant.groupStatus = getGroupStatus(tenant);
+
+            return webtenant;
+
+        } catch (Exception e) {
+
+            Log.errorf(e,
+                    "Failed to retrieve tenant details. tenantId=%s",
+                    tenant.id
+            );
+
+            var response = TenantMapper.INSTANCE.tenantToDto(tenant);
+            response.groupStatus = getGroupStatus(tenant);
+
+            response.error = getRootErrorMessage(e);
+
+            return response;
+        }
+    }
+
+    private String getRootErrorMessage(Throwable throwable) {
+
+        Throwable root = throwable;
+
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+
+        return root.getMessage() != null
+                ? root.getMessage()
+                : throwable.getMessage();
     }
 }

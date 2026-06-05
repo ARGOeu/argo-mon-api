@@ -134,6 +134,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#143](https://github.com/ARGOeu/argo-mon-status-api/pull/143) ARGO-5583 Update user profile entitlement mapping to support resource-based tenant roles
 - [#146](https://github.com/ARGOeu/argo-mon-status-api/pull/146) ARGO-5585 Status-api: when a tenant has no data send an appropriate message
 - [#147](https://github.com/ARGOeu/argo-mon-status-api/pull/147) ARGO-5602 Refactor status-api tests and adapt imports after quarkus-auth package changes
+- [#150](https://github.com/ARGOeu/argo-mon-status-api/pull/150) ARGO-5606: Continue tenant listing when tenant data retrieval fails
 
 ### Removed
 

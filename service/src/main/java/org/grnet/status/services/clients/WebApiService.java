@@ -42,10 +42,10 @@ public class WebApiService {
 
             int status = e.getResponse().getStatus();
 
-            logArgoError(e, "Retrieving Tenant", id);
+            var errorMessage = logArgoError(e, "Retrieving Tenant", id);
 
             throw new WebApplicationException(
-                    "Retrieving Tenant... tenant with id: " + id + " failed in Argo Web Api",
+                    errorMessage,
                     status
             );
 
