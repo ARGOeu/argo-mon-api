@@ -2,6 +2,8 @@ package org.grnet.status.repositories;
 
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import org.apache.commons.lang3.StringUtils;
 import org.grnet.status.entities.*;
 
@@ -13,6 +15,9 @@ import java.util.*;
  */
 @ApplicationScoped
 public class TenantRepository implements Repository<Tenant, String> {
+
+    @Inject
+    EntityManager entityManager;
 
     /**
      * Retrieves a tenant by its name.
@@ -67,48 +72,6 @@ public class TenantRepository implements Repository<Tenant, String> {
 
         return pageable;
 
-    }
-
-    /**
-     * Retrieves a paginated list of tenants filtered by allowed tenant names.
-     *
-     * @param allowedNames list of allowed tenant names
-     * @param page 0-based page index
-     * @param size page size
-     * @param search search filter
-     * @param sort sort field
-     * @param order sort order
-     * @return paginated tenants
-     */
-    public PageQuery<Tenant> fetchTenantsByNamesAndPageAndSize(List<String> allowedNames, int page, int size, String search, String sort, String order) {
-
-        var joiner = new StringJoiner(StringUtils.SPACE);
-        joiner.add("from Tenant t WHERE t.name in :allowedNames");
-
-        var params = new HashMap<String, Object>();
-        params.put("allowedNames", allowedNames);
-
-        if (StringUtils.isNotEmpty(search)) {
-            joiner.add("AND (t.name ilike :search OR t.email ilike :search)");
-            params.put("search", "%" + search + "%");
-        }
-
-        if (StringUtils.isNotEmpty(sort)) {
-            joiner.add("order by t." + sort + " " + order);
-        } else {
-            joiner.add("order by t.name ASC, t.createdAt DESC");
-        }
-
-        var panache = find(joiner.toString(), params).page(page, size);
-
-        var pageable = new PageQueryImpl<Tenant>();
-        pageable.list = panache.list();
-        pageable.index = page;
-        pageable.size = size;
-        pageable.count = panache.count();
-        pageable.page = Page.of(page, size);
-
-        return pageable;
     }
 
     /**
@@ -215,6 +178,33 @@ public class TenantRepository implements Repository<Tenant, String> {
         return pageable;
 
     }
+
+    public int updateTenantJobStatus(String tenantId, String jobName, String jobJson) {
+
+        return entityManager.createNativeQuery("""
+        UPDATE t_tenant
+        SET status = jsonb_set(
+            status,
+            ARRAY[
+                'jobs',
+                (
+                    SELECT (idx - 1)::text
+                    FROM jsonb_array_elements(status -> 'jobs')
+                         WITH ORDINALITY arr(job, idx)
+                    WHERE UPPER(job ->> 'name') = UPPER(:jobName)
+                )
+            ],
+            CAST(:jobJson AS jsonb),
+            false
+        )
+        WHERE id = :tenantId
+        """)
+                .setParameter("tenantId", tenantId)
+                .setParameter("jobName", jobName)
+                .setParameter("jobJson", jobJson)
+                .executeUpdate();
+    }
+
 
     /**
      * Retrieves the tenant name and status for the specified identifier.
