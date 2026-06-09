@@ -405,9 +405,15 @@ public class AdminEndpointTest extends KeycloakTest {
                 .extract()
                 .as(TenantStatusFullResponse.class);
 
-        assertEquals(8, updated.status.jobs.size());
-        assertEquals(job.name, updated.status.jobs.get(2).name);
-        assertEquals(job.status, updated.status.jobs.get(2).status);
+        var updatedJob = updated.status.jobs.stream()
+                .filter(j -> TenantJobEvent.CREATE_DOMAIN_NAMES.key().equalsIgnoreCase(j.name))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(EventStatus.COMPLETED.name(), updatedJob.status);
+        assertEquals("Creating domain names", updatedJob.message);
+        assertEquals(Instant.parse("2025-10-22T12:44:48Z"), updatedJob.start);
+        assertEquals(Instant.parse("2025-10-22T12:44:48Z"), updatedJob.end);
     }
 
     @Test
