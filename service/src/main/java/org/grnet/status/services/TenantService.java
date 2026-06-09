@@ -108,9 +108,6 @@ public class TenantService {
     @Inject
     AmsService amsService;
 
-    @Inject
-    ObjectMapper objectMapper;
-
     private final ExecutorService executorService = Executors.newFixedThreadPool(2); // Adjust as needed
 
     /**
@@ -565,7 +562,6 @@ public class TenantService {
 
         try {
             tenantRepository.persist(tenant);
-            tenantRepository.flush(); // important before sendNotifications()
             return tenant;
 
         } catch (PersistenceException e) {
@@ -672,31 +668,32 @@ public class TenantService {
 
         var tenant = tenantRepository.findById(id);
 
+        var existingStatus = TenantMapper.INSTANCE.mapStatusObject(tenant.getStatus());
+
         var shouldTriggerPoem = isComputeEngineCompleted(request);
         var shouldTriggerMonBox = isPoemCompleted(request);
 
         var shouldResetAfterComputeEngine = isComputeEngineReset(request);
         var shouldResetAfterPoem = isPoemReset(request);
 
+        request.jobs = mergeJobs(existingStatus.jobs, request.jobs);
+
+        if (shouldResetAfterComputeEngine) {
+            resetJob(request.jobs, TenantJobEvent.INIT_POEM);
+            resetJob(request.jobs, TenantJobEvent.INIT_MONITORING_BOX);
+        }
+
+        if (shouldResetAfterPoem) {
+            resetJob(request.jobs, TenantJobEvent.INIT_MONITORING_BOX);
+        }
+
+        var updatedStatusJson = TenantMapper.INSTANCE.mergeJobsIntoStatus(tenant.getStatus(), request);
+
         try {
-            if (request.jobs != null) {
-                for (var job : request.jobs) {
-                    updateSingleJob(id, job);
-                }
-            }
+            // ✅ DB update
+            updateTenantStatusInDb(tenant, updatedStatusJson);
 
-            if (shouldResetAfterComputeEngine) {
-                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_POEM));
-                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_MONITORING_BOX));
-            }
-
-            if (shouldResetAfterPoem) {
-                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_MONITORING_BOX));
-            }
-
-            var statusDto = tenantRepository.fetchTenantStatus(id)
-                    .map(TenantMapper.INSTANCE::mapStatusObject)
-                    .orElse(null);
+            var statusDto = TenantMapper.INSTANCE.mapStatusObject(tenant.getStatus());
 
             var response = new TenantStatusFullResponse();
             response.name = tenant.name;
@@ -715,10 +712,7 @@ public class TenantService {
             return response;
 
         } catch (Exception dbException) {
-            throw new RuntimeException(
-                    "Updating Tenant's Status.. DB update failed: " + dbException.getMessage(),
-                    dbException
-            );
+            throw new RuntimeException("Updating Tenant's Status.. DB update failed: " + dbException.getMessage());
         }
     }
 
@@ -734,20 +728,73 @@ public class TenantService {
     public TenantStatusDto updateTenantAlerts(String id, @Valid TenantStatusDto request) throws IOException {
 
         var tenant = tenantRepository.findById(id);
-
         if (tenant == null) {
             return null;
         }
+        var existingStatus = TenantMapper.INSTANCE.mapStatusObject(tenant.getStatus());
+        request.jobs = mergeJobs(existingStatus.jobs, request.jobs);
 
         if (request.jobs != null) {
-            for (var job : request.jobs) {
-                updateSingleJob(id, job);
-            }
+            request.jobs.forEach(this::applyJobDefinition);
         }
 
-        return tenantRepository.fetchTenantStatus(id)
-                .map(TenantMapper.INSTANCE::mapStatusObject)
-                .orElse(null);
+        request.jobs = mergeJobs(existingStatus.jobs, request.jobs);
+        try {
+            var updatedAlertJson = TenantMapper.INSTANCE.mergeJobsIntoStatus(tenant.getStatus(), request);
+
+            updateTenantStatusInDb(tenant, updatedAlertJson);
+            return TenantMapper.INSTANCE.mapStatusObject(tenant.getStatus());
+        } catch (Exception dbException) {
+
+            throw new RuntimeException("Updating Tenant's Status... DB update failed: " + dbException.getMessage());
+        }
+    }
+
+    /**
+     * Merges existing jobs with new jobs by replacing or adding job entries by name.
+     *
+     * @param existingJobs existing jobs
+     * @param newJobs      new jobs
+     * @return merged job list
+     */
+    private List<EventStatusDto> mergeJobs(List<EventStatusDto> existingJobs,
+                                           List<EventStatusDto> newJobs) {
+
+        if (existingJobs == null && newJobs == null) {
+            return Collections.emptyList();
+        }
+        if (existingJobs == null) {
+            return new ArrayList<>(newJobs);
+        }
+        if (newJobs == null) {
+            return new ArrayList<>(existingJobs);
+        }
+        Map<String, EventStatusDto> map = existingJobs.stream()
+                .collect(Collectors.toMap(
+                        e -> e.name.toUpperCase(),   // normalize key
+                        e -> e
+                ));
+
+        // Replace or add
+        for (EventStatusDto newJob : newJobs) {
+            var oldJob = map.get(newJob.name);
+            if (oldJob != null) {
+
+                if (newJob.getStart() == null && oldJob.getStart() != null) {
+                    newJob.setStart(oldJob.getStart());
+                }
+                if (newJob.getEnd() == null && oldJob.getEnd() != null) {
+                    newJob.setEnd(oldJob.getEnd());
+                }
+                if (newJob.properties == null || newJob.properties.isEmpty()) {
+                    newJob.properties = oldJob.properties;
+                }
+            }
+            map.put(newJob.name, newJob);
+
+
+        }
+        return new ArrayList<>(map.values());
     }
 
 
@@ -1692,49 +1739,6 @@ public class TenantService {
                     j.setMode(event.modeValue());
                 });
     }
-
-    private void updateSingleJob(String tenantId, EventStatusDto job) {
-
-        try {
-            applyJobDefinition(job);
-
-            var jobJson = objectMapper.writeValueAsString(job);
-
-            var updated = tenantRepository.updateTenantJobStatus(
-                    tenantId,
-                    job.getName(),
-                    jobJson
-            );
-
-            if (updated == 0) {
-                throw new BadRequestException(
-                        "Updating Tenant's Status... Job '" + job.getName() + "' was not found"
-                );
-            }
-
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(
-                    "Updating Tenant's Status... Failed to serialize job",
-                    e
-            );
-        }
-    }
-
-    private EventStatusDto resetJobDto(TenantJobEvent event) {
-
-        var job = new EventStatusDto();
-        job.setName(event.key());
-        job.setMode(event.modeValue());
-        job.setStatus(EventStatus.UNKNOWN.name());
-        job.setStart(null);
-        job.setEnd(null);
-        job.setMessage(null);
-        job.properties = null;
-
-        return job;
-    }
-
-
     private TenantResponseDto mapTenantSafely(Tenant tenant) {
 
         try {

@@ -1986,6 +1986,15 @@ public class TenantEndpoint {
                                                       "uid_endpoints": ""
                                                     }
                                                     """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Desy-Marketplace",
+                                            value = """
+                                                    {
+                                                      "type": "Desy-Marketplace",
+                                                      "feed_url": "https://desy-marketplace"
+                                                    }
+                                                    """
                                     )
                             }
                     )
