@@ -17,6 +17,7 @@ public enum TenantJobEvent {
     CHECK_READINESS("check_readiness", EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
 
     INIT_TOPOLOGY_CONNECTOR("init_topology_connector",EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_INTEGRATION_TOPO("init_topology_integrator",EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
 
     // Manual jobs (completed by admin actions)
 

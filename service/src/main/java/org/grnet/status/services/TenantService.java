@@ -9,6 +9,7 @@ import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
@@ -1455,14 +1456,6 @@ public class TenantService {
         return webApiResponse.data.get(0);
     }
 
-    /**
-     * Updates the feed topology for the specified tenant and triggers
-     * topology connector initialization notification.
-     *
-     * @param tenantId tenant identifier
-     * @param request  feed topology request
-     * @return update status response
-     */
     @Transactional
     public WebApiFeedsTopologyResponse updateFeedTopology(String tenantId, FeedTopologyDto request) {
 
@@ -1470,6 +1463,31 @@ public class TenantService {
 
         var response = webApiService.updateFeedTopologyWebApi(tenant.id, request);
 
+        switch (request.type) {
+            case "Desy-Marketplace":
+                try {
+
+                    notifyAmsInitTopologyIntegrator(tenantId);
+
+                } catch (Exception e) {
+                    Log.error("Failed to notify AMS for topology connector initialization", e);
+                }
+
+                break;
+            case "CSV":
+            case "EOSC service catalogue":
+                try {
+
+                    notifyAmsInitTopologyConnector(tenantId);
+
+                } catch (Exception e) {
+                    Log.error("Failed to notify AMS for topology connector initialization", e);
+                }
+                break;
+
+            default:
+                throw new NotAcceptableException("Not acceptable value ");
+        }
         try {
             notifyAmsInitTopologyConnector(tenantId);
         } catch (Exception e) {
@@ -1778,4 +1796,65 @@ public class TenantService {
                 ? root.getMessage()
                 : throwable.getMessage();
     }
+
+
+
+    /**
+     * Sends a readiness validation notification to the AMS for the specified tenant.
+     *
+     * @param id    tenant identifier
+     * @param alert alert request
+     * @return tenant status response
+     */
+    @Transactional
+    public TenantStatusDto notifyAmsInitIntegratorAlert(String id, AlertDefinitionRequest alert) {
+        var now = Instant.now();
+        var tenant = tenantRepository.findById(id);
+
+        if (alert.properties.containsKey("tenant_name") && !alert.properties.get("tenant_name").equals(tenant.name)) {
+            throw new BadRequestException("Notifying Messaging Service... Value of property 'name' differs from tenant's name: " + tenant.name);
+        }
+
+        validateAlertProperties(alert.name, alert.properties);
+
+        alert.getProperties().put("tenant_id", id);
+        alert.setCreatedAt(String.valueOf(now));
+        send(id, alert, "Notifying Messaging Service.. A request is sent to the Messaging Service to validate that the necessary data and configuration are in place prior to starting the monitoring process");
+
+
+        var statusOpt = tenantRepository.fetchTenantStatus(id);
+        if (!statusOpt.isEmpty()) {
+            return TenantMapper.INSTANCE.mapStatusObject(statusOpt.get());
+        }
+        return null;
+    }
+
+
+    /**
+     * Sends topology connector initialization notification for the specified tenant.
+     *
+     * @param tenantId tenant identifier
+     * @return tenant status response
+     */
+    @Transactional
+    public TenantStatusDto notifyAmsInitTopologyIntegrator(String tenantId) {
+
+        var tenant = tenantRepository.findById(tenantId);
+
+        if (tenant == null) {
+            throw new WebApplicationException(
+                    "Notifying Messaging Service... Tenant with id: " + tenantId + " not found",
+                    404
+            );
+        }
+
+        var alert = buildAlert(
+                EventName.INIT_INTEGRATION_TOPO,
+                tenant,
+                String.valueOf(Instant.now())
+        );
+
+        return notifyAmsInitIntegratorAlert(tenantId, alert);
+    }
+
 }
