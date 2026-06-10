@@ -290,6 +290,9 @@ public class TenantService {
 
             // 4. Delete orphan contacts
             deleteOrphanContacts(oldContacts);
+            var alert = buildAlert(EventName.DELETE_TENANT, tenant, String.valueOf(Instant.now()));
+
+            notifyAmsDeleteTenant(id, alert);
 
         } catch (WebApplicationException e) {
 
@@ -463,7 +466,7 @@ public class TenantService {
         var roles = RoleEndpointHolder.get();
         var uniqueIds = roles
                 .stream()
-                .map(role->accessControlService.resolveAccessibleGroupsByName(role.getRoleName(), TenantResource.TENANT.resourceName()))
+                .map(role -> accessControlService.resolveAccessibleGroupsByName(role.getRoleName(), TenantResource.TENANT.resourceName()))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 
@@ -476,7 +479,6 @@ public class TenantService {
         );
         return new PageResource<>(tenants, tenantList, uriInfo);
     }
-
 
 
     /**
@@ -1464,7 +1466,7 @@ public class TenantService {
         var response = webApiService.updateFeedTopologyWebApi(tenant.id, request);
 
         switch (request.type) {
-            case "Desy-Marketplace":
+            case "desy-marketplace":
                 try {
 
                     notifyAmsInitTopologyIntegrator(tenantId);
@@ -1475,7 +1477,7 @@ public class TenantService {
 
                 break;
             case "CSV":
-            case "EOSC service catalogue":
+            case "eosc-service-catalog":
                 try {
 
                     notifyAmsInitTopologyConnector(tenantId);
@@ -1484,15 +1486,7 @@ public class TenantService {
                     Log.error("Failed to notify AMS for topology connector initialization", e);
                 }
                 break;
-
-            default:
-                throw new NotAcceptableException("Not acceptable value ");
-        }
-        try {
-            notifyAmsInitTopologyConnector(tenantId);
-        } catch (Exception e) {
-            Log.error("Failed to notify AMS for topology connector initialization", e);
-        }
+          }
 
         return response;
     }
@@ -1529,7 +1523,7 @@ public class TenantService {
      * Retrieves the summary capability for the specified tenant and service.
      *
      * @param tenantId    tenant identifier
-     * @param item service name to examine
+     * @param item        service name to examine
      * @param startDate   start date
      * @param endDate     end date
      * @param granularity result granularity
@@ -1641,9 +1635,9 @@ public class TenantService {
     /**
      * Retrieves dashboard availability and uptime results for tenant groups.
      *
-     * @param tenantId tenant identifier
+     * @param tenantId  tenant identifier
      * @param groupName optional group name
-     * @param report report name
+     * @param report    report name
      * @return group results response
      */
     public TenantWebApiGroupResultsResponse getGroupResults(String tenantId, String groupName, String date, String period, String startTime, String endTime, String startDate, String endDate, String granularity, String report) {
@@ -1656,9 +1650,9 @@ public class TenantService {
     /**
      * Retrieves dashboard status results for tenant groups.
      *
-     * @param tenantId tenant identifier
+     * @param tenantId  tenant identifier
      * @param groupName optional group name
-     * @param report report name
+     * @param report    report name
      * @return group status response
      */
     public TenantWebApiGroupStatusResponse getGroupStatus(String tenantId, String groupName, String startTime, String endTime, Boolean history, String report) {
@@ -1798,7 +1792,6 @@ public class TenantService {
     }
 
 
-
     /**
      * Sends a readiness validation notification to the AMS for the specified tenant.
      *
@@ -1856,5 +1849,31 @@ public class TenantService {
 
         return notifyAmsInitIntegratorAlert(tenantId, alert);
     }
+
+    /**
+     * Sends a readiness validation notification to the AMS for the specified tenant.
+     *
+     * @param id    tenant identifier
+     * @param alert alert request
+     * @return tenant status response
+     */
+    @Transactional
+    public TenantStatusDto notifyAmsDeleteTenant(String id, AlertDefinitionRequest alert) {
+        var now = Instant.now();
+        var tenant = tenantRepository.findById(id);
+
+        if (alert.properties.containsKey("tenant_name") && !alert.properties.get("tenant_name").equals(tenant.name)) {
+            throw new BadRequestException("Notifying Messaging Service... Value of property 'name' differs from tenant's name: " + tenant.name);
+        }
+
+        validateAlertProperties(alert.name, alert.properties);
+
+        alert.getProperties().put("tenant_id", id);
+        alert.setCreatedAt(String.valueOf(now));
+        send(id, alert, "Notifying Messaging Service.. A notification is sent to notify ams that a tenant is deleted");
+
+        return null;
+    }
+
 
 }

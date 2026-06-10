@@ -15,7 +15,7 @@ public class FeedTopologyDto {
     @Schema(
             type = SchemaType.STRING,
             description = "Connector type used for topology ingestion.",
-            example = "CSV"
+            example = "desy-marketplace"
     )
     @JsonProperty("type")
     @NotBlank(message = "topology feed type can not be blank")

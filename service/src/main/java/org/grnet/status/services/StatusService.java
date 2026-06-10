@@ -108,6 +108,9 @@ public class StatusService {
        var tenantName=statusPage.getTenant().getName();
         var tenantImage=statusPage.getTenant().getImage();
 
+       var tenantName=statusPage.getTenant().getName();
+        var tenantImage=statusPage.getTenant().getImage();
+
         webApiService.validateTenantInitialized(statusPage.getTenant().id, "Status Groups");
 
         ArgoStatusGroupsResponse argoGroups = null;
@@ -157,9 +160,15 @@ public class StatusService {
             }
         }
 
+<<<<<<< HEAD
         configResponse.tenantName=tenantName;
         configResponse.tenantImage=tenantImage;
         return configResponse;
+=======
+        config.tenantName=tenantName;
+        config.tenantImage=tenantImage;
+        return config;
+>>>>>>> 9d94188 (slug tenant info added)
     }
 
 
