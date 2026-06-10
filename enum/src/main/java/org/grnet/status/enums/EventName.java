@@ -8,5 +8,6 @@ public enum EventName {
         INIT_TOPOLOGY_CONNECTOR,
         INIT_POEM,
         INIT_MONITORING_BOX,
-        INIT_INTEGRATION_TOPO
+        INIT_INTEGRATION_TOPO,
+        DELETE_TENANT
 }

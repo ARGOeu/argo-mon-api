@@ -298,7 +298,7 @@ public class TenantService {
     public void deleteTenant(String id) {
 
         var tenant = tenantRepository.findById(id);
-
+        var name = tenant.name;
         if (tenant == null) {
             throw new WebApplicationException("Deleting Tenant... Tenant not found", 404);
         }
@@ -340,6 +340,17 @@ public class TenantService {
                     500
             );
         }
+        var alert = buildAlert(EventName.DELETE_TENANT, tenant, String.valueOf(Instant.now()));
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                notifyAmsDeleteTenant(id, name, alert);
+            } catch (Exception e) {
+                Log.errorf(e,
+                        "Failed to send AMS delete tenant notification for tenant %s",
+                        id);
+            }
+        });
     }
 
     /**
@@ -1226,6 +1237,79 @@ public class TenantService {
         }
     }
 
+
+    private void sendDeleteEvent(String id, AlertDefinitionRequest alert, String eventMsg) {
+
+        final var hasCustomMsg = eventMsg != null && !eventMsg.isEmpty();
+
+
+        // INITIALISING message
+        final var publishingMsg = hasCustomMsg
+                ? eventMsg
+                : "Event notification: " + alert.name + " is sent to Messaging Service for publishing";
+
+
+        // Your special INITIALISED message (only when eventMsg exists)
+        final var customInitialisedMsg =
+                "A request is initialised to the Messaging Service " +
+                        "to validate that the necessary data and configuration " +
+                        "are in place prior to starting the monitoring process";
+
+
+        // FINAL INITIALISED message
+        final var initialisedMsg = hasCustomMsg
+                ? customInitialisedMsg
+                : "Event notification: " + alert.name + " is initialised to Messaging Service for publishing";
+
+// ✅ CUSTOM FAILED
+        final var customFailedMsg =
+                "A request to validate that the necessary data and configuration " +
+                        "are in place prior to starting the monitoring process, failed to be published the Messaging Service.";
+
+
+// FAILED
+        final var failedMsg =
+                hasCustomMsg
+                        ? customFailedMsg
+                        : "Event notification: " + alert.name +
+                          " failed to be initialised to Messaging Service";
+        try {
+            final var now = Instant.now();
+
+            final var objectMapper = new ObjectMapper();
+            final var json = objectMapper.writeValueAsString(alert);
+
+            Log.infof(
+                    "Sending to Messaging Service | project=%s | topic=%s | tenantId=%s | event=%s",
+                    amsService.getProject(),
+                    amsService.getTopic(),
+                    id,
+                    alert.name.toUpperCase()
+            );
+
+
+            final var encodedData = Base64.getEncoder().encodeToString(json.getBytes());
+
+            final var message = new PublishRequest.Message();
+
+            message.setData(encodedData);
+
+            final var publishData = new PublishRequest();
+            publishData.setMessages(List.of(message));
+
+            amsService.publishMessage(publishData);
+
+        } catch (Exception e) {
+
+            Log.error("Failed to send alert to Messaging Service", e);
+
+            throw new RuntimeException(
+                    "Sending notification... Failed to send event notification: " + alert.name,
+                    e
+            );
+        }
+    }
+
     /**
      * Creates a tenant status request containing a single alert job update.
      *
@@ -1516,7 +1600,6 @@ public class TenantService {
                 }
                 break;
         }
-
         return response;
     }
 
@@ -1878,5 +1961,28 @@ public class TenantService {
 
         return notifyAmsInitIntegratorAlert(tenantId, alert);
     }
+
+    /**
+     * Sends a notification to the AMS for the specified tenant's deletion.
+     *
+     * @return tenant status response
+     */
+    @Transactional
+    public void notifyAmsDeleteTenant(String tenantId, String tenantName, AlertDefinitionRequest alert) {
+        var now = Instant.now();
+
+        if (alert.properties.containsKey("tenant_name") && !alert.properties.get("tenant_name").equals(tenantName)) {
+            throw new BadRequestException("Notifying Messaging Service... Value of property 'name' differs from tenant's name: " + tenantName
+            );
+        }
+
+        // validateAlertProperties(alert.name, alert.properties);
+
+        alert.getProperties().put("tenant_id", tenantId);
+        alert.setCreatedAt(String.valueOf(now));
+        sendDeleteEvent(tenantId, alert, "Notifying Messaging Service.. A notification is sent to notify ams that a tenant is deleted");
+
+    }
+
 
 }
