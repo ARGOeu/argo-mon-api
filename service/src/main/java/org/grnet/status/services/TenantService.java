@@ -231,6 +231,38 @@ public class TenantService {
         }
     }
 
+    public TenantResponseDto getTenantByName(String name) {
+
+        var tenant = tenantRepository.fetchTenantByName(name)
+                .orElseThrow(() -> new WebApplicationException(
+                        "Retrieving Tenant... Tenant with name: " + name + " not found",
+                        404
+                ));
+
+        try {
+            var webapiGetResponse = webApiService.retrieveTenantWebApi(tenant.id);
+
+            var webtenant = TenantMapper.INSTANCE
+                    .webApiTenantToDto(tenant, webapiGetResponse);
+
+            webtenant.contacts =
+                    TenantMapper.INSTANCE.contactsToDtos(tenant.getContacts());
+
+            webtenant.groupStatus = getGroupStatus(tenant);
+
+            return webtenant;
+
+        } catch (JsonProcessingException e) {
+
+            Log.error("JSON error while retrieving tenant {}", name, e);
+
+            throw new WebApplicationException(
+                    "Retrieving Tenant... Failed to retrieve tenant with name: " + name + " due to invalid response from Argo Web Api",
+                    502
+            );
+        }
+    }
+
     /**
      * Deletes a tenant by its identifier and queues group deletion.
      *
