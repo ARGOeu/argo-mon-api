@@ -141,6 +141,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#152](https://github.com/ARGOeu/argo-mon-status-api/pull/152) ARGO-5622 Prevent lost updates during concurrent tenant status modifications
 - [#157](https://github.com/ARGOeu/argo-mon-status-api/pull/157) ARGO-5629 Update feed topology regression
 - [#160](https://github.com/ARGOeu/argo-mon-status-api/pull/160) ARGO-5631 Fix topology integration automation event handling
+- [#161](https://github.com/ARGOeu/argo-mon-status-api/pull/161) ARGO-5632 Replace free-text topology feed types with enum values
 
 ### Removed
 

@@ -1579,25 +1579,24 @@ public class TenantService {
         var response = webApiService.updateFeedTopologyWebApi(tenant.id, request);
 
         switch (request.type) {
-            case "desy-marketplace":
+            case DESY_MARKETPLACE:
                 try {
-
                     notifyAmsInitTopologyIntegrator(tenantId);
-
                 } catch (Exception e) {
-                    Log.error("Failed to notify AMS for topology connector initialization", e);
+                    Log.error("Failed to notify AMS for topology integration initialization", e);
                 }
-
                 break;
-            case "CSV":
-            case "eosc-service-catalog":
+
+            case CSV:
+            case EOSC_SERVICE_CATALOG:
                 try {
-
                     notifyAmsInitTopologyConnector(tenantId);
-
                 } catch (Exception e) {
                     Log.error("Failed to notify AMS for topology connector initialization", e);
                 }
+                break;
+
+            default:
                 break;
         }
         return response;
