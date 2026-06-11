@@ -12,6 +12,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
 import org.grnet.status.dtos.status.StatusGroupResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
+import org.grnet.status.dtos.statuspage.StatusPageConfigResponse;
 import org.grnet.status.mappers.StatusPageMapper;
 import org.grnet.status.repositories.StatusPageRepository;
 import org.grnet.status.services.clients.ArgoWebApiClient;
@@ -94,7 +95,7 @@ public class StatusService {
      * @return status page configuration
      */
     @Transactional
-    public StatusPageConfigDto getConfigBySlug(String slug) {
+    public StatusPageConfigResponse getConfigBySlug(String slug) {
 
         var statusPage = statusPageRepository.find("slug", slug)
                 .firstResultOptional()
@@ -102,6 +103,10 @@ public class StatusService {
 
         var statusPageDto = StatusPageMapper.INSTANCE.entityToDto(statusPage);
         var config = statusPageDto.config;
+        var configResponse = StatusPageMapper.INSTANCE.configToResponse(config);
+
+       var tenantName=statusPage.getTenant().getName();
+        var tenantImage=statusPage.getTenant().getImage();
 
         webApiService.validateTenantInitialized(statusPage.getTenant().id, "Status Groups");
 
@@ -124,11 +129,11 @@ public class StatusService {
 
         var liveGroups = requireGroups(argoGroups, statusPage.getReport());
 
-        if (config.groups == null) {
-            return config;
+        if (configResponse.groups == null) {
+            return configResponse;
         }
 
-        for (var group : config.groups) {
+        for (var group : configResponse.groups) {
             if (group == null || group.list == null) {
                 continue;
             }
@@ -152,7 +157,9 @@ public class StatusService {
             }
         }
 
-        return config;
+        configResponse.tenantName=tenantName;
+        configResponse.tenantImage=tenantImage;
+        return configResponse;
     }
 
 

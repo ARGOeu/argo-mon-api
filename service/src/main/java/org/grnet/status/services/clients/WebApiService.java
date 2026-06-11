@@ -146,10 +146,12 @@ public class WebApiService {
             argoWebApiClient.updateTenantInfo(id, accessToken, webApiRequest);
             argoWebApiClient.updateTenantTopology(id, accessToken, webApiRequest);
 
-            var tenantNode = new TenantWebApiNodeRequest();
-            tenantNode.node = webApiRequest.node;
+            if (webApiRequest.node != null) {
+                var tenantNode = new TenantWebApiNodeRequest();
+                tenantNode.node = webApiRequest.node;
 
-            updateTenantNodeWebApi(id, tenantNode);
+                updateTenantNodeWebApi(id, tenantNode);
+            }
 
             return argoWebApiClient.updateTenantDBConf(id, accessToken, webApiRequest);
 

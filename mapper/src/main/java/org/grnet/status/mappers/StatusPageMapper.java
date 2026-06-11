@@ -3,10 +3,7 @@ package org.grnet.status.mappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
-import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
-import org.grnet.status.dtos.statuspage.StatusPageRequestDto;
-import org.grnet.status.dtos.statuspage.StatusPageUpdateRequestDto;
-import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
+import org.grnet.status.dtos.statuspage.*;
 import org.grnet.status.entities.StatusPage;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
@@ -32,6 +29,9 @@ public interface StatusPageMapper {
     @Mapping(target = "tenantId", source = "tenant.id")
     @Mapping(target = "tenantName", source = "tenant.name")
     StatusPageResponseDto entityToDto(StatusPage entity);
+
+    @Named("mapConfig")
+    StatusPageConfigResponse configToResponse(StatusPageConfigDto entity);
 
 
     /* ─────────────── CREATE ─────────────── */
