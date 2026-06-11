@@ -140,6 +140,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#150](https://github.com/ARGOeu/argo-mon-status-api/pull/150) ARGO-5606: Continue tenant listing when tenant data retrieval fails
 - [#152](https://github.com/ARGOeu/argo-mon-status-api/pull/152) ARGO-5622 Prevent lost updates during concurrent tenant status modifications
 - [#157](https://github.com/ARGOeu/argo-mon-status-api/pull/157) ARGO-5629 Update feed topology regression
+- [#160](https://github.com/ARGOeu/argo-mon-status-api/pull/160) ARGO-5631 Fix topology integration automation event handling
 
 ### Removed
 
