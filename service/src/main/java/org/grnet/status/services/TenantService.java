@@ -463,7 +463,7 @@ public class TenantService {
         var roles = RoleEndpointHolder.get();
         var uniqueIds = roles
                 .stream()
-                .map(role->accessControlService.resolveAccessibleGroupsByName(role.getRoleName(), TenantResource.TENANT.resourceName()))
+                .map(role -> accessControlService.resolveAccessibleGroupsByName(role.getRoleName(), TenantResource.TENANT.resourceName()))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 
@@ -476,7 +476,6 @@ public class TenantService {
         );
         return new PageResource<>(tenants, tenantList, uriInfo);
     }
-
 
 
     /**
@@ -1464,7 +1463,7 @@ public class TenantService {
         var response = webApiService.updateFeedTopologyWebApi(tenant.id, request);
 
         switch (request.type) {
-            case "Desy-Marketplace":
+            case "desy-marketplace":
                 try {
 
                     notifyAmsInitTopologyIntegrator(tenantId);
@@ -1475,7 +1474,7 @@ public class TenantService {
 
                 break;
             case "CSV":
-            case "EOSC service catalogue":
+            case "eosc-service-catalog":
                 try {
 
                     notifyAmsInitTopologyConnector(tenantId);
@@ -1484,14 +1483,6 @@ public class TenantService {
                     Log.error("Failed to notify AMS for topology connector initialization", e);
                 }
                 break;
-
-            default:
-                throw new NotAcceptableException("Not acceptable value ");
-        }
-        try {
-            notifyAmsInitTopologyConnector(tenantId);
-        } catch (Exception e) {
-            Log.error("Failed to notify AMS for topology connector initialization", e);
         }
 
         return response;
@@ -1529,7 +1520,7 @@ public class TenantService {
      * Retrieves the summary capability for the specified tenant and service.
      *
      * @param tenantId    tenant identifier
-     * @param item service name to examine
+     * @param item        service name to examine
      * @param startDate   start date
      * @param endDate     end date
      * @param granularity result granularity
@@ -1641,9 +1632,9 @@ public class TenantService {
     /**
      * Retrieves dashboard availability and uptime results for tenant groups.
      *
-     * @param tenantId tenant identifier
+     * @param tenantId  tenant identifier
      * @param groupName optional group name
-     * @param report report name
+     * @param report    report name
      * @return group results response
      */
     public TenantWebApiGroupResultsResponse getGroupResults(String tenantId, String groupName, String date, String period, String startTime, String endTime, String startDate, String endDate, String granularity, String report) {
@@ -1656,9 +1647,9 @@ public class TenantService {
     /**
      * Retrieves dashboard status results for tenant groups.
      *
-     * @param tenantId tenant identifier
+     * @param tenantId  tenant identifier
      * @param groupName optional group name
-     * @param report report name
+     * @param report    report name
      * @return group status response
      */
     public TenantWebApiGroupStatusResponse getGroupStatus(String tenantId, String groupName, String startTime, String endTime, Boolean history, String report) {
@@ -1796,7 +1787,6 @@ public class TenantService {
                 ? root.getMessage()
                 : throwable.getMessage();
     }
-
 
 
     /**
