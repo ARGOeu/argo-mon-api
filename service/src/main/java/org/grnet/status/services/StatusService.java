@@ -105,14 +105,14 @@ public class StatusService {
         var config = statusPageDto.config;
         var configResponse = StatusPageMapper.INSTANCE.configToResponse(config);
 
-       var tenantName=statusPage.getTenant().getName();
-        var tenantImage=statusPage.getTenant().getImage();
+        var tenantName = statusPage.getTenant().getName();
+        var tenantImage = statusPage.getTenant().getImage();
 
         webApiService.validateTenantInitialized(statusPage.getTenant().id, "Status Groups");
 
         ArgoStatusGroupsResponse argoGroups = null;
         try {
-             argoGroups = argoWebApiClient.fetchStatusGroupsSuperAdmin(
+            argoGroups = argoWebApiClient.fetchStatusGroupsSuperAdmin(
                     accessToken,
                     statusPage.getTenant().id,
                     statusPage.getReport()
@@ -156,9 +156,8 @@ public class StatusService {
                         });
             }
         }
-
-        configResponse.tenantName=tenantName;
-        configResponse.tenantImage=tenantImage;
+        configResponse.tenantName = tenantName;
+        configResponse.tenantImage = tenantImage;
         return configResponse;
     }
 
