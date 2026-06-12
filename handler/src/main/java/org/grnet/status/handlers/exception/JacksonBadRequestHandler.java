@@ -18,21 +18,24 @@ public class JacksonBadRequestHandler implements ExceptionMapper<InvalidFormatEx
     @Override
     public Response toResponse(InvalidFormatException e) {
 
-        String message = "Invalid request payload.";
+        var message = "Invalid request payload.";
 
-        if (e.getCause() instanceof InvalidFormatException ife && ife.getTargetType().isEnum()) {
-            String allowed = Arrays.stream(ife.getTargetType().getEnumConstants())
+        if (e.getTargetType() != null && e.getTargetType().isEnum()) {
+            var allowed = Arrays.stream(e.getTargetType().getEnumConstants())
                     .map(Object::toString)
                     .collect(Collectors.joining(", "));
-            message = "Invalid value. Allowed values: " + allowed;
+
+            message = "Invalid value '" + e.getValue() + "'. Allowed values: " + allowed + ".";
         }
 
         LOG.warn(message);
 
         var response = new InformativeResponse();
         response.message = message;
-        response.code = 400;
+        response.code = Response.Status.BAD_REQUEST.getStatusCode();
 
-        return Response.status(Response.Status.BAD_REQUEST).entity(response).build();
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity(response)
+                .build();
     }
 }
