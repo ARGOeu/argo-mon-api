@@ -1,14 +1,12 @@
 package org.grnet.status.services;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.spi.CDI;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.AuthGroupManagement;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.*;
-import org.grnet.endpoint.scanner.runtime.entitlements.EntitlementUtils;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.entities.Page;
 import org.grnet.status.entities.PageQueryImpl;
@@ -50,7 +48,6 @@ public class GroupManagementService {
     /**
      * Returns a paginated list of members for the given group.
      *
-     * @param groupName the group identifier
      * @param search optional search filter
      * @param page 0-based page index
      * @param size number of records per page
@@ -59,67 +56,23 @@ public class GroupManagementService {
      */
     public PageResource<GroupUserResponse> getAllMembers(String groupName, String search, int page, int size, UriInfo uriInfo) {
 
-        var response = getMembers(groupName, page * size, size, search);
+        var authPage = groupManagement.getAllMembersByPageAndSize(page, size, search, null, uriInfo);
 
-        var members = response.results
+        var content = authPage.getContent()
                 .stream()
-                .map(groupMember -> mapApplicationMember(groupMember.user))
+                .map(this::resolveMemberResourceNames)
                 .toList();
 
         var pageable = new PageQueryImpl<GroupUserResponse>();
-
-        pageable.list = members;
+        pageable.list = content;
         pageable.index = page;
         pageable.size = size;
-        pageable.count = response.count;
+        pageable.count = authPage.getTotalElements();
         pageable.page = Page.of(page, size);
 
         return new PageResource<>(pageable, uriInfo);
     }
 
-
-    /**
-     * Maps an AGM group user to the application member response model,
-     * including tenant roles resolved from local entitlements.
-     *
-     * @param gu AGM group user
-     * @return mapped application member response
-     */
-    private GroupUserResponse mapApplicationMember(GroupUser gu) {
-
-        var user = new GroupUserResponse();
-        user.id = gu.id;
-        user.email = gu.email;
-        user.username = gu.username;
-        user.firstName = gu.firstName;
-        user.lastName = gu.lastName;
-        user.uid = gu.getUid();
-        user.tenants = new ArrayList<>();
-
-        if (gu.attributes == null || gu.attributes.getLocalEntitlements() == null) {
-            return user;
-        }
-
-        var parsedEntitlements = EntitlementUtils.parseEntitlements(
-                gu.attributes.getLocalEntitlements()
-        );
-
-        var tenantRoles = EntitlementUtils.extractResourceRoles(parsedEntitlements)
-                .stream()
-                .filter(entitlement ->
-                        TenantResource.TENANT.resourceName().equals(entitlement.resource()))
-                .map(entitlement -> {
-                    var dto = new UserGroupInfoDto();
-                    dto.name = resolveResourceName(entitlement.resource(), entitlement.resourceId());
-                    dto.role = entitlement.role();
-                    return dto;
-                })
-                .toList();
-
-        user.tenants.addAll(tenantRoles);
-
-        return user;
-    }
 
 
     /**
@@ -131,13 +84,20 @@ public class GroupManagementService {
      */
     String resolveResourceName(String resource, String resourceId) {
 
-        if (TenantResource.TENANT.resourceName().equals(resource)) {
-            return tenantRepository.findByIdOptional(resourceId)
-                    .map(tenant -> tenant.name)
-                    .orElse(resourceId);
-        }
+        switch (resource) {
 
-        return resourceId;
+            case "Tenant":
+                return tenantRepository.findByIdOptional(resourceId)
+                        .map(tenant -> tenant.name)
+                        .orElse(resourceId);
+
+            // Project
+            // Invitation
+            // More resources to come
+
+            default:
+                return resourceId;
+        }
     }
 
     /**
@@ -163,11 +123,12 @@ public class GroupManagementService {
      * @param role tenant role (e.g. tenant_admin, tenant_viewer)
      * @return list of users assigned to the tenant role
      */
-    public List<GroupUser> getTenantMembersByRole(String tenantId, String role) {
+    public List<GroupUserResponse> getTenantMembersByRole(String tenantId, String role) {
 
-        return getAllApplicationMembers("")
+        return getAllApplicationMembersRaw("")
                 .stream()
                 .filter(user -> hasTenantRole(user, tenantId, role))
+                .map(this::resolveMemberResourceNames)
                 .toList();
     }
 
@@ -181,21 +142,17 @@ public class GroupManagementService {
      * @param role tenant role
      * @return true if the user has the tenant role
      */
-    private boolean hasTenantRole(GroupUser user, String tenantId, String role) {
+    private boolean hasTenantRole(GroupUserResponse user, String tenantId, String role) {
 
-        if (user.attributes == null || user.attributes.getLocalEntitlements() == null) {
+        if (user.memberships == null || user.memberships.isEmpty()) {
             return false;
         }
 
-        var parsedEntitlements = EntitlementUtils.parseEntitlements(
-                user.attributes.getLocalEntitlements()
-        );
-
-        return EntitlementUtils.extractResourceRoles(parsedEntitlements)
+        return user.memberships
+                .getOrDefault(TenantResource.TENANT.resourceName(), List.of())
                 .stream()
-                .filter(entitlement -> TenantResource.TENANT.resourceName().equals(entitlement.resource()))
-                .filter(entitlement -> tenantId.equals(entitlement.resourceId()))
-                .anyMatch(entitlement -> role.equals(entitlement.role()));
+                .filter(group -> tenantId.equals(group.name))
+                .anyMatch(group -> role.equals(group.role));
     }
 
 
@@ -259,40 +216,31 @@ public class GroupManagementService {
         return new PageResource<>(pageable, uriInfo);
     }
 
-    public GroupMembersResponse getApplicationMembers(int first, int max, String search) {
 
-        return getMembers(membersGroup, first, max, search);
+    public List<GroupUserResponse> getAllApplicationMembersRaw(String search) {
+
+        var fullPath = normalizePath(parentGroup) + "/" + membersGroup;
+
+        return groupManagement.getApplicationMembers(fullPath, search);
     }
 
-    /**
-     * Retrieves all application members from AGM using paginated requests.
-     *
-     * @param search optional search filter
-     * @return complete list of application members
-     */
-    public List<GroupUser> getAllApplicationMembers(String search) {
+    private GroupUserResponse resolveMemberResourceNames(GroupUserResponse user) {
 
-        int first = 0;
-        int size = 100;
-
-        List<GroupUser> users = new ArrayList<>();
-
-        while (true) {
-            var response = getApplicationMembers(first, size, search);
-
-            if (response == null || response.results == null || response.results.isEmpty()) {
-                break;
-            }
-
-            response.results.forEach(member -> users.add(member.user));
-
-            first += size;
-
-            if (users.size() >= response.count) {
-                break;
-            }
+        if (user.memberships == null || user.memberships.isEmpty()) {
+            return user;
         }
 
-        return users;
+        user.memberships.forEach((resource, memberships) -> {
+            if (memberships == null) {
+                return;
+            }
+
+            memberships.forEach(membership ->
+                    membership.name = resolveResourceName(resource, membership.name)
+            );
+        });
+
+        return user;
     }
+
 }

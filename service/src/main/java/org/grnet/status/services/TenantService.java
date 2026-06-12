@@ -9,17 +9,13 @@ import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.AuthGroupManagement;
-import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUser;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
-import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.UserGroupInfoDto;
 import org.grnet.endpoint.scanner.runtime.context.RoleEndpointHolder;
-import org.grnet.endpoint.scanner.runtime.entitlements.EntitlementUtils;
 import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
@@ -65,6 +61,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+
+import static io.vertx.core.http.impl.HttpUtils.normalizePath;
 
 /**
  * Service responsible for managing tenants and tenant status workflows.
@@ -890,15 +888,16 @@ public class TenantService {
      */
     public PageResource<GroupUserResponse> getMembersByTenant(String tenantId, int page, int size, UriInfo uriInfo) {
 
-        var tenant = tenantRepository.findById(tenantId);
-
-        var members = groupManagementService.getAllApplicationMembers("")
+        var members = groupManagement.getApplicationMembers(
+                        normalizePath(namespace) + "/members",
+                        null
+                )
                 .stream()
-                .map(user -> mapTenantMember(user, tenantId, tenant.name))
-                .filter(user -> user.tenants != null && !user.tenants.isEmpty())
+                .filter(user -> user.memberships != null
+                        && user.memberships.containsKey(TenantResource.TENANT.resourceName()))
+                .map(user -> filterUserGroupsByTenant(user, tenantId))
+                .filter(user -> user.memberships != null && !user.memberships.isEmpty())
                 .toList();
-
-        Log.infof("Fetched %s application members from AGM", members.size());
 
         var partition = utility.partition(new ArrayList<>(members), size);
 
@@ -917,64 +916,30 @@ public class TenantService {
     }
 
 
-    private GroupUserResponse mapTenantMember(GroupUser gu, String tenantId, String tenantName) {
+    private GroupUserResponse filterUserGroupsByTenant(GroupUserResponse user, String tenantId) {
 
-        var user = new GroupUserResponse();
-        user.id = gu.id;
-        user.email = gu.email;
-        user.username = gu.username;
-        user.firstName = gu.firstName;
-        user.lastName = gu.lastName;
-        user.uid = gu.getUid();
-        user.tenants = new ArrayList<>();
-
-        if (gu.attributes == null) {
-            Log.infof("User %s has NULL attributes", gu.username);
+        if (user.memberships == null || user.memberships.isEmpty()) {
             return user;
         }
 
-        if (gu.attributes.getLocalEntitlements() == null) {
-            Log.infof("User %s has NULL localEntitlements", gu.username);
-            return user;
-        }
-
-        var parsedEntitlements = EntitlementUtils.parseEntitlements(
-                gu.attributes.getLocalEntitlements()
-        );
-
-        var extractedRoles = EntitlementUtils.extractResourceRoles(parsedEntitlements);
-
-        extractedRoles.forEach(entitlement ->
-                Log.infof(
-                        "User=%s role=%s resource=%s resourceId=%s expectedTenantId=%s",
-                        gu.username,
-                        entitlement.role(),
-                        entitlement.resource(),
-                        entitlement.resourceId(),
-                        tenantId
-                )
-        );
-
-        var tenantRoles = extractedRoles
+        var tenantGroups = user.memberships
+                .getOrDefault(TenantResource.TENANT.resourceName(), List.of())
                 .stream()
-                .filter(entitlement ->
-                        TenantResource.TENANT.resourceName()
-                                .equals(entitlement.resource()))
-                .filter(entitlement ->
-                        tenantId.equals(entitlement.resourceId()))
-                .map(entitlement -> {
-                    var dto = new UserGroupInfoDto();
-                    dto.name = tenantName;
-                    dto.role = entitlement.role();
-                    return dto;
-                })
+                .filter(group -> tenantId.equals(group.name))
+                .peek(group -> group.name = groupManagementService.resolveResourceName(
+                        TenantResource.TENANT.resourceName(),
+                        group.name
+                ))
                 .toList();
 
-        user.tenants.addAll(tenantRoles);
+        user.memberships = new HashMap<>();
+
+        if (!tenantGroups.isEmpty()) {
+            user.memberships.put(TenantResource.TENANT.resourceName(), tenantGroups);
+        }
 
         return user;
     }
-
 
     /**
      * Sends a readiness validation notification to the AMS for the specified tenant.
