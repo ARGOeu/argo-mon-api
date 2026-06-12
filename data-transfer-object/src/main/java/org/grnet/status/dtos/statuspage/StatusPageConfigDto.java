@@ -32,25 +32,6 @@ public class StatusPageConfigDto {
     public String description;
 
     @Schema(
-            type = SchemaType.STRING,
-            implementation = String.class,
-            description = "The tenant  of the status page",
-            example = "LOCALTENANT"
-    )
-    @JsonProperty("tenant_name")
-    @NotBlank(message = "Tenant's name cannot be blank")
-    public String tenantName;
-
-    @Schema(
-            type = SchemaType.STRING,
-            implementation = String.class,
-            description = "The image of the tenant of the status page",
-            example = "https://images/profile.jpg"
-    )
-    @JsonProperty("tenant_image")
-    public String tenantImage;
-
-    @Schema(
             type = SchemaType.ARRAY,
             implementation = StatusPageGroupDto.class,
             description = "List of group sections to display"

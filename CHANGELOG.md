@@ -142,6 +142,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#157](https://github.com/ARGOeu/argo-mon-status-api/pull/157) ARGO-5629 Update feed topology regression
 - [#160](https://github.com/ARGOeu/argo-mon-status-api/pull/160) ARGO-5631 Fix topology integration automation event handling
 - [#161](https://github.com/ARGOeu/argo-mon-status-api/pull/161) ARGO-5632 Replace free-text topology feed types with enum values
+- [#162](https://github.com/ARGOeu/argo-mon-status-api/pull/162) ARGO-5635 Remove tenant_name and tenant_image from StatusPageConfigDto
 
 ### Removed
 
