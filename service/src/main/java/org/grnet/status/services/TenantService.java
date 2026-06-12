@@ -895,7 +895,7 @@ public class TenantService {
         var members = groupManagementService.getAllApplicationMembers("")
                 .stream()
                 .map(user -> mapTenantMember(user, tenantId, tenant.name))
-                .filter(user -> user.tenants != null && !user.tenants.isEmpty())
+                .filter(user -> user.groups != null && !user.groups.isEmpty())
                 .toList();
 
         Log.infof("Fetched %s application members from AGM", members.size());
@@ -926,7 +926,7 @@ public class TenantService {
         user.firstName = gu.firstName;
         user.lastName = gu.lastName;
         user.uid = gu.getUid();
-        user.tenants = new ArrayList<>();
+        user.groups = new ArrayList<>();
 
         if (gu.attributes == null) {
             Log.infof("User %s has NULL attributes", gu.username);
@@ -970,7 +970,7 @@ public class TenantService {
                 })
                 .toList();
 
-        user.tenants.addAll(tenantRoles);
+        user.groups.addAll(tenantRoles);
 
         return user;
     }

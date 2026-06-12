@@ -94,7 +94,7 @@ public class GroupManagementService {
         user.firstName = gu.firstName;
         user.lastName = gu.lastName;
         user.uid = gu.getUid();
-        user.tenants = new ArrayList<>();
+        user.groups = new ArrayList<>();
 
         if (gu.attributes == null || gu.attributes.getLocalEntitlements() == null) {
             return user;
@@ -116,7 +116,7 @@ public class GroupManagementService {
                 })
                 .toList();
 
-        user.tenants.addAll(tenantRoles);
+        user.groups.addAll(tenantRoles);
 
         return user;
     }

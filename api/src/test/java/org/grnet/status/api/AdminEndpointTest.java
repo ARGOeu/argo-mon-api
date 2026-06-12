@@ -577,7 +577,7 @@ public class AdminEndpointTest extends KeycloakTest {
         user.lastName = "Last_" + username;
         user.email = username + "@test.com";
         user.uid = "uid_" + id;
-        user.tenants = List.of(); // ή fake tenants αν χρειαστεί
+        user.groups = List.of(); // ή fake tenants αν χρειαστεί
         return user;
     }
 
