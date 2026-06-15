@@ -1113,7 +1113,7 @@ public class TenantEndpoint {
 
     @Tag(name = "Reports")
     @Operation(summary = "Fetch ARGO reports",
-            description = "Decrypts the provided secret key and retrieves reports from the ARGO Web API.")
+            description = "Retrieves reports from the ARGO Web API.")
     @APIResponse(
             responseCode = "200",
             description = "List of available reports",
@@ -1570,7 +1570,7 @@ public class TenantEndpoint {
                             type = ParamType.PATH,
                             referTo = TenantResource.class
                     )
-            }, scope = {Scope.ALL,Scope.MINE}
+            }, scope = {Scope.ALL, Scope.MINE}
     )
     //@SecuredEndpoint
     public Response listStatusPages(
@@ -3292,7 +3292,7 @@ public class TenantEndpoint {
                     @ParamRef(
                             param = "id",
                             type = ParamType.PATH,
-                            referTo= TenantResource.class
+                            referTo = TenantResource.class
                     )
             }
     )
@@ -3403,7 +3403,7 @@ public class TenantEndpoint {
                     @ParamRef(
                             param = "id",
                             type = ParamType.PATH,
-                            referTo= TenantResource.class
+                            referTo = TenantResource.class
                     )
             }
     )

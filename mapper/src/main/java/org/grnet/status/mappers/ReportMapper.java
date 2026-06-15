@@ -2,6 +2,7 @@ package org.grnet.status.mappers;
 
 import org.apache.commons.lang3.StringUtils;
 import org.grnet.status.dtos.report.FullReportResponseDto;
+import org.grnet.status.dtos.report.MiniReportResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -22,6 +23,10 @@ public interface ReportMapper {
     @Mapping(target = "updatedAt", source = "info.updated")
     @Mapping(target = "nodeReport", source = "nodeReport")
     PartialReportResponseDto fullToPartialReport(FullReportResponseDto source);
+
+
+    @Mapping(target = "name", source = "info.name")
+    MiniReportResponse fullToMiniReport(FullReportResponseDto source);
 
     default Instant map(Timestamp timestamp) {
         return timestamp != null ? timestamp.toInstant() : null;
