@@ -20,11 +20,13 @@ import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.api.resolvers.CheckDateFormat;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
 import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.services.ReportService;
 import org.grnet.status.services.StatusService;
 import org.grnet.status.services.TenantService;
 
@@ -39,6 +41,9 @@ public class PublicEndpoint {
 
     @Inject
     TenantService tenantService;
+
+    @Inject
+    ReportService reportService;
 
     @Operation(
             summary = "Get status page configuration by slug",
@@ -108,7 +113,7 @@ public class PublicEndpoint {
                     type = SchemaType.OBJECT,
                     implementation = InformativeResponse.class)))
     @GET
-    @Path("/{tenant-name}/results/groups")
+    @Path("/tenants/{tenant-name}/results/groups")
     @Produces(MediaType.APPLICATION_JSON)
     @PermitAll
     public Response getPublicGroupResults(
@@ -211,17 +216,9 @@ public class PublicEndpoint {
                     implementation = InformativeResponse.class)))
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("/{tenant-name}/status/groups")
+    @Path("/tenants/{tenant-name}/status/groups")
     @Produces(MediaType.APPLICATION_JSON)
-    @SecuredEndpoint(
-            params = {
-                    @ParamRef(
-                            param = "id",
-                            type = ParamType.PATH,
-                            referTo= TenantResource.class
-                    )
-            }
-    )
+    @PermitAll
     public Response getGroupStatusByGroup(
             @Parameter(
                     description = "The name of the tenant.",
@@ -264,4 +261,72 @@ public class PublicEndpoint {
         return Response.ok().entity(response).build();
     }
 
+
+    @Tag(name = "Public")
+    @Operation(summary = "Fetch Public ARGO reports",
+            description = "Retrieves public reports from the ARGO Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "List of available public reports",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.ARRAY,
+                    implementation = PartialReportResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Assessment already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "502",
+            description = "Connection error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @GET
+    @Path("/tenants/{tenant-name}/reports/public")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response fetchPublicReports(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-GRNET",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(name = "search", in = QUERY,
+                    description = "Search report by name.")
+            @QueryParam("search") String search) {
+
+        var tenant = tenantService.getTenantByName(tenantName);
+        var reports = reportService.fetchReportsByStatus(tenant.id, search, Boolean.TRUE);
+
+        return Response.ok(reports).build();
+    }
 }
