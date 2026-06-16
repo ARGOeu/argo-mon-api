@@ -8,6 +8,7 @@ import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
+import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.UserGroupInfoDto;
 import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.status.api.endpoints.AdminEndpoint;
@@ -30,6 +31,7 @@ import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
 import org.grnet.status.enums.EventStatus;
 import org.grnet.status.enums.TenantJobEvent;
+import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.services.AuthGroupSetupService;
 import org.grnet.status.services.GroupManagementService;
 import org.grnet.status.services.clients.AmsClient;
@@ -40,10 +42,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -577,7 +576,8 @@ public class AdminEndpointTest extends KeycloakTest {
         user.lastName = "Last_" + username;
         user.email = username + "@test.com";
         user.uid = "uid_" + id;
-        user.tenants = List.of(); // ή fake tenants αν χρειαστεί
+        user.memberships = Map.of(TenantResource.TENANT.resourceName(), List.of());
+
         return user;
     }
 

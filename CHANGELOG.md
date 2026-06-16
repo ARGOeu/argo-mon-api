@@ -91,6 +91,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#155](https://github.com/ARGOeu/argo-mon-status-api/pull/155) ARGO-5620: Status api should support the ability to serve publicly available results
 - [#156](https://github.com/ARGOeu/argo-mon-status-api/pull/156) ARGO-5627 Include tenant info in public status page response
 - [#159](https://github.com/ARGOeu/argo-mon-status-api/pull/159) ARGO-5624 Generate a DELETE_TENANT event when a tenant is deleted
+- [#164](https://github.com/ARGOeu/argo-mon-status-api/pull/164/) ARGO-5638 Consume memberships from Quarkus Auth and resolve tenant names
 - [#165](https://github.com/ARGOeu/argo-mon-status-api/pull/165) ARGO-5640 Status-api: Create a public call that displays a list of public reports available for the tenant
 
 ### Fix
