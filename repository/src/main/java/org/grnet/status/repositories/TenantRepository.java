@@ -4,6 +4,7 @@ import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
 import org.grnet.status.entities.*;
 
@@ -181,26 +182,51 @@ public class TenantRepository implements Repository<Tenant, String> {
 
     public int updateTenantJobStatus(String tenantId, String jobName, String jobJson) {
 
-        return entityManager.createNativeQuery("""
-        UPDATE t_tenant
-        SET status = jsonb_set(
-            status,
-            ARRAY[
-                'jobs',
-                (
-                    SELECT (idx - 1)::text
-                    FROM jsonb_array_elements(status -> 'jobs')
-                         WITH ORDINALITY arr(job, idx)
-                    WHERE UPPER(job ->> 'name') = UPPER(:jobName)
+        return getEntityManager()
+                .createNativeQuery("""
+                UPDATE t_tenant
+                SET status = jsonb_set(
+                    status,
+                    ARRAY[
+                        'jobs',
+                        (
+                            SELECT (idx - 1)::text
+                            FROM jsonb_array_elements(status -> 'jobs')
+                                 WITH ORDINALITY arr(job, idx)
+                            WHERE UPPER(job ->> 'name') = UPPER(:jobName)
+                        )
+                    ],
+                    CAST(:jobJson AS jsonb),
+                    false
                 )
-            ],
-            CAST(:jobJson AS jsonb),
-            false
-        )
-        WHERE id = :tenantId
-        """)
+                WHERE id = :tenantId
+                  AND EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements(status -> 'jobs') arr(job)
+                        WHERE UPPER(job ->> 'name') = UPPER(:jobName)
+                  )
+                """)
                 .setParameter("tenantId", tenantId)
                 .setParameter("jobName", jobName)
+                .setParameter("jobJson", jobJson)
+                .executeUpdate();
+    }
+
+    @Transactional
+    public int insertTenantJobStatus(String tenantId, String jobJson) {
+
+        return getEntityManager()
+                .createNativeQuery("""
+            UPDATE t_tenant
+            SET status = jsonb_set(
+                status,
+                '{jobs}',
+                COALESCE(status->'jobs', '[]'::jsonb) || CAST(:jobJson AS jsonb),
+                true
+            )
+            WHERE id = :tenantId
+            """)
+                .setParameter("tenantId", tenantId)
                 .setParameter("jobJson", jobJson)
                 .executeUpdate();
     }
