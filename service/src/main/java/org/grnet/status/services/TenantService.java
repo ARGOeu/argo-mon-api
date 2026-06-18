@@ -1784,7 +1784,7 @@ public class TenantService {
     private void updateSingleJob(String tenantId, EventStatusDto job) {
 
         try {
-            applyJobDefinition(job);
+            applyJobDefinition(job); // validates job exists in TenantJobEvent and sets mode
 
             var jobJson = objectMapper.writeValueAsString(job);
 
@@ -1795,8 +1795,15 @@ public class TenantService {
             );
 
             if (updated == 0) {
-                throw new BadRequestException(
-                        "Updating Tenant's Status... Job '" + job.getName() + "' was not found"
+
+                tenantRepository.insertTenantJobStatus(
+                        tenantId,
+                        jobJson
+                );
+
+                Log.warnf(
+                        "Job '%s' was not found in tenant status JSON. Added dynamically.",
+                        job.getName()
                 );
             }
 
