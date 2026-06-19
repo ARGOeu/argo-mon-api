@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.AuthGroupManagement;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.*;
+import org.grnet.endpoint.scanner.runtime.services.ResourceAuthorizationService;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.entities.Page;
 import org.grnet.status.entities.PageQueryImpl;
@@ -33,6 +34,9 @@ public class GroupManagementService {
     @Inject
     TenantRepository tenantRepository;
 
+    @Inject
+    ResourceAuthorizationService resourceAuthorizationService;
+
     @ConfigProperty(name = "api.auth.entitlements.parent-group")
     String parentGroup;
 
@@ -56,7 +60,7 @@ public class GroupManagementService {
      */
     public PageResource<GroupUserResponse> getAllMembers(String groupName, String search, int page, int size, UriInfo uriInfo) {
 
-        var authPage = groupManagement.getAllMembersByPageAndSize(page, size, search, null, uriInfo);
+        var authPage = resourceAuthorizationService.getAllMembersByPageAndSize(page, size, search, null, uriInfo);
 
         var content = authPage.getContent()
                 .stream()
@@ -219,9 +223,10 @@ public class GroupManagementService {
 
     public List<GroupUserResponse> getAllApplicationMembersRaw(String search) {
 
-        var fullPath = normalizePath(parentGroup) + "/" + membersGroup;
-
-        return groupManagement.getApplicationMembers(fullPath, search);
+        return resourceAuthorizationService.getApplicationMembers(
+                groupManagement.getMembersGroupPath(),
+                search
+        );
     }
 
     private GroupUserResponse resolveMemberResourceNames(GroupUserResponse user) {
