@@ -16,11 +16,15 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.ParamRef;
+import org.grnet.endpoint.scanner.runtime.ParamType;
 import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
+import org.grnet.status.enums.resources.InvitationResource;
+import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.services.TenantService;
 
@@ -74,7 +78,16 @@ public class AutomationEndpoint {
     @PATCH
     @Path("/tenants/{id}/status")
     @Produces(MediaType.APPLICATION_JSON)
-    @SecuredEndpoint
+
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
     public Response updateStatus(
             @Parameter(
                     description = "The ID of the tenant to retrieve status.",
@@ -127,8 +140,17 @@ public class AutomationEndpoint {
     @GET
     @Path("/tenants/{id}/status")
     @Produces(MediaType.APPLICATION_JSON)
-    @SecuredEndpoint
-    public Response getTenantStatus(
+    @SecuredEndpoint(
+            params = {
+
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )    public Response getTenantStatus(
             @Parameter(
                     description = "The ID of the tenant to update status.",
                     required = true,
