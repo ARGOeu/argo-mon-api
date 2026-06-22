@@ -94,6 +94,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#164](https://github.com/ARGOeu/argo-mon-status-api/pull/164/) ARGO-5638 Consume memberships from Quarkus Auth and resolve tenant names
 - [#165](https://github.com/ARGOeu/argo-mon-status-api/pull/165) ARGO-5640 Status-api: Create a public call that displays a list of public reports available for the tenant
 - [#166](https://github.com/ARGOeu/argo-mon-status-api/pull/166) ARGO-5645: Automatically add missing tenant status jobs during status updates
+  [#168](https://github.com/ARGOeu/argo-mon-status-api/pull/168) ARGO-5654 Extend Resource Authorization to Support the Resources in the status-pages
 
 ### Fix
 

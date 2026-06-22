@@ -24,7 +24,10 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.grnet.endpoint.scanner.runtime.*;
+import org.grnet.endpoint.scanner.runtime.ParamRef;
+import org.grnet.endpoint.scanner.runtime.ParamType;
+import org.grnet.endpoint.scanner.runtime.Scope;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
 import org.grnet.endpoint.scanner.runtime.context.RoleEndpointHolder;
 import org.grnet.status.api.resolvers.CheckDateFormat;
@@ -40,7 +43,6 @@ import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.FullReportResponseDto;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
-import org.grnet.status.dtos.report.WebApiReportResponse;
 import org.grnet.status.dtos.status.StatusGroupResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageRequestDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
@@ -55,13 +57,12 @@ import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
-
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
 import org.grnet.status.dtos.topology.EndpointTopologyDto;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.GroupTopologyDto;
 import org.grnet.status.dtos.topology.ServiceTypeDto;
-import org.grnet.status.enums.resources.TenantResource;
+import org.grnet.status.enums.resources.*;
 import org.grnet.status.repositories.StatusPageRepository;
 import org.grnet.status.repositories.TenantInvitationRepository;
 import org.grnet.status.repositories.TenantRepository;
@@ -69,8 +70,6 @@ import org.grnet.status.services.*;
 import org.grnet.status.util.Utility;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
 import java.util.List;
 
 import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUERY;
@@ -759,6 +758,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "profile_id",
+                            type = ParamType.PATH,
+                            referTo = AggregationProfileResource.class
                     )
             }
     )
@@ -892,7 +896,13 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "profile_id",
+                            type = ParamType.PATH,
+                            referTo = MetricProfileResource.class
                     )
+
             }
     )
     public Response listSpecificMetricProfiles(
@@ -1025,6 +1035,12 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+
+                    @ParamRef(
+                            param = "profile_id",
+                            type = ParamType.PATH,
+                            referTo = OperationsProfileResource.class
                     )
             }
     )
@@ -1245,6 +1261,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "report-id",
+                            type = ParamType.PATH,
+                            referTo = ReportsResource.class
                     )
             }
     )
@@ -1320,6 +1341,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "report-id",
+                            type = ParamType.PATH,
+                            referTo = ReportsResource.class
                     )
             }
     )
@@ -1386,6 +1412,12 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+
+                    @ParamRef(
+                            param = "report-id",
+                            type = ParamType.PATH,
+                            referTo = ReportsResource.class
                     )
             }
     )
@@ -1514,6 +1546,22 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/pages/{page-id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "page-id",
+                            type = ParamType.PATH,
+                            referTo = org.grnet.status.enums.resources.PageResource.class
+                    )
+            }
+    )
+
     public Response getStatusPage(
             @Parameter(
                     description = "The ID of the tenant to retrieve report.",
@@ -1648,6 +1696,12 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+
+                    @ParamRef(
+                            param = "page-id",
+                            type = ParamType.PATH,
+                            referTo = org.grnet.status.enums.resources.PageResource.class
                     )
             }
     )
@@ -1715,6 +1769,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "page-id",
+                            type = ParamType.PATH,
+                            referTo = org.grnet.status.enums.resources.PageResource.class
                     )
             }
     )
@@ -3490,6 +3549,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "report-id",
+                            type = ParamType.PATH,
+                            referTo = ReportsResource.class
                     )
             }
     )
@@ -3556,6 +3620,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "report-id",
+                            type = ParamType.PATH,
+                            referTo = ReportsResource.class
                     )
             }
     )
