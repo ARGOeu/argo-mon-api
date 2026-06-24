@@ -151,15 +151,93 @@ http://localhost:8843
 
 ## Start the Application with Quarkus Dev Services
 
-To launch the application in development mode:
+## Running Keycloak
+
+The API in dev mode uses Keycloak for authentication and authorization.
+
+To start Keycloak, navigate to the `keycloak/` directory and run:
+
+```bash
+docker-compose up
+```
+
+Wait until all Keycloak services are fully started before launching the application.
+
+## Stopping Keycloak
+
+To stop Keycloak, navigate to the `keycloak/` directory and run:
+
+```bash
+docker-compose down -v
+```
+
+## Running the API
 
 ```bash
 mvn clean quarkus:dev
 ```
 
-This will start the API along with supporting services (PostgreSQL, Keycloak, etc.) using **Quarkus Dev Services**.
+Once the application is running, open:
+
+```text
+http://localhost:8080
+```
+
+## Welcome Page
+
+The application provides a welcome page containing two actions:
+
+### Visit API Documentation
+
+Redirects you to the OpenAPI/Swagger documentation where you can explore:
+
+* The REST endpoints provided by the API.
+* The endpoints exposed by the `quarkus-auth` extension.
+
+### Obtain an Access Token
+
+Redirects you to a page that helps you obtain an access token from Keycloak for testing secured endpoints.
+
+## Available Users
+
+The following test users are pre-configured:
+
+| Username | Password | Role                |
+| -------- | -------- | ------------------- |
+| admin    | admin    | Super Administrator |
+| user1    | user1    | Standard User       |
+| user2    | user2    | Standard User       |
+| user3    | user3    | Standard User       |
+
+Use these credentials to authenticate through Keycloak and test the available APIs.
+
+## Keycloak Account / Group Management (RCIAM)
+
+To access the RCIAM group management / account console as an admin, use the following URL:
+
+```text
+http://localhost:58080/realms/rciam/account
+```
+
+Login with:
+
+* Username: `user1`
+* Password: `user1`
 
 ---
+
+## Running Tests Locally
+
+> ⚠️ **Important**
+> 
+> Before running the tests locally, make sure to execute the following command from within the `keycloak` folder:
+>
+> ```bash
+> docker-compose down -v
+> ```
+
+> 📝 **Note:** Tests currently run against the **dev** Keycloak service, not the **rciam** Keycloak instance.
+
 
 ## Access the Dev Service Database
 
@@ -175,20 +253,6 @@ Or connect directly inside the running container:
 ```bash
 docker exec -it <container_id> psql -U status -d status
 ```
-
----
-
-## Obtain an Access Token from Dev Service Keycloak
-
-To get a development token, follow the [Quarkus guide](https://quarkus.io/guides/security-openid-connect-dev-services#dev-services-for-keycloak)  
-or access the Keycloak instance automatically launched by Dev Services.
-
-Default credentials:
-
-- **Username:** `alice`
-- **Password:** `alice`
-
-Once logged in, copy the **Access Token** and include it in API requests.
 
 ---
 
