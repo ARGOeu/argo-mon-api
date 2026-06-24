@@ -155,4 +155,6 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 ### Removed
 
+
 -[#15](https://github.com/ARGOeu/argo-mon-status-api/pull/15) ARGO-5183 Remove User DB & Update Keycloak Scope
+-[#170](https://github.com/ARGOeu/argo-mon-status-api/pull/170) ARGO-5666 [MON-STATUS-API] remove endpoints : assign secured endpoints to role
