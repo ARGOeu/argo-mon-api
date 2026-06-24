@@ -61,8 +61,19 @@ public class PublicCorsFilter implements ContainerResponseFilter {
                 return origin.matches(regex);
             }
 
-            // Otherwise perform exact match
-            return allowedOrigin.equalsIgnoreCase(origin);
+            String normalizedAllowed = removeTrailingSlash(allowedOrigin);
+            String normalizedOrigin = removeTrailingSlash(origin);
+
+            return normalizedAllowed.equalsIgnoreCase(normalizedOrigin);
         });
+    }
+
+    private String removeTrailingSlash(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.endsWith("/")
+                ? value.substring(0, value.length() - 1)
+                : value;
     }
 }
