@@ -32,6 +32,8 @@ import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.constraints.ValidRole;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.endpoint.scanner.runtime.dtos.RoleEndpointAssignmentResponse;
+import org.grnet.status.dtos.metadata.RoleAssignmentMetadataResponseDto;
+import org.grnet.status.dtos.metadata.RoleMetadataResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
@@ -95,6 +97,10 @@ public class AdminEndpoint {
 
     @Inject
     RoleEndpointService roleEndpointService;
+
+    @Inject
+    RoleMetadataService roleMetadataService;
+
     // --------------------------------------------------------------------------------------------------------------------------
     // ADMIN TENANT ENDPOINT
     // --------------------------------------------------------------------------------------------------------------------------
@@ -1502,7 +1508,6 @@ public class AdminEndpoint {
                     type = SchemaType.OBJECT,
                     implementation = InformativeResponse.class)))
     @SecurityRequirement(name = "Authentication")
-
     @GET
     @Path("/roles/{id}/assigned-endpoints")
     @Produces(MediaType.APPLICATION_JSON)
@@ -1516,6 +1521,76 @@ public class AdminEndpoint {
 
         RoleEndpointAssignmentResponse response =
                 roleEndpointService.getAssignedEndpointsByRoleId(id);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Get role metadata.",
+            description = "Returns the supported metadata attributes for role creation."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Role metadata.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = RoleMetadataResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/roles/metadata")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
+    public Response getRoleMetadata() {
+
+        var response = roleMetadataService.getRoleMetadata();
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Get role assignment metadata.",
+            description = "Returns the supported metadata attributes for resource-specific role assignments."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Role assignment metadata.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = RoleAssignmentMetadataResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/roles/assign/metadata")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
+    public Response getRoleAssignmentMetadata() {
+
+        var response = roleMetadataService.getRoleAssignmentMetadata();
 
         return Response.ok(response).build();
     }

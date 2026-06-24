@@ -4,7 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.AuthGroupManagement;
-import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.GroupManagement;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -19,7 +18,7 @@ public class AuthGroupSetupService {
     private static final Logger LOG = Logger.getLogger(AuthGroupSetupService.class);
 
     @Inject
-    AuthGroupManagement groupManagement;
+    AuthGroupManagement authGroupManagement;
 
     @Inject
     ManagedExecutor executor;
@@ -36,7 +35,7 @@ public class AuthGroupSetupService {
 
         executor.runAsync(() -> {
             try {
-                groupManagement.createGroup(parentPath, name, roles, attributes);
+                authGroupManagement.createGroup(parentPath, name, roles, attributes);
                 LOG.infof("Async group created: %s/%s", parentPath, name);
             } catch (Exception e) {
                 LOG.errorf("Async group creation failed for %s/%s: %s",
@@ -54,7 +53,7 @@ public class AuthGroupSetupService {
 
         executor.runAsync(() -> {
             try {
-                groupManagement.deleteGroup(fullPath);
+                authGroupManagement.deleteGroup(fullPath);
                 LOG.infof("Async group deleted: %s", fullPath);
             } catch (Exception e) {
                 LOG.errorf(

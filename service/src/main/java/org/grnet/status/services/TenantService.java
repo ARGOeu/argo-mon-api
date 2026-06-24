@@ -16,6 +16,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.AuthGroupManagement;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
 import org.grnet.endpoint.scanner.runtime.context.RoleEndpointHolder;
+import org.grnet.endpoint.scanner.runtime.services.ResourceAuthorizationService;
 import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
@@ -87,7 +88,7 @@ public class TenantService {
     AuthGroupManagement groupManagement;
 
     @Inject
-    GroupManagementService groupManagementService;
+    ResourceAuthorizationService resourceAuthorizationService;
 
     @Inject
     Utility utility;
@@ -888,8 +889,8 @@ public class TenantService {
      */
     public PageResource<GroupUserResponse> getMembersByTenant(String tenantId, int page, int size, UriInfo uriInfo) {
 
-        var members = groupManagement.getApplicationMembers(
-                        normalizePath(namespace) + "/members",
+        var members = resourceAuthorizationService.getApplicationMembers(
+                        groupManagement.getMembersGroupPath(),
                         null
                 )
                 .stream()
@@ -926,10 +927,6 @@ public class TenantService {
                 .getOrDefault(TenantResource.TENANT.resourceName(), List.of())
                 .stream()
                 .filter(group -> tenantId.equals(group.name))
-                .peek(group -> group.name = groupManagementService.resolveResourceName(
-                        TenantResource.TENANT.resourceName(),
-                        group.name
-                ))
                 .toList();
 
         user.memberships = new HashMap<>();
