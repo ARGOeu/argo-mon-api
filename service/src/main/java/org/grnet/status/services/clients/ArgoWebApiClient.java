@@ -34,7 +34,8 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-api-key") String apiKey,
             @HeaderParam("x-tenant-id") String tenantId,
             @QueryParam("public") String publicReports,
-            @QueryParam("private") String privateReports
+            @QueryParam("private") String privateReports,
+            @QueryParam("node") String node
     ) throws WebApplicationException, ProcessingException;
 
     @GET

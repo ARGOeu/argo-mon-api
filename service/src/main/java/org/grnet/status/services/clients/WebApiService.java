@@ -638,12 +638,15 @@ public class WebApiService {
         }
     }
 
-    public WebApiReportResponse retrieveReportsWebApi(String tenantId, Boolean publicReports, Boolean privateReports) {
+    public WebApiReportResponse retrieveReportsWebApi(String tenantId, Boolean publicReports, Boolean privateReports, Boolean nodeReports) {
 
         try {
 
-            return argoWebApiClient.fetchReportsSuperAdmin(accessToken, tenantId, Boolean.TRUE.equals(publicReports) ? "" : null, Boolean.TRUE.equals(privateReports) ? "" : null
-
+            return argoWebApiClient.fetchReportsSuperAdmin(
+                    accessToken,
+                    tenantId, Boolean.TRUE.equals(publicReports) ? "" : null,
+                    Boolean.TRUE.equals(privateReports) ? "" : null,
+                    Boolean.TRUE.equals(nodeReports) ? "" : null
             );
 
         } catch (WebApplicationException e) {

@@ -22,4 +22,11 @@ public class MiniReportResponse {
     @JsonProperty("name")
     public String name;
 
+    @Schema(type = SchemaType.BOOLEAN,
+            implementation = Boolean.class,
+            description = "Indicates whether this report is a node report.",
+            example = "true")
+    @JsonProperty("node")
+    public Boolean node;
+
 }
