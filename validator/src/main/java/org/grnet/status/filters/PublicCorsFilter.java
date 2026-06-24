@@ -37,8 +37,7 @@ public class PublicCorsFilter implements ContainerResponseFilter {
 
         responseContext.getHeaders()
                 .putSingle("Access-Control-Allow-Methods",
-                        "GET, POST, PUT, DELETE, OPTIONS");
-
+                        "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD");
         responseContext.getHeaders()
                 .putSingle("Access-Control-Allow-Headers",
                         "Origin, Content-Type, Accept, Authorization");
