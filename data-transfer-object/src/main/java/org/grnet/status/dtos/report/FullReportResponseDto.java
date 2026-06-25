@@ -50,6 +50,11 @@ public class FullReportResponseDto {
     public Boolean nodeReport;
 
 
+    @Schema(description = "Indicates if this report is public or not")
+    @JsonProperty("public")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean publicReport;
+
     /* ================= INFO ================= */
 
     public static class Info {
