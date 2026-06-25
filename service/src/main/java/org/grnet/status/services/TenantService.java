@@ -1311,14 +1311,17 @@ public class TenantService {
         dto.jobs = new ArrayList<>();
 
         for (var def : TenantJobEvent.values()) {
-            EventStatusDto job = new EventStatusDto();
-            job.setName(def.key());
-            job.setMode(def.modeValue());
-            job.setStatus(EventStatus.UNKNOWN.name());
-            if (def.isManual()) {
-                job.setMessage("Waiting for manual administrator action");
+            if (def.initializeOnTenantCreate()) {
+                var job = new EventStatusDto();
+                job.setName(def.key());
+                job.setMode(def.modeValue());
+                job.setStatus(EventStatus.UNKNOWN.name());
+
+                if (def.isManual()) {
+                    job.setMessage("Waiting for manual administrator action");
+                }
+                dto.jobs.add(job);
             }
-            dto.jobs.add(job);
         }
 
         return dto;
@@ -1951,6 +1954,4 @@ public class TenantService {
         sendDeleteEvent(tenantId, alert, "Notifying Messaging Service.. A notification is sent to notify ams that a tenant is deleted");
 
     }
-
-
 }

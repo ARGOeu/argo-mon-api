@@ -10,30 +10,33 @@ import java.util.Set;
 public enum TenantJobEvent {
 
     // Automatic jobs (updated by automation)
-    INIT_AMS("init_ams", EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
-    INIT_MONGO("init_mongo", EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
-    INIT_COMPUTE_ENGINE("init_compute_engine", EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_AMS("init_ams", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_MONGO("init_mongo", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_COMPUTE_ENGINE("init_compute_engine", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
 
-    CHECK_READINESS("check_readiness", EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    CHECK_READINESS("check_readiness", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
 
-    INIT_TOPOLOGY_CONNECTOR("init_topology_connector",EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
-    INIT_INTEGRATION_TOPO("init_integration_topo",EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_TOPOLOGY_CONNECTOR("init_topology_connector",EventMode.AUTO, false, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_INTEGRATION_TOPO("init_integration_topo",EventMode.AUTO, false, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
 
     // Manual jobs (completed by admin actions)
 
-    CREATE_DOMAIN_NAMES("create_domain_names", EventMode.MANUAL, Set.of()), // no properties for now
+    CREATE_DOMAIN_NAMES("create_domain_names", EventMode.MANUAL, true, Set.of()), // no properties for now
 
-    INIT_MONITORING_BOX("init_monitoring_box", EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)), // no properties for now
+    INIT_MONITORING_BOX("init_monitoring_box", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)), // no properties for now
 
-    INIT_POEM("init_poem", EventMode.AUTO, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME));
+    INIT_POEM("init_poem", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME));
 
     private final String key;
     private final EventMode mode;
     private final Set<TenantJobProperty> allowedProperties;
+    private final boolean initializeOnTenantCreate;
 
-    TenantJobEvent(String key, EventMode mode, Set<TenantJobProperty> allowedProperties) {
+    TenantJobEvent(String key, EventMode mode, boolean initializeOnTenantCreate, Set<TenantJobProperty> allowedProperties) {
+
         this.key = key;
         this.mode = mode;
+        this.initializeOnTenantCreate = initializeOnTenantCreate;
         this.allowedProperties = allowedProperties;
     }
 
@@ -61,5 +64,9 @@ public enum TenantJobEvent {
     /** Convenience for JSON ("auto"/"manual") */
     public String modeValue() {
         return mode.name().toLowerCase();
+    }
+
+    public boolean initializeOnTenantCreate() {
+        return initializeOnTenantCreate;
     }
 }
