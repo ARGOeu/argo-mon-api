@@ -1205,14 +1205,14 @@ public class TenantEndpoint {
             @QueryParam("public")
             Boolean publicReports) {
 
-        var reports = reportService.fetchReports(id, search, publicReports);
+        var reports = reportService.fetchReports(id, search, publicReports, false);
 
         return Response.ok(reports).build();
     }
 
     @Tag(name = "Reports")
     @Operation(summary = "Fetch Tenant' s report By Report ID",
-            description = "Retrieves the reportwith the specific Report ID, for a tenant with specific Tenant ID,  from the ARGO Web API.")
+            description = "Retrieves the report with the specific Report ID, for a tenant with specific Tenant ID,  from the ARGO Web API.")
     @APIResponse(
             responseCode = "200",
             description = "The report retrieved",

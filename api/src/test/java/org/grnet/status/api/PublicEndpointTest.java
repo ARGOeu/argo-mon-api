@@ -11,6 +11,7 @@ import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.ams.PublishResponse;
 import org.grnet.status.dtos.report.FullReportResponseDto;
+import org.grnet.status.dtos.report.MiniReportResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.report.WebApiReportResponse;
 import org.grnet.status.dtos.tenant.ContactDto;
@@ -72,6 +73,7 @@ public class PublicEndpointTest extends KeycloakTest {
         when(argoWebApiClient.fetchReportsSuperAdmin(
                 anyString(),
                 anyString(),
+                any(),
                 any(),
                 any()
         )).thenAnswer(invocation -> {
@@ -289,7 +291,7 @@ public class PublicEndpointTest extends KeycloakTest {
                 .statusCode(200)
                 .header("Access-Control-Allow-Origin", "*")
                 .extract()
-                .as(PartialReportResponseDto[].class);
+                .as(MiniReportResponse[].class);
 
         assertNotNull(response);
     }

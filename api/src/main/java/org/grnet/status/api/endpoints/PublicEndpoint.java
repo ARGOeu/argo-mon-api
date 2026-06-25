@@ -322,10 +322,14 @@ public class PublicEndpoint {
             String tenantName,
             @Parameter(name = "search", in = QUERY,
                     description = "Search report by name.")
-            @QueryParam("search") String search) {
+            @QueryParam("search") String search,
+            @Parameter(name = "node", in = QUERY,
+                    description = "Get node reports.")
+            @QueryParam("node") Boolean node)
+    {
 
         var tenant = tenantService.getTenantByName(tenantName);
-        var reports = reportService.fetchReportsByStatus(tenant.id, search, Boolean.TRUE);
+        var reports = reportService.fetchReportsByStatus(tenant.id, search, Boolean.TRUE, node);
 
         return Response.ok(reports).build();
     }

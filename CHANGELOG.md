@@ -94,11 +94,11 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#164](https://github.com/ARGOeu/argo-mon-status-api/pull/164/) ARGO-5638 Consume memberships from Quarkus Auth and resolve tenant names
 - [#165](https://github.com/ARGOeu/argo-mon-status-api/pull/165) ARGO-5640 Status-api: Create a public call that displays a list of public reports available for the tenant
 - [#166](https://github.com/ARGOeu/argo-mon-status-api/pull/166) ARGO-5645: Automatically add missing tenant status jobs during status updates
-<<<<<<< HEAD
 - [#167](https://github.com/ARGOeu/argo-mon-status-api/pull/167) ARGO-5658 Expose Recommended Role and Assignment Metadata in Status API
   [#168](https://github.com/ARGOeu/argo-mon-status-api/pull/168) ARGO-5654 Extend Resource Authorization to Support the Resources in the status-pages
 - [#168](https://github.com/ARGOeu/argo-mon-status-api/pull/168) ARGO-5654 Extend Resource Authorization to Support the Resources in the status-pages
 - [#169](https://github.com/ARGOeu/argo-mon-status-api/pull/169) ARGO-5662 Enable Access-Control-Allow-Origin: * only for public GET endpoints 
+- [#175](https://github.com/ARGOeu/argo-mon-status-api/pull/175) ARGO-5667: Status api: for public reports call provide also info if a report is node report
 
 ### Fix
 

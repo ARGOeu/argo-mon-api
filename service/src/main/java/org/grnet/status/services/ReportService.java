@@ -62,9 +62,14 @@ public class ReportService {
      * @param search search filter
      * @return list of reports
      */
-    public List<MiniReportResponse> fetchReportsByStatus(String tenantId, String search, Boolean publicReports) {
+    public List<MiniReportResponse> fetchReportsByStatus(
+            String tenantId,
+            String search,
+            Boolean publicReports,
+            Boolean nodeReports) {
 
-        var reports =fetchWebApiReports(tenantId,publicReports);
+        var reports = fetchWebApiReports(tenantId, publicReports, nodeReports);
+
         var miniReports = reports.data.stream()
                 .filter(r -> r != null && r.info != null)
                 .map(ReportMapper.INSTANCE::fullToMiniReport)
@@ -75,18 +80,15 @@ public class ReportService {
 
             miniReports = miniReports.stream()
                     .filter(r ->
-                            contains(r.id.toLowerCase(), lowerSearch) ||
-                                    contains(r.name.toLowerCase(), lowerSearch)
+                            contains(StringUtils.defaultString(r.id).toLowerCase(), lowerSearch) ||
+                                    contains(StringUtils.defaultString(r.name).toLowerCase(), lowerSearch)
                     )
                     .toList();
-
-            miniReports = new ArrayList<>(miniReports);
         }
 
-        return    miniReports.stream()
+        return miniReports.stream()
                 .sorted(Comparator.comparing(r -> r.name))
                 .collect(Collectors.toList());
-
     }
 
 
@@ -97,9 +99,9 @@ public class ReportService {
      * @param search search filter
      * @return list of reports
      */
-    public List<PartialReportResponseDto> fetchReports(String tenantId, String search, Boolean publicReports) {
+    public List<PartialReportResponseDto> fetchReports(String tenantId, String search, Boolean publicReports, Boolean nodeReports) {
 
-        var reports=fetchWebApiReports(tenantId,publicReports);
+        var reports = fetchWebApiReports(tenantId, publicReports, nodeReports);
         var partialReports = reports.data.stream()
                 .filter(r -> r != null && r.info != null)
                 .map(ReportMapper.INSTANCE::fullToPartialReport)
@@ -149,7 +151,7 @@ public class ReportService {
 
         webApiService.validateTenantInitialized(id, "Reports");
 
-        var reports = argoWebApiClient.fetchReportsSuperAdmin(accessToken, id, null, null);
+        var reports = argoWebApiClient.fetchReportsSuperAdmin(accessToken, id, null, null, null);
         var found = reports.data.stream()
                 .anyMatch(r -> reportId.equals(r.id));
 
@@ -174,7 +176,7 @@ public class ReportService {
     public WebApiNodeReportResponse setNodeReport(String tenantId, String reportId) {
 
         webApiService.validateTenantInitialized(tenantId, "Reports");
-        var reports = argoWebApiClient.fetchReportsSuperAdmin(accessToken, tenantId, null, null);
+        var reports = argoWebApiClient.fetchReportsSuperAdmin(accessToken, tenantId, null, null, null);
         var found = reports.data.stream()
                 .anyMatch(r -> reportId.equals(r.id));
 
@@ -225,16 +227,12 @@ public class ReportService {
         return webApiService.setReportPrivateWebApi(reportId, tenant.id);
     }
 
-    private WebApiReportResponse fetchWebApiReports(String tenantId, Boolean publicReports){
+    private WebApiReportResponse fetchWebApiReports(String tenantId, Boolean publicReports, Boolean nodeReports) {
+
         webApiService.validateTenantInitialized(tenantId, "Reports");
 
         LOG.info("Fetching reports from ARGO Web API...");
-       return argoWebApiClient.fetchReportsSuperAdmin(
-                accessToken,
-                tenantId,
-                Boolean.TRUE.equals(publicReports) ? "" : null,
-                Boolean.FALSE.equals(publicReports) ? "" : null
-        );
 
+        return webApiService.retrieveReportsWebApi(tenantId, publicReports, Boolean.FALSE.equals(publicReports), nodeReports);
     }
 }

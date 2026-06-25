@@ -26,6 +26,7 @@ public interface ReportMapper {
 
 
     @Mapping(target = "name", source = "info.name")
+    @Mapping(target = "node", source = "nodeReport")
     MiniReportResponse fullToMiniReport(FullReportResponseDto source);
 
     default Instant map(Timestamp timestamp) {
