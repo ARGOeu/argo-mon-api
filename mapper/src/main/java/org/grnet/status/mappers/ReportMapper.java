@@ -22,6 +22,7 @@ public interface ReportMapper {
     @Mapping(target = "createdAt", source = "info.created")
     @Mapping(target = "updatedAt", source = "info.updated")
     @Mapping(target = "nodeReport", source = "nodeReport")
+    @Mapping(target = "publicReport", source = "publicReport", defaultValue = "false")
     PartialReportResponseDto fullToPartialReport(FullReportResponseDto source);
 
 

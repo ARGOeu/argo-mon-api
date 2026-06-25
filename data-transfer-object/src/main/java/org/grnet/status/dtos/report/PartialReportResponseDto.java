@@ -70,4 +70,8 @@ public class PartialReportResponseDto {
     @JsonProperty("node_report")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public Boolean nodeReport;
+
+    @JsonProperty("public")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean publicReport;
 }
