@@ -484,4 +484,5 @@ public interface ArgoWebApiClient {
             @QueryParam("history") Boolean history,
             @QueryParam("report") String report
     );
+
 }
