@@ -861,7 +861,8 @@ public class TenantService {
         var tenant = tenantRepository.findById(id);
 
         if (alert.properties.containsKey("tenant_name") && !alert.properties.get("tenant_name").equals(tenant.name)) {
-            throw new BadRequestException("Notifying Messaging Service... Value of property 'name' differs from tenant's name: " + tenant.name);
+            throw new BadRequestException("Error Identified: Tenant Name Mismatch." +
+                    "The API validation layer has flagged a data discrepancy between the incoming payload from the user interface and the tenant " + tenant.name + " registered in the monitoring service.");
         }
 
         validateAlertProperties(alert.name, alert.properties);
@@ -950,14 +951,17 @@ public class TenantService {
         var tenant = tenantRepository.findById(id);
 
         if (alert.properties.containsKey("tenant_name") && !alert.properties.get("tenant_name").equals(tenant.name)) {
-            throw new BadRequestException("Notifying Messaging Service... Value of property 'name' differs from tenant's name: " + tenant.name);
+            throw new BadRequestException("Error Identified: Tenant Name Mismatch." +
+                    "The API validation layer has flagged a data discrepancy between the incoming payload from the user interface and the tenant " + tenant.name + " registered in the monitoring service.");
         }
 
         validateAlertProperties(alert.name, alert.properties);
 
         alert.getProperties().put("tenant_id", id);
         alert.setCreatedAt(String.valueOf(now));
-        send(id, alert, "Notifying Messaging Service.. A request is sent to the Messaging Service to validate that the necessary data and configuration are in place prior to starting the monitoring process");
+        send(id, alert, "Notifying Messaging Service.. " +
+                "A request is sent to the Messaging Service to validate that the necessary data " +
+                "and configuration are in place prior to starting the monitoring process");
 
 
         var statusOpt = tenantRepository.fetchTenantStatus(id);
@@ -980,14 +984,21 @@ public class TenantService {
         var tenant = tenantRepository.findById(id);
 
         if (alert.properties.containsKey("tenant_name") && !alert.properties.get("tenant_name").equals(tenant.name)) {
-            throw new BadRequestException("Notifying Messaging Service... Value of property 'name' differs from tenant's name: " + tenant.name);
+            throw new BadRequestException(
+                    "Notifying Messaging Service...\n" +
+                            "Error Identified: Tenant Name Mismatch\n" +
+                            "The API validation layer has flagged a data discrepancy between the incoming payload from the user interface and the tenant "
+                            + tenant.name +
+                            " registered in the monitoring service.");
         }
 
         validateAlertProperties(alert.name, alert.properties);
 
         alert.getProperties().put("tenant_id", id);
         alert.setCreatedAt(String.valueOf(now));
-        send(id, alert, "Notifying Messaging Service.. A request is sent to the Messaging Service to validate that the necessary data and configuration are in place prior to starting the monitoring process");
+        send(id, alert, "A validation request with the monitoring service has been " +
+                "initiated to ensure all data, variables, and configuration environments are " +
+                "properly aligned before any further action is taken");
 
 
         var statusOpt = tenantRepository.fetchTenantStatus(id);
@@ -1047,33 +1058,31 @@ public class TenantService {
         // INITIALISING message
         final var publishingMsg = hasCustomMsg
                 ? eventMsg
-                : "Event notification: " + alert.name + " is sent to Messaging Service for publishing";
+                : "The event notification " + alert.name + " has been sent to the queue to start the required job.";
 
 
         // Your special INITIALISED message (only when eventMsg exists)
         final var customInitialisedMsg =
-                "A request is initialised to the Messaging Service " +
-                        "to validate that the necessary data and configuration " +
-                        "are in place prior to starting the monitoring process";
+                "The validation check has been scheduled for execution, and will ensure all data, " +
+                        "variables, and configuration environments are properly aligned before any further action is taken.";
 
 
         // FINAL INITIALISED message
         final var initialisedMsg = hasCustomMsg
                 ? customInitialisedMsg
-                : "Event notification: " + alert.name + " is initialised to Messaging Service for publishing";
+                : "Acknowledged. The event " + alert.name +
+                " has been received by the queue and scheduled for execution.";
 
-// ✅ CUSTOM FAILED
+        // CUSTOM FAILED
         final var customFailedMsg =
-                "A request to validate that the necessary data and configuration " +
-                        "are in place prior to starting the monitoring process, failed to be published the Messaging Service.";
+                "Failed: The validation check has failed to start. ";
 
-
-// FAILED
+        // FAILED
         final var failedMsg =
                 hasCustomMsg
                         ? customFailedMsg
-                        : "Event notification: " + alert.name +
-                          " failed to be initialised to Messaging Service";
+                        : "Failed: The initialization of job " +
+                        alert.name + " failed.";
         try {
             final var now = Instant.now();
 
@@ -1193,7 +1202,7 @@ public class TenantService {
             Log.error("Failed to send alert to Messaging Service", e);
 
             throw new RuntimeException(
-                    "Sending notification... Failed to send event notification: " + alert.name,
+                    "Sending notification... Event " + alert.name + " delivery failed.",
                     e
             );
         }
@@ -1208,33 +1217,31 @@ public class TenantService {
         // INITIALISING message
         final var publishingMsg = hasCustomMsg
                 ? eventMsg
-                : "Event notification: " + alert.name + " is sent to Messaging Service for publishing";
-
+                : "The event notification " + alert.name + " has been sent to the queue to start the required job.";
 
         // Your special INITIALISED message (only when eventMsg exists)
         final var customInitialisedMsg =
-                "A request is initialised to the Messaging Service " +
-                        "to validate that the necessary data and configuration " +
-                        "are in place prior to starting the monitoring process";
+                "The validation check has been scheduled for execution, " +
+                        "and will ensure all data, variables, and configuration environments " +
+                        "are properly aligned before any further action is taken.";
 
 
         // FINAL INITIALISED message
         final var initialisedMsg = hasCustomMsg
                 ? customInitialisedMsg
-                : "Event notification: " + alert.name + " is initialised to Messaging Service for publishing";
+                : "Acknowledged. The event " + alert.name +
+                " has been received by the queue and scheduled for execution.";
 
-// ✅ CUSTOM FAILED
-        final var customFailedMsg =
-                "A request to validate that the necessary data and configuration " +
-                        "are in place prior to starting the monitoring process, failed to be published the Messaging Service.";
+        // CUSTOM FAILED
+        final var customFailedMsg = "Failed: The validation check has failed to start.";
 
 
-// FAILED
+        // FAILED
         final var failedMsg =
                 hasCustomMsg
                         ? customFailedMsg
-                        : "Event notification: " + alert.name +
-                          " failed to be initialised to Messaging Service";
+                        : "Failed: The initialization of job " + alert.name +
+                          " has failed";
         try {
             final var now = Instant.now();
 
@@ -1318,7 +1325,7 @@ public class TenantService {
                 job.setStatus(EventStatus.UNKNOWN.name());
 
                 if (def.isManual()) {
-                    job.setMessage("Waiting for manual administrator action");
+                    job.setMessage("Waiting for the manual action to start.");
                 }
                 dto.jobs.add(job);
             }
@@ -1888,14 +1895,17 @@ public class TenantService {
         var tenant = tenantRepository.findById(id);
 
         if (alert.properties.containsKey("tenant_name") && !alert.properties.get("tenant_name").equals(tenant.name)) {
-            throw new BadRequestException("Notifying Messaging Service... Value of property 'name' differs from tenant's name: " + tenant.name);
+            throw new BadRequestException("Error Identified: Tenant Name Mismatch." +
+                    "The API validation layer has flagged a data discrepancy between the incoming payload from " +
+                    "the user interface and the tenant " + tenant.name + " registered in the monitoring service.");
         }
 
         validateAlertProperties(alert.name, alert.properties);
 
         alert.getProperties().put("tenant_id", id);
         alert.setCreatedAt(String.valueOf(now));
-        send(id, alert, "Notifying Messaging Service.. A request is sent to the Messaging Service to validate that the necessary data and configuration are in place prior to starting the monitoring process");
+        send(id, alert, "A validation request with the monitoring service has been initiated to ensure all data, " +
+                "variables, and configuration environments are properly aligned before any further action is taken");
 
 
         var statusOpt = tenantRepository.fetchTenantStatus(id);

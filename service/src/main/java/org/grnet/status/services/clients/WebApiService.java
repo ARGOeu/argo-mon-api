@@ -705,6 +705,6 @@ public class WebApiService {
                     e.getResponse().getStatus()
             );
         }
-        return operation;
+        return "Data Inconsistency: Tenant entry is present in status-api but missing from web-api.";
     }
 }

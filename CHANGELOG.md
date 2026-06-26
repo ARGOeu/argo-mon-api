@@ -154,6 +154,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#162](https://github.com/ARGOeu/argo-mon-status-api/pull/162) ARGO-5635 Remove tenant_name and tenant_image from StatusPageConfigDto
 - [#176](https://github.com/ARGOeu/argo-mon-status-api/pull/176) ARGO-5675 Reports are not fetched for tenant
 - [#177](https://github.com/ARGOeu/argo-mon-api/pull/177) ARGO-5676 Topology Connector and Integrator Topo jobs should appear after topology is configured
+- [#179](https://github.com/ARGOeu/argo-mon-api/pull/179) ARGO-5605 Message when pushing check readiness
 
 ### Removed
 
