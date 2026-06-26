@@ -1,16 +1,16 @@
 pipeline {
     agent none
     options {
-        checkoutToSubdirectory('argo.mon.status.api')
+        checkoutToSubdirectory('argo-mon-api')
         newContainerPerStage()
     }
     environment {
-        PROJECT_DIR = 'argo.mon.status.api'
+        PROJECT_DIR = 'argo-mon-api'
         GH_USER = 'newgrnetci'
         GH_EMAIL = '<argo@grnet.gr>'
     }
     stages {
-        stage('Argo Mon Status API Packaging & Testing') {
+        stage('Argo Mon API Packaging & Testing') {
             agent {
                 docker {
                     image 'argo.registry:5000/rocky9-java17-mvn3.9.9:latest'
@@ -18,7 +18,7 @@ pipeline {
                 }
             }
             steps {
-                echo 'Argo Mon Status Packaging & Testing'
+                echo 'Argo Mon API Packaging & Testing'
                 withCredentials([usernamePassword(
                     credentialsId: 'newgrnetci-read-maven-packages',
                     usernameVariable: 'GHPKG_USERNAME',
