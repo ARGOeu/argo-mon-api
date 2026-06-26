@@ -22,8 +22,9 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 
 ## Unreleased
----
 
+## 1.0.0 - 2026-06-26
+---
 ### Added
 
 - [#1](https://github.com/ARGOeu/argo-mon-status-api/pull/1) ARGO-5136 Add Status Pages API and Implement /v1/encrypt & /v1/reports Endpoints
@@ -96,9 +97,35 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#166](https://github.com/ARGOeu/argo-mon-status-api/pull/166) ARGO-5645: Automatically add missing tenant status jobs during status updates
 - [#167](https://github.com/ARGOeu/argo-mon-status-api/pull/167) ARGO-5658 Expose Recommended Role and Assignment Metadata in Status API
   [#168](https://github.com/ARGOeu/argo-mon-status-api/pull/168) ARGO-5654 Extend Resource Authorization to Support the Resources in the status-pages
-- [#168](https://github.com/ARGOeu/argo-mon-status-api/pull/168) ARGO-5654 Extend Resource Authorization to Support the Resources in the status-pages
 - [#169](https://github.com/ARGOeu/argo-mon-status-api/pull/169) ARGO-5662 Enable Access-Control-Allow-Origin: * only for public GET endpoints 
 - [#175](https://github.com/ARGOeu/argo-mon-status-api/pull/175) ARGO-5667: Status api: for public reports call provide also info if a report is node report
+- [#171](https://github.com/ARGOeu/argo-mon-status-api/pull/171) ARGO-5671 - Integrate RCIAM Keycloak authentication
+- [#145](https://github.com/ARGOeu/argo-mon-status-api/pull/145) ARGO-5573 Add all/mine Scope Support to Secured Endpoints and Role Assignments
+- [#141](https://github.com/ARGOeu/argo-mon-status-api/pull/141) ARGO-5685 Super admin view all tenant pages
+- [#140](https://github.com/ARGOeu/argo-mon-status-api/pull/140) ARGO-5686 Add scope to list all tenant pages
+- [#134](https://github.com/ARGOeu/argo-mon-status-api/pull/134) ARGO-5525 Assign Secured Endpoints to Roles
+- [#129](https://github.com/ARGOeu/argo-mon-status-api/pull/129) 
+ARGO-5541 Use quarkus-auth deps in project
+- [#122](https://github.com/ARGOeu/argo-mon-status-api/pull/122) 
+ARGO-5689 Add group roles to group response
+- [#116](https://github.com/ARGOeu/argo-mon-status-api/pull/122) 
+ARGO-5483: Make endpoint topology tags field accept any key-value pairs
+- [#76](https://github.com/ARGOeu/argo-mon-status-api/pull/76) 
+ARGO-5338 Retrieve tenant's report by id
+- [#69](https://github.com/ARGOeu/argo-mon-status-api/pull/69) 
+ARGO-5301 Mock WebApi in Dev profile
+- [#62](https://github.com/ARGOeu/argo-mon-status-api/pull/62) 
+ARGO-5303 Allow Super Admins to add members to tenant groups directly
+- [#55](https://github.com/ARGOeu/argo-mon-status-api/pull/55) 
+ARGO-5296 Mock AMS in Dev profile mode
+- [#43](https://github.com/ARGOeu/argo-mon-status-api/pull/43) 
+ARGO-5228: Prevent Tenant and Project name changes on update and add Project description
+- [#41](https://github.com/ARGOeu/argo-mon-status-api/pull/41) 
+ARGO-5236 Prevent Project deletion when project belongs to tenant
+- [#36](https://github.com/ARGOeu/argo-mon-status-api/pull/36) 
+ARGO-5211: Add role and subgroup handling to authorization
+- [#13](https://github.com/ARGOeu/argo-mon-status-api/pull/13) ARGO-51176 Delete tenant
+
 
 ### Fix
 
@@ -155,9 +182,26 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#176](https://github.com/ARGOeu/argo-mon-status-api/pull/176) ARGO-5675 Reports are not fetched for tenant
 - [#177](https://github.com/ARGOeu/argo-mon-api/pull/177) ARGO-5676 Topology Connector and Integrator Topo jobs should appear after topology is configured
 - [#179](https://github.com/ARGOeu/argo-mon-api/pull/179) ARGO-5605 Message when pushing check readiness
+- [#178](https://github.com/ARGOeu/argo-mon-api/pull/178) ARGO-5681 to trigger deploy
+- [#174](https://github.com/ARGOeu/argo-mon-status-api/pull/174) ARGO-5682 add PATCH to cors
+- [#173](https://github.com/ARGOeu/argo-mon-status-api/pull/173) ARGO-5683 minor fix in cors
+- [#172](https://github.com/ARGOeu/argo-mon-status-api/pull/172) ARGO-5684 Add missing prod properties
+- [#151](https://github.com/ARGOeu/argo-mon-status-api/pull/151) ARGO-5618 Tenants not retrieved for other roles than admin
+- [#138](https://github.com/ARGOeu/argo-mon-status-api/pull/138) ARGO-5687 Fix entitlement searching for list tenants
+- [#135](https://github.com/ARGOeu/argo-mon-status-api/pull/135) ARGO-5688 Enhance tenant invitation with quarkus auth role management
+- [#114](https://github.com/ARGOeu/argo-mon-status-api/pull/114) ARGO-5471: Add node capabilities endpoints for availability and status
+- [#89](https://github.com/ARGOeu/argo-mon-status-api/pull/89) ARGO-5690 Fix members pagination
+- [#88](https://github.com/ARGOeu/argo-mon-status-api/pull/88) ARGO-5367: Resend existing pending tenant invitation instead of returing 409
+- [#71](https://github.com/ARGOeu/argo-mon-status-api/pull/71) 
+ARGO-5327 API should default missing optional fields to empty collections or empty objects instead of null
+- [#68](https://github.com/ARGOeu/argo-mon-status-api/pull/68) 
+ARGO-5313: View invitation in email is not working
+- [#45](https://github.com/ARGOeu/argo-mon-status-api/pull/45) 
+ARGO-5217 PUBLISH events to AMS to inform about tenant's creation and triggering the python script jobs
+- [#16](https://github.com/ARGOeu/argo-mon-status-api/pull/16) 
+ARGO-5186 Rename tenant creation script to avoid conflict in flyway
 
 ### Removed
-
 
 -[#15](https://github.com/ARGOeu/argo-mon-status-api/pull/15) ARGO-5183 Remove User DB & Update Keycloak Scope
 -[#170](https://github.com/ARGOeu/argo-mon-status-api/pull/170) ARGO-5666 [MON-STATUS-API] remove endpoints : assign secured endpoints to role
