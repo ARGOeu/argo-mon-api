@@ -1548,7 +1548,23 @@ public class TenantService {
 
         var tenant = tenantRepository.findById(tenantId);
 
+        var existingFeed = hasFeedTopology(tenantId);
+
         var response = webApiService.updateFeedTopologyWebApi(tenant.id, request);
+
+        if (!existingFeed) {
+            try {
+                var alert = buildAlert(EventName.CHECK_READINESS,
+                        tenant,
+                        String.valueOf(Instant.now())
+                );
+
+                notifyAmsCheckReadiness(tenantId, alert);
+
+            } catch (Exception e) {
+                Log.error("Failed to notify AMS for readiness after first feed topology setup", e);
+            }
+        }
 
         switch (request.type) {
             case DESY_MARKETPLACE:
@@ -1963,5 +1979,20 @@ public class TenantService {
         alert.setCreatedAt(String.valueOf(now));
         sendDeleteEvent(tenantId, alert, "Notifying Messaging Service.. A notification is sent to notify ams that a tenant is deleted");
 
+    }
+
+    private boolean hasFeedTopology(String tenantId) {
+
+        try {
+            return getFeedTopology(tenantId) != null;
+
+        } catch (WebApplicationException e) {
+
+            if (e.getResponse().getStatus() == 404) {
+                return false;
+            }
+
+            throw e;
+        }
     }
 }
