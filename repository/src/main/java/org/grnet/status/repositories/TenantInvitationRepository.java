@@ -1,0 +1,164 @@
+package org.grnet.status.repositories;
+
+import io.quarkus.panache.common.Sort;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.commons.lang3.StringUtils;
+import org.grnet.status.entities.*;
+import org.grnet.status.enums.InvitationStatus;
+
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.Set;
+import java.util.StringJoiner;
+
+
+/**
+ * Repository responsible for managing TenantInvitation entities.
+ */
+@ApplicationScoped
+public class TenantInvitationRepository implements Repository<TenantInvitation, String> {
+
+    /**
+     * Retrieves a pending invitation for a specific tenant and email.
+     *
+     * @param tenantId tenant identifier
+     * @param email invitation email
+     * @return optional pending invitation
+     */
+    public Optional<TenantInvitation> findPendingInvitationsByTenantAndEmail(String tenantId, String email) {
+        return find("tenant.id = ?1 and lower(email) = ?2 and status  = ?3",
+                tenantId, email.toLowerCase(), InvitationStatus.PENDING)
+                .firstResultOptional();
+    }
+    /**
+     * Retrieves a paginated list of invitations for a specific email.
+     *
+     * @param email invitation email
+     * @param page 0-based page index
+     * @param size page size
+     * @return paginated invitations
+     */
+    public PageQuery<TenantInvitation> findAllByEmail(String email, int page, int size) {
+
+        var panache = find("email = ?1", Sort.by("createdAt", Sort.Direction.Descending), email).page(page, size);
+
+        var pageable = new PageQueryImpl<TenantInvitation>();
+        pageable.list = panache.list();
+        pageable.index = page;
+        pageable.size = size;
+        pageable.count = panache.count();
+        pageable.page = Page.of(page, size);
+
+        return pageable;
+
+    }
+
+    /**
+     * Retrieves a paginated list of tenant invitations with optional search and sorting.
+     *
+     * @param search search filter
+     * @param sort sort field
+     * @param order sort order
+     * @param page 0-based page index
+     * @param size page size
+     * @return paginated invitations
+     */
+    public PageQuery<TenantInvitation> fetchInvitationsByPageAndSize(String search, String sort, String order, int page, int size) {
+
+        var joiner = new StringJoiner(" ");
+
+        joiner.add("SELECT ti from TenantInvitation ti")
+                .add("left join ti.tenant t");
+
+        var params = new HashMap<String, Object>();
+
+        if (StringUtils.isNotBlank(search)) {
+            joiner.add("where (t.name ILIKE :search OR ti.email ILIKE :search)");
+            params.put("search", "%" + search.trim() + "%");
+        }
+
+        var allowedSortFields = Set.of(
+                "createdAt",
+                "email",
+                "name",
+                "status"
+        );
+
+        if (StringUtils.isBlank(sort) || !allowedSortFields.contains(sort)) {
+            sort = "createdAt";
+        }
+
+        var direction = "ASC".equalsIgnoreCase(order) ? "ASC" : "DESC";
+
+        var orderByField = "name".equals(sort) ? "t.name" : "ti." + sort;
+
+        joiner.add("order by " + orderByField + " " + direction);
+
+        var panache = find(joiner.toString(), params).page(page, size);
+
+        var result = new PageQueryImpl<TenantInvitation>();
+        result.list = panache.list();
+        result.index = page;
+        result.size = size;
+        result.count = panache.count();
+        result.page = Page.of(page, size);
+
+        return result;
+    }
+
+    /**
+     * Retrieves a paginated list of invitations for a specific tenant with optional search and sorting.
+     *
+     * @param search search filter
+     * @param sort sort field
+     * @param order sort order
+     * @param tenantId tenant identifier
+     * @param page 0-based page index
+     * @param size page size
+     * @return paginated tenant invitations
+     */
+    public PageQuery<TenantInvitation> fetchInvitationsByTenantByPageAndSize(String search, String sort, String order, String tenantId, int page, int size) {
+
+        var joiner = new StringJoiner(" ");
+        var params = new HashMap<String, Object>();
+
+
+        joiner.add("SELECT ti FROM TenantInvitation ti")
+                .add("LEFT JOIN ti.tenant t");
+
+        joiner.add("WHERE t.id = :tenantId");
+        params.put("tenantId", tenantId);
+
+        if (StringUtils.isNotBlank(search)) {
+            joiner.add("AND (ti.email ILIKE :search or ti.role ILIKE :search)");
+            params.put("search", "%" + search.trim() + "%");
+        }
+
+        var allowedSortFields = Set.of(
+                "createdAt",
+                "email",
+                "status"
+        );
+
+        if (StringUtils.isBlank(sort) || !allowedSortFields.contains(sort)) {
+            sort = "createdAt";
+        }
+
+        var direction = "ASC".equalsIgnoreCase(order) ? "ASC" : "DESC";
+
+        var orderByField = "ti." + sort;
+
+        joiner.add("order by " + orderByField + " " + direction);
+
+        var panache = find(joiner.toString(), params).page(page, size);
+
+        var result = new PageQueryImpl<TenantInvitation>();
+        result.list = panache.list();
+        result.index = page;
+        result.size = size;
+        result.count = panache.count();
+        result.page = Page.of(page, size);
+
+        return result;
+    }
+}
