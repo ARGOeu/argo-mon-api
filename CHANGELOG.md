@@ -125,6 +125,7 @@ ARGO-5236 Prevent Project deletion when project belongs to tenant
 - [#36](https://github.com/ARGOeu/argo-mon-status-api/pull/36) 
 ARGO-5211: Add role and subgroup handling to authorization
 - [#13](https://github.com/ARGOeu/argo-mon-status-api/pull/13) ARGO-51176 Delete tenant
+- [#183](https://github.com/ARGOeu/argo-mon-status-api/pull/183) ARGO-5698 Upgrade quarkus auth version in pom.xml
 
 
 ### Fix

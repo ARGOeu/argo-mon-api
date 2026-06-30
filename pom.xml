@@ -48,7 +48,7 @@
         <!-- Keycloak Version-->
         <keycloak.version>26.0.6</keycloak.version>
 
-        <quarkus-auth.version>1.0.0-SNAPSHOT</quarkus-auth.version>
+        <quarkus-auth.version>1.0.1-SNAPSHOT</quarkus-auth.version>
 
     </properties>
     <repositories>
