@@ -8,7 +8,6 @@ import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
-import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.UserGroupInfoDto;
 import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.status.api.endpoints.AdminEndpoint;
@@ -32,7 +31,6 @@ import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
 import org.grnet.status.enums.EventStatus;
 import org.grnet.status.enums.TenantJobEvent;
 import org.grnet.status.enums.resources.TenantResource;
-import org.grnet.status.services.AuthGroupSetupService;
 import org.grnet.status.services.GroupManagementService;
 import org.grnet.status.services.clients.AmsClient;
 import org.grnet.status.services.clients.AmsClientFactory;
@@ -57,8 +55,6 @@ public class AdminEndpointTest extends KeycloakTest {
     @InjectMock
     GroupManagementService groupManagementService;
 
-    @InjectMock
-    AuthGroupSetupService authGroupSetupService;
     @InjectMock
     AmsClientFactory amsClientFactory;
     @InjectMock
@@ -125,15 +121,6 @@ public class AdminEndpointTest extends KeycloakTest {
                 role,
                 raw
         );
-    }
-
-    @BeforeEach
-    public void mockGroupAsyncService() {
-        doNothing().when(authGroupSetupService)
-                .createGroup(anyString(), anyString(), anyList(), anyMap());
-
-        doNothing().when(authGroupSetupService)
-                .deleteGroup(anyString());
     }
 
     @BeforeEach

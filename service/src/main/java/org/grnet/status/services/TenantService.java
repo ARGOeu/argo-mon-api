@@ -75,8 +75,6 @@ public class TenantService {
     TenantRepository tenantRepository;
     @Inject
     ContactRepository contactRepository;
-    @Inject
-    AuthGroupSetupService authGroupSetupService;
 
     @Inject
     AccessControlService accessControlService;
@@ -111,6 +109,9 @@ public class TenantService {
     @Inject
     ObjectMapper objectMapper;
 
+    @Inject
+    AuthGroupManagement authGroupManagement;
+
     private final ExecutorService executorService = Executors.newFixedThreadPool(2); // Adjust as needed
 
     /**
@@ -129,10 +130,6 @@ public class TenantService {
             Map<String, List<String>> attributes = new HashMap<>();
             attributes.put("tenantId", List.of(response.id));
             attributes.put("description", List.of(request.info.description));
-
-            var parentPath = "/" + namespace + "/tenants";
-
-            authGroupSetupService.createGroup(parentPath, response.info.name, List.of("admin", "viewer"), attributes);
 
         } catch (Exception ex) {
             Log.error("Failed to create AGM group for tenant " + response.id + ": " + ex.getMessage());
@@ -274,18 +271,8 @@ public class TenantService {
             throw new WebApplicationException("Deleting Tenant.. Tenant not found: " + id, 404);
         }
 
-        var tenantName = tenant.name;
         deleteTenant(tenant.getId());
 
-        try {
-            var parentPath = "/" + namespace + "/tenants/";
-            var groupPath = parentPath + tenantName;
-
-            authGroupSetupService.deleteGroup(groupPath);
-
-        } catch (Exception ex) {
-            Log.error("Deleting Tenant... Failed to queue async AGM group deletion for tenant " + id + ": " + ex.getMessage());
-        }
     }
 
     /**
@@ -303,7 +290,7 @@ public class TenantService {
         }
 
         try {
-            Set<Contact> oldContacts = new HashSet<>(tenant.getContacts());
+            var oldContacts = new HashSet<>(tenant.getContacts());
 
             // 1. Remove relation from both sides
             for (Contact c : oldContacts) {
@@ -339,6 +326,12 @@ public class TenantService {
                     500
             );
         }
+        try {
+            deleteTenantResourceGroups(id);
+        } catch (Exception ex) {
+            Log.error("Deleting Tenant... Failed to delete AGM resource groups for tenant " + id + ": " + ex.getMessage());
+        }
+
         var alert = buildAlert(EventName.DELETE_TENANT, tenant, String.valueOf(Instant.now()));
 
         CompletableFuture.runAsync(() -> {
@@ -350,6 +343,22 @@ public class TenantService {
                         id);
             }
         });
+    }
+
+    private void deleteTenantResourceGroups(String tenantId) {
+
+        var roles = authGroupManagement.getAllRoles();
+
+        for (var role : roles) {
+            var resource = TenantResource.TENANT.resourceName();
+            var groupPath = "/" + namespace + "/" + role.name + "/" + resource + "/" + tenantId;
+
+            try {
+                authGroupManagement.deleteGroup(groupPath);
+            } catch (Exception ex) {
+                Log.warn("Deleting Tenant... AGM resource group not found or could not be deleted: " + groupPath);
+            }
+        }
     }
 
     /**
