@@ -1,15 +1,15 @@
-# ARGO Mon Status Page API
+# ARGO Mon API
 
-The **Status Page API** is part of the **ARGO Monitoring Service**, developed and maintained by **GRNET**.  
-It provides REST endpoints for creating, updating, and displaying **service status pages**, integrating with ARGO’s monitoring reports and data sources.
+The **ARGO Mon API** is part of the **ARGO Monitoring Service**, developed and maintained by **GRNET**.  
+It provides REST endpoints for managing **tenants**, **projects**, **status pages**, monitoring resources, and automation workflows, integrating with ARGO Monitoring services and data sources.
 
-The API allows authenticated users to manage **status pages** and **groups**, while relying on **Keycloak** for authentication and access control.
+The API allows authenticated users to manage tenants, projects, **status pages**, groups, and monitoring configuration, while relying on **Keycloak** for authentication and access control.
 
 ---
 
 ## Overview
 
-The Status Page API enables:
+The ARGO Mon API enables:
 
 - Management of **Status Pages** (create, list, update, delete)
 - Retrieval of **Status Groups** and **Reports** from ARGO Monitoring
@@ -76,13 +76,13 @@ Authorization: Bearer {{token}}
 
 ## Access Token Retrieval
 
-The [ARGO Mon Status Pages API](https://api-status-next.devel.mon.argo.grnet.gr/) allows users to obtain an access token for authentication purposes.  
+The [ARGO Mon API](https://api-status.devel.mon.argo.grnet.gr/) allows users to obtain an access token for authentication purposes.  
 By following these steps, users can retrieve an access token to authenticate API requests.
 
 ### Instructions
 
 1. **Open the Web Page**  
-   Navigate to the [ARGO Mon Status Pages API](https://api-status-next.devel.mon.argo.grnet.gr/) page.
+   Navigate to the [ARGO Mon API](https://api-status.devel.mon.argo.grnet.gr/) page.
 
 2. **Locate the Access Token Button**  
    Once the page loads, locate the button that retrieves the access token.
@@ -126,7 +126,7 @@ This command installs all required dependencies in your local Maven repository.
 ---
 ## Start Argo Web API in Development Profile
 
-In development mode, Argo Mon Status Page Api uses a locally hosted Argo Web API instead of the production service. To start the local Argo Web API instance, follow these instructions:
+In development mode, Argo Mon Api uses a locally hosted Argo Web API instead of the production service. To start the local Argo Web API instance, follow these instructions:
 
 1. Clone the Argo Web API repository
 Clone the repository and checkout the devel branch:
@@ -258,7 +258,7 @@ docker exec -it <container_id> psql -U status -d status
 
 ## Configure Authentication for Local Builds
 
-ARGO Mon Status API depends on the quarkus-auth library, which is distributed through GitHub Packages.
+ARGO Mon API depends on the quarkus-auth library, which is distributed through GitHub Packages.
 
 Although the package is public, GitHub Packages Maven registry requires authentication in order to download dependencies.
 
@@ -313,7 +313,7 @@ mvn clean install
 
 ## License & Credits
 
-ARGO Mon Status Pages is a service developed and maintained by **GRNET**.  
+ARGO Mon API is a service developed and maintained by **GRNET**.  
 Distributed under the **Apache 2.0 License**.
 
 
