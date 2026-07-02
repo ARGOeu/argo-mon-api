@@ -1,6 +1,7 @@
 package org.grnet.status.api;
 
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.http.TestHTTPEndpoint;
 import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -26,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 @QuarkusTest
 @TestHTTPEndpoint(UserEndpoint.class)
+@QuarkusTestResource(KeycloakComposeResource.class)
 public class UserEndpointTest extends KeycloakTest {
 
     @Inject
@@ -100,7 +102,7 @@ public class UserEndpointTest extends KeycloakTest {
                 .extract()
                 .as(UserProfileDto.class);
 
-        assertEquals("local_viewer_voperson_id", response.username);
+        assertEquals("user2", response.username);
 
         var group = response.groups.get(0);
 

@@ -1,6 +1,7 @@
 package org.grnet.status.api;
 
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.http.TestHTTPEndpoint;
 import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -50,6 +51,7 @@ import static org.mockito.Mockito.*;
 
 @QuarkusTest
 @TestHTTPEndpoint(AdminEndpoint.class)
+@QuarkusTestResource(KeycloakComposeResource.class)
 public class AdminEndpointTest extends KeycloakTest {
 
     @InjectMock

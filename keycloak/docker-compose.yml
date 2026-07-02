@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:17
-    container_name: local-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: postgres2
@@ -22,7 +21,6 @@ services:
       context: .
       dockerfile: Dockerfile
     image: test1_keycloak
-    container_name: local-keycloak
     restart: unless-stopped
     depends_on:
       postgres:
@@ -52,7 +50,6 @@ services:
 
   run-entitlements:
     image: test1_keycloak
-    container_name: local-run-entitlements
     depends_on:
       - keycloak
     environment:
