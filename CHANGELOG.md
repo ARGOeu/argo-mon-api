@@ -25,8 +25,9 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 ### Added
 - [#182](https://github.com/ARGOeu/argo-mon-api/pull/182) ARGO-5692 Trigger readiness validation on first feed configuration
+- [#184](https://github.com/ARGOeu/argo-mon-api/pull/184) ARGO-5696: Update tenant resource group deletion to use Quarkus Auth role hierarchy
 
-### Fix
+### Fix 
 
 
 ## 1.0.0 - 2026-06-26
