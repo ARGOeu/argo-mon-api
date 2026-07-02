@@ -58,6 +58,7 @@ import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiSupergroupsResponse;
 import org.grnet.status.dtos.topology.EndpointTopologyDto;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.GroupTopologyDto;
@@ -3147,8 +3148,8 @@ public class TenantEndpoint {
                     description = "Granularity of results (daily, monthly).",
                     example = "daily")
             @QueryParam("granularity")
-            String granularity
-    ) {
+            String granularity) {
+
         var availability = tenantService.getAvailability(id, item, date, startTime, endTime, startDate, endDate, granularity);
 
         return Response.ok().entity(availability).build();
@@ -3508,6 +3509,91 @@ public class TenantEndpoint {
         var response = tenantService.getGroupStatus(id, groupName, startTime, endTime, history, report);
 
         return Response.ok().entity(response).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report supergroup results.",
+            description = "Retrieves availability and reliability results for the supergroups of a tenant's report.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report supergroup results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiSupergroupsResponse.class)))
+@APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/supergroups/{group-type}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getSupergroupsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "groupType",
+                    required = true,
+                    description = "The subgroup type to retrieve results for.",
+                    example = "PROJECT")
+            @PathParam("group-type")
+            String groupType,
+            @Parameter(name = "start_time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-05-21T12:00:00Z")
+            @QueryParam("start_time")
+            String startTime,
+            @Parameter(name = "end_time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end_time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.getSupergroupsByReport(id, reportName, groupType, startTime, endTime ,granularity);
+
+        return Response.ok(response).build();
     }
 
     @Tag(name = "Reports")

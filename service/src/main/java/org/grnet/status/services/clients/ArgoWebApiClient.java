@@ -485,4 +485,15 @@ public interface ArgoWebApiClient {
             @QueryParam("report") String report
     );
 
+    @GET
+    @Path("/api/v2/results/{report_name}/{group_type}")
+    TenantWebApiSupergroupsResponse getSupergroupsResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report_name") String reportName,
+            @PathParam("group_type") String groupType,
+            @QueryParam("start_time") String startTime,
+            @QueryParam("end_time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
 }
