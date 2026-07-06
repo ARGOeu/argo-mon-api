@@ -25,7 +25,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 ### Added
 - [#182](https://github.com/ARGOeu/argo-mon-api/pull/182) ARGO-5692 Trigger readiness validation on first feed configuration
-- [#184](https://github.com/ARGOeu/argo-mon-api/pull/184) ARGO-5696: Update tenant resource group deletion to use Quarkus Auth role hierarchy
+- [#184](https://github.com/ARGOeu/argo-mon-api/pull/184) ARGO-5696 Update tenant resource group deletion to use Quarkus Auth role hierarchy
+- [#185](https://github.com/ARGOeu/argo-mon-api/pull/186) ARGO-5706 [API] Fetch monthly and daily A/R supergroup views for all topology levels for tenant
 
 ### Fix 
 

@@ -33,10 +33,7 @@ import org.grnet.status.dtos.tenant.node.WebApiNodeSummaryResponse;
 import org.grnet.status.dtos.tenant.status.EventStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
+import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
 import org.grnet.status.entities.Contact;
@@ -62,8 +59,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-
-import static io.vertx.core.http.impl.HttpUtils.normalizePath;
 
 /**
  * Service responsible for managing tenants and tenant status workflows.
@@ -1768,6 +1763,13 @@ public class TenantService {
         var tenant = tenantRepository.findById(tenantId);
 
         return webApiService.retrieveGroupStatus(groupName, tenant.id, startTime, endTime, history, report);
+    }
+
+
+    public TenantWebApiSupergroupsResponse getSupergroupsByReport(String tenantId, String reportName, String groupType, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsSupergroupByReport(tenantId, reportName, groupType, startTime, endTime, granularity);
+
     }
 
 
