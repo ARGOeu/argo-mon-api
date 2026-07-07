@@ -28,6 +28,7 @@ import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.services.TenantService;
 
+
 @Path("/v1/automation")
 @Authenticated
 @SecurityScheme(securitySchemeName = "Authentication",
