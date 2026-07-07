@@ -1,6 +1,7 @@
 package org.grnet.status.api;
 
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -34,6 +35,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @QuarkusTest
+@QuarkusTestResource(KeycloakComposeResource.class)
 public class TenantEndpointTest extends KeycloakTest {
 
     @InjectMock

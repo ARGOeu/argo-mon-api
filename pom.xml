@@ -50,6 +50,8 @@
 
         <quarkus-auth.version>1.0.1-SNAPSHOT</quarkus-auth.version>
 
+        <keycloak.module.dir>${maven.multiModuleProjectDirectory}/keycloak</keycloak.module.dir>
+
     </properties>
     <repositories>
         <repository>

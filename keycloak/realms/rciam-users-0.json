@@ -145,5 +145,6 @@
       "realmRoles" : [ "default-roles-rciam" ],
       "notBefore" : 0,
       "groups" : [ ]
-    }]
+    }
+  ]
 }

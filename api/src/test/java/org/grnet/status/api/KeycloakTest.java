@@ -1,7 +1,6 @@
 package org.grnet.status.api;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.keycloak.client.KeycloakTestClient;
 import io.restassured.RestAssured;
 import jakarta.inject.Inject;
 import org.grnet.status.services.StatusPageService;
@@ -37,23 +36,21 @@ public class KeycloakTest {
     protected String automationToken;
 
 
-    KeycloakTestClient keycloakClient = new KeycloakTestClient();
-
     @BeforeAll
     public void setup() {
         RestAssured.baseURI = baseUri.toString();
         adminToken = getAccessToken("admin");
-        aliceToken = getAccessToken("alice");
-        bobToken = getAccessToken("bob");
-        tenantAdmin = getAccessToken("tenantadmin");
-        tenantViewer = getAccessToken("tenantviewer");
-        automationToken = getAccessToken("automation");
+        aliceToken = getAccessToken("user1");
+        bobToken = getAccessToken("user2");
+        tenantAdmin = getAccessToken("user3");
+        tenantViewer = getAccessToken("user2");
+        automationToken = getAccessToken("user2");
         tenantInvitationService.deleteAll();
         tenantService.deleteAll();
         statusPageService.deleteAll();
     }
 
     protected String getAccessToken(String username) {
-        return keycloakClient.getAccessToken(username);
+        return KeycloakTestClient.getAccessToken(username);
     }
 }
