@@ -486,14 +486,49 @@ public interface ArgoWebApiClient {
     );
 
     @GET
-    @Path("/api/v2/results/{report_name}/{group_type}")
+    @Path("/api/v5/results/{report-name}/supergroups")
     TenantWebApiSupergroupsResponse getSupergroupsResultsByReport(
             @HeaderParam("x-api-key") String accessToken,
             @HeaderParam("x-tenant-id") String tenantId,
-            @PathParam("report_name") String reportName,
-            @PathParam("group_type") String groupType,
-            @QueryParam("start_time") String startTime,
-            @QueryParam("end_time") String endTime,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/supergroups/{supergroup-name}")
+    TenantWebApiSupergroupsResponse getSupergroupByNameResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("supergroup-name") String supergroupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+
+    @GET
+    @Path("/api/v5/results/{report-name}/groups")
+    TenantWebApiGroupResultsByReportResponse getGroupsResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/groups/{group-name}")
+    TenantWebApiGroupResultsByReportResponse getGroupByNameResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
             @QueryParam("granularity") String granularity
     );
 }

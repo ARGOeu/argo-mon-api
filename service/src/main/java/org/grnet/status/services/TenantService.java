@@ -1766,12 +1766,31 @@ public class TenantService {
     }
 
 
-    public TenantWebApiSupergroupsResponse getSupergroupsByReport(String tenantId, String reportName, String groupType, String startTime, String endTime, String granularity) {
+    public TenantWebApiSupergroupsResponse getSupergroupsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
 
-        return webApiService.retrieveResultsSupergroupByReport(tenantId, reportName, groupType, startTime, endTime, granularity);
+        return webApiService.retrieveResultsSupergroupsByReport(tenantId, reportName, startTime, endTime, granularity);
 
     }
 
+    public TenantWebApiSupergroupsResponse getSupergroupByNameByReport(String tenantId, String reportName, String supergroupName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsSupergroupByNameByReport(tenantId, reportName, supergroupName, startTime, endTime, granularity);
+
+    }
+
+
+
+    public TenantWebApiGroupResultsByReportResponse retrieveGroupsResultsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsGroupsByReport(tenantId, reportName, startTime, endTime, granularity);
+
+    }
+
+    public TenantWebApiGroupResultsByReportResponse retrieveGroupByNameByReport(String tenantId, String reportName, String groupName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsGroupByNameByReport(tenantId, reportName, groupName, startTime, endTime, granularity);
+
+    }
 
     private boolean isComputeEngineCompleted(TenantStatusDto request) {
         return request.jobs.stream()
