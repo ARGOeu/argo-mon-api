@@ -66,6 +66,7 @@ import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.GroupTopologyDto;
 import org.grnet.status.dtos.topology.ServiceTypeDto;
 import org.grnet.status.enums.resources.*;
+import org.grnet.status.repositories.DowntimeRepository;
 import org.grnet.status.repositories.StatusPageRepository;
 import org.grnet.status.repositories.TenantInvitationRepository;
 import org.grnet.status.repositories.TenantRepository;
@@ -4151,12 +4152,12 @@ public class TenantEndpoint {
 
     @Tag(name = "Downtime")
     @Operation(
-            summary = "Create a downtime.",
-            description = "Returns the created downtime"
+            summary = "Create a downtime for a tenant.",
+            description = "Create a the tenant's downtime"
     )
     @APIResponse(
             responseCode = "200",
-            description = "Setting updated successfully.",
+            description = "Downtimes fetched successfully.",
             content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
     )
     @APIResponse(
@@ -4187,6 +4188,9 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @POST
     @Path("/{id}/downtimes")
+
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
                     @ParamRef(
@@ -4204,7 +4208,7 @@ public class TenantEndpoint {
                            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
                            @Valid DowntimeRequest request) {
 
-        DowntimeResponse response = downtimeService.addDowntime(id,request);
+        DowntimeResponse response = downtimeService.addDowntime(id, request);
 
         return Response.ok(response).build();
     }
@@ -4247,6 +4251,7 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/{id}/downtimes")
+    @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
                     @ParamRef(
@@ -4284,6 +4289,81 @@ public class TenantEndpoint {
             @Context UriInfo uriInfo) {
 
         var response = downtimeService.fetchDowntimesByPageAndSize(page - 1, size, id, date, uriInfo);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Fetch a specific downtime for a tenant.",
+            description = "Returns the tenant's specific downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/downtimes/{downtime_id}")
+    @Produces(MediaType.APPLICATION_JSON)
+
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "downtime_id",
+                            type = ParamType.PATH,
+                            referTo = DowntimeResource.class
+                    )
+            }
+    )
+
+    public Response getDowntime(
+           @Parameter(
+                    description = "The ID of the tenant to fetch the downtime.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+           @Parameter(
+                   description = "The ID of the downtime.",
+                   required = true,
+                   example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                   schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
+           @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
+           @Context UriInfo uriInfo) {
+
+        var response = downtimeService.fetchDowntimes(id,downtimeId);
 
         return Response.ok(response).build();
     }
