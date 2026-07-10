@@ -16,6 +16,9 @@ import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.ams.PublishResponse;
+import org.grnet.status.dtos.downtime.DowntimeRequest;
+import org.grnet.status.dtos.downtime.DowntimeResponse;
+import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.project.ProjectUpdateDto;
@@ -29,6 +32,7 @@ import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
+import org.grnet.status.enums.DowntimeClassification;
 import org.grnet.status.enums.EventStatus;
 import org.grnet.status.enums.TenantJobEvent;
 import org.grnet.status.enums.resources.TenantResource;
@@ -612,5 +616,6 @@ public class AdminEndpointTest extends KeycloakTest {
 
         return dto;
     }
+
 
 }

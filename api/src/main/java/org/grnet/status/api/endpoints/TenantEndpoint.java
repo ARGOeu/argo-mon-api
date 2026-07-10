@@ -34,6 +34,8 @@ import org.grnet.status.api.resolvers.CheckDateFormat;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.Status;
+import org.grnet.status.dtos.downtime.DowntimeRequest;
+import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
@@ -120,6 +122,8 @@ public class TenantEndpoint {
     @Inject
     TopologyService topologyService;
 
+    @Inject
+    DowntimeService downtimeService;
 
     @Operation(
             summary = "List Tenants Available to the User",
@@ -4143,5 +4147,66 @@ public class TenantEndpoint {
         var response = reportService.setReportPrivate(id, reportId);
 
         return Response.ok().entity(response).build();
+    }
+
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Create a downtime.",
+            description = "Returns the created downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Setting updated successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Setting not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/{id}/downtimes")
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response create(@Parameter(
+                                   description = "The ID of the tenant to create downtime.",
+                                   required = true,
+                                   example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                                   schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+                           @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+                           @Valid DowntimeRequest request) {
+
+        DowntimeResponse response = downtimeService.addDowntime(id,request);
+
+        return Response.ok(response).build();
     }
 }
