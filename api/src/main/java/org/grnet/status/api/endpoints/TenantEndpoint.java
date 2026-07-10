@@ -3525,7 +3525,7 @@ public class TenantEndpoint {
             content = @Content(schema = @Schema(
                     type = SchemaType.OBJECT,
                     implementation = TenantWebApiSupergroupsResponse.class)))
-@APIResponse(
+    @APIResponse(
             responseCode = "401",
             description = "User has not been authenticated.",
             content = @Content(schema = @Schema(
@@ -3589,7 +3589,7 @@ public class TenantEndpoint {
             @QueryParam("granularity")
             String granularity) {
 
-        var response = tenantService.getSupergroupsByReport(id, reportName, startTime, endTime ,granularity);
+        var response = tenantService.getSupergroupsByReport(id, reportName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }
@@ -3674,7 +3674,7 @@ public class TenantEndpoint {
             @QueryParam("granularity")
             String granularity) {
 
-        var response = tenantService.getSupergroupByNameByReport(id, reportName, supergroupName, startTime, endTime ,granularity);
+        var response = tenantService.getSupergroupByNameByReport(id, reportName, supergroupName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }
@@ -3753,7 +3753,7 @@ public class TenantEndpoint {
             @QueryParam("granularity")
             String granularity) {
 
-        var response = tenantService.retrieveGroupsResultsByReport(id, reportName, startTime, endTime ,granularity);
+        var response = tenantService.retrieveGroupsResultsByReport(id, reportName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }
@@ -3839,7 +3839,7 @@ public class TenantEndpoint {
             @QueryParam("granularity")
             String granularity) {
 
-        var response = tenantService.retrieveGroupByNameByReport(id, reportName, groupName, startTime, endTime ,granularity);
+        var response = tenantService.retrieveGroupByNameByReport(id, reportName, groupName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }
@@ -3918,7 +3918,7 @@ public class TenantEndpoint {
             @QueryParam("granularity")
             String granularity) {
 
-        var response = tenantService.retrieveEndpointsResultsByReport(id, reportName, startTime, endTime ,granularity);
+        var response = tenantService.retrieveEndpointsResultsByReport(id, reportName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }
@@ -4004,7 +4004,7 @@ public class TenantEndpoint {
             @QueryParam("granularity")
             String granularity) {
 
-        var response = tenantService.retrieveEndpointByNameResultsByReport(id, reportName, endpointName, startTime, endTime ,granularity);
+        var response = tenantService.retrieveEndpointByNameResultsByReport(id, reportName, endpointName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }
@@ -4149,7 +4149,6 @@ public class TenantEndpoint {
         return Response.ok().entity(response).build();
     }
 
-
     @Tag(name = "Downtime")
     @Operation(
             summary = "Create a downtime.",
@@ -4177,7 +4176,7 @@ public class TenantEndpoint {
     )
     @APIResponse(
             responseCode = "404",
-            description = "Setting not found.",
+            description = "Downtime not found.",
             content = @Content(schema = @Schema(implementation = InformativeResponse.class))
     )
     @APIResponse(
@@ -4209,4 +4208,99 @@ public class TenantEndpoint {
 
         return Response.ok(response).build();
     }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Fetch downtimes for a tenant.",
+            description = "Returns the tenant's downtimes"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = PageableDowntimes.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/downtimes")
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+
+    public Response getDowntimes(
+            @Parameter(name = "page", in = QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+            @Parameter(name = "size", in = QUERY,
+                    description = "The page size.")
+            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+            @Parameter(name = "date", in = QUERY,
+                    required = false,
+                    description = "UTC time in W3C format.",
+                    example = "20-07-2026")
+
+            @CheckDateFormat(pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.") @QueryParam("date")
+            String date, @Parameter(
+                    description = "The ID of the tenant to fetch downtimes.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+            @Context UriInfo uriInfo) {
+
+        var response = downtimeService.fetchDowntimesByPageAndSize(page - 1, size, id, date, uriInfo);
+
+        return Response.ok(response).build();
+    }
+
+    public static class PageableDowntimes extends PageResource<DowntimeResponse> {
+
+        private List<DowntimeResponse> content;
+
+        @Override
+        public List<DowntimeResponse> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<DowntimeResponse> content) {
+            this.content = content;
+        }
+    }
+
 }

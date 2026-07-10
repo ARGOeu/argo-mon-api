@@ -616,6 +616,4 @@ public class AdminEndpointTest extends KeycloakTest {
 
         return dto;
     }
-
-
 }
