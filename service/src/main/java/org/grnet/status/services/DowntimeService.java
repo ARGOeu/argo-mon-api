@@ -4,15 +4,17 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
+import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.pagination.PageResource;
+import org.grnet.status.dtos.topology.EndpointTopologyDto;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
 import org.grnet.status.entities.Downtime;
 import org.grnet.status.entities.DowntimeServiceEndpoint;
-import org.grnet.status.entities.Tenant;
 import org.grnet.status.enums.DowntimeClassification;
 import org.grnet.status.enums.FeedType;
 import org.grnet.status.mappers.DowntimeMapper;
@@ -27,6 +29,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class DowntimeService {
@@ -41,12 +45,59 @@ public class DowntimeService {
     Utility utility;
     @Inject
     WebApiService webApiService;
+    @Inject
+    TopologyService topologyService;
+
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    public String getScheduledDate(Instant scheduledAt) {
+        if (scheduledAt == null) {
+            return null;
+        }
+        return scheduledAt.atZone(ZoneOffset.UTC)
+                .format(DATE_FORMATTER);
+    }
 
     private static final EnumSet<FeedType> SUPPORTED_FEEDS = EnumSet.of(
             FeedType.CSV,
             FeedType.DESY_MARKETPLACE,
             FeedType.INTERNAL
     );
+
+    private void checkEndpoints(String id,
+                                Instant scheduledAt,
+                                List<DowntimeServiceEndpointRequest> serviceEndpoints) {
+
+        var date = getScheduledDate(scheduledAt);
+        var topology = topologyService.fetchEndpointTopologies(id, date);
+        Map<String, Set<String>> topologyMap = topology.stream()
+                .collect(Collectors.groupingBy(
+                        EndpointTopologyDto::getHostname,
+                        Collectors.mapping(
+                                EndpointTopologyDto::getService,
+                                Collectors.toSet())));
+        List<DowntimeServiceEndpointRequest> missingEndpoints = serviceEndpoints.stream()
+                .filter(request ->
+                        !topologyMap
+                                .getOrDefault(request.getHostname(), Collections.emptySet())
+                                .contains(request.getService()))
+                .toList();
+
+
+        if (!missingEndpoints.isEmpty()) {
+            String message = missingEndpoints.stream()
+                    .map(e -> String.format(
+                            "{\"service\":\"%s\",hostname:\"%s\"}",
+                            e.getService(),
+                            e.getHostname()))
+                    .collect(Collectors.joining(", ", "[", "]"));
+
+            throw new NotFoundException(
+                    "The following service/hostname pairs were not found in the topology: "
+                            + message);
+        }
+    }
 
     /**
      * Creates a new downtime entry for a specific tenant.
@@ -63,10 +114,8 @@ public class DowntimeService {
     @Transactional
     public DowntimeResponse addDowntime(String id, DowntimeRequest request) {
 
-
-        //var tenant = tenantRepository.findById(id);
         checkFeedType(id);
-
+        checkEndpoints(id, request.scheduledAt, request.getServices());
         // Use UTC timestamp truncated to seconds to keep consistent API responses.
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         Downtime downtime = DowntimeMapper.INSTANCE.dtoToDowntime(request);
@@ -159,8 +208,6 @@ public class DowntimeService {
 
     @Transactional
     public DowntimeResponse fetchDowntimes(String id, String downtimeId) {
-
-
         var downtime = downtimeRepository.findById(downtimeId);
         if (!downtime.getTenant().equals(id)) {
             throw new ForbiddenException(
@@ -204,9 +251,6 @@ public class DowntimeService {
     @Transactional
     public void deleteDowntime(String id, String downtimeId) {
 
-        //   var tenant = tenantRepository.findById(id);
-
-        checkFeedType(id);
         var downtime = downtimeRepository.findById(downtimeId);
 
         if (!downtime.getTenant().equals(id)) {
@@ -217,11 +261,12 @@ public class DowntimeService {
 
         downtimeRepository.delete(downtime);
     }
+
     @Transactional
     public DowntimeResponse updateDowntime(String tenantId, String downtimeId, DowntimeRequest request) {
 
-        // var tenant=  tenantRepository.findById(tenantId);
         checkFeedType(tenantId);
+        checkEndpoints(tenantId, request.scheduledAt, request.getServices());
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
         Downtime downtime = downtimeRepository.findById(downtimeId);

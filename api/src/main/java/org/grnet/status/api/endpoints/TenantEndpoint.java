@@ -132,6 +132,7 @@ public class TenantEndpoint {
     @Inject
     IncidentService incidentService;
 
+
     @Operation(
             summary = "List Tenants Available to the User",
             description = "Retrieves a paginated list of tenants the authenticated user is allowed to access."
@@ -4205,7 +4206,7 @@ public class TenantEndpoint {
                     )
             }
     )
-    public Response create(@Parameter(
+    public Response createDowntime(@Parameter(
                                    description = "The ID of the tenant to create downtime.",
                                    required = true,
                                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
