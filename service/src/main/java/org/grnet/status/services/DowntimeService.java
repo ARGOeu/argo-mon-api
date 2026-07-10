@@ -17,9 +17,8 @@ import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.util.Utility;
 
 import java.time.Instant;
-
-import java.time.ZoneOffset;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
@@ -186,5 +185,20 @@ public class DowntimeService {
                 .toInstant(ZoneOffset.UTC);
 
         return new Instant[]{startDate, endDate};
+    }
+    @Transactional
+    public void deleteDowntime(String id, String downtimeId) {
+
+        var tenant = tenantRepository.findById(id);
+
+        var downtime = downtimeRepository.findById(downtimeId);
+
+        if (!downtime.getTenant().equals(id)) {
+            throw new ForbiddenException(
+                    String.format("Downtime with id %s cannot be deleted for tenant %s", downtimeId, id)
+            );
+        }
+
+        downtimeRepository.delete(downtime);
     }
 }

@@ -131,6 +131,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#193](https://github.com/ARGOeu/argo-mon-status-api/pull/193) ARGO-5740 [API] Add downtime
 - [#195](https://github.com/ARGOeu/argo-mon-status-api/pull/195) ARGO-5744 [API] Get Downtimes
 - [#196](https://github.com/ARGOeu/argo-mon-status-api/pull/19) ARGO-5745 [API] Get Downtime
+- [#197](https://github.com/ARGOeu/argo-mon-status-api/pull/197) ARGO-5741 [API] Delete downtime
 
 ### Fix
 
