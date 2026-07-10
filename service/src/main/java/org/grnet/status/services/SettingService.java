@@ -47,9 +47,7 @@ public class SettingService {
         return SettingMapper.INSTANCE.settingsToDto(settings);
     }
 
-
-
-    /**
+     /*
      * Updates a setting by merging new data into the existing JSON structure.
      * Sensitive keys are encrypted before saving.
      *
@@ -104,8 +102,7 @@ public class SettingService {
 
 
     /**
-     * Retrieves a single setting by ID, decrypting any sensitive values.
-     *
+     * Retrieves a single setting by ID.
      * @param id setting ID
      * @return setting as DTO
      */
@@ -196,6 +193,17 @@ public class SettingService {
         }
     }
 
+    /**
+     * Retrieve specifically the Performance Monitoring Setting
+     * @return
+     */
+    public SettingResponseDto getPerformanceSetting() {
+        Setting setting = settingRepository.findPerformanceSetting()
+                .orElseThrow(() ->
+                        new NotFoundException("Performance setting not found"));
+
+        return SettingMapper.INSTANCE.settingToDto(setting);
+    }
 
 }
 
