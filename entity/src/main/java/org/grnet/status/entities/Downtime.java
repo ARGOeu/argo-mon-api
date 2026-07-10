@@ -46,6 +46,7 @@ public class Downtime {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
     @OneToMany(
             mappedBy = "downtime",
             cascade = CascadeType.ALL,

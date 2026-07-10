@@ -22,6 +22,7 @@ import org.grnet.status.dtos.tenant.*;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
+import org.grnet.status.enums.DowntimeSeverity;
 import org.grnet.status.services.clients.AmsClientFactory;
 import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -541,6 +542,43 @@ public class TenantEndpointTest extends KeycloakTest {
         assertNotNull(created.getId());
         assertEquals(2,created.getServices().size());
     }
+    @Test
+    public void testUpdateDowntime() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+        var req = buildCreateDowntime();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req)
+                .when()
+                .post("/v1/tenants/{id}/downtimes",tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(DowntimeResponse.class);
+
+        var req2 = buildUpdateDowntime();
+
+        var updated = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req2)
+                .when()
+                .put("/v1/tenants/{id}/downtimes/{downtime_id}",tenant.id,created.getId())
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(DowntimeResponse.class);
+
+        assertEquals(1,updated.getServices().size());
+
+        assertEquals(DowntimeSeverity.Warning.name(),updated.getSeverity());
+    }
 
 
     private DowntimeRequest buildCreateDowntime() {
@@ -563,6 +601,25 @@ public class TenantEndpointTest extends KeycloakTest {
         var list=new ArrayList<DowntimeServiceEndpointRequest>();
         list.add(service1);
         list.add(service2);
+        dto.setServices(list);
+        return dto;
+    }
+
+    private DowntimeRequest buildUpdateDowntime() {
+
+        var dto = new DowntimeRequest();
+        dto.setName("Test Downtime Updated");
+        dto.setMessage("This is a test downtime updated");
+        dto.setSeverity("Warning");
+        dto.setScheduledAt( Instant.parse("2025-01-22T12:44:48.107Z"));
+        dto.setCompletedAt( Instant.parse("2025-01-22T12:44:48.107Z"));
+
+        var service1=new DowntimeServiceEndpointRequest();
+        service1.setHostname("hostname6");
+        service1.setService("service6");
+
+        var list=new ArrayList<DowntimeServiceEndpointRequest>();
+        list.add(service1);
         dto.setServices(list);
         return dto;
     }

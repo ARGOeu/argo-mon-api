@@ -201,4 +201,56 @@ public class DowntimeService {
 
         downtimeRepository.delete(downtime);
     }
+    @Transactional
+    public DowntimeResponse updateDowntime(String tenantId,String downtimeId,DowntimeRequest request) {
+
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        tenantRepository.findById(tenantId);
+
+        Downtime downtime = downtimeRepository.findById(downtimeId);
+
+        if (!downtime.getTenant().equals(tenantId)) {
+            throw new ForbiddenException(
+                    String.format(
+                            "Downtime with id %s cannot be updated for tenant %s",
+                            downtimeId,
+                            tenantId
+                    )
+            );
+        }
+
+        // Map request fields to existing entity
+        DowntimeMapper.INSTANCE.updateDowntime(request, downtime);
+
+
+        // Recalculate classification
+        if (!request.getScheduledAt().isBefore(now.plus(24, ChronoUnit.HOURS))) {
+            downtime.setClassification(DowntimeClassification.Scheduled.name());
+        } else {
+            downtime.setClassification(DowntimeClassification.Unscheduled.name());
+        }
+
+
+        // Update audit fields
+        downtime.setUpdatedAt(now);
+        downtime.setUpdatedBy(utility.getUid());
+
+
+        // Replace services
+        downtime.getServices().clear();
+
+        if (request.getServices() != null) {
+            request.getServices().forEach(serviceRequest -> {
+
+                DowntimeServiceEndpoint service =
+                        DowntimeMapper.INSTANCE.dtoToDowntimeService(serviceRequest);
+
+                service.setDowntime(downtime);
+
+                downtime.getServices().add(service);
+            });
+        }
+        return DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+    }
 }
