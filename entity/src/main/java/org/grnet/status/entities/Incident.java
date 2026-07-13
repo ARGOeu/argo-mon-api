@@ -9,6 +9,8 @@ import org.grnet.status.enums.IncidentStatus;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "t_Incident")
@@ -65,6 +67,13 @@ public class Incident {
     @NotNull
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @OneToMany(
+            mappedBy = "incident",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<IncidentComment> comments = new ArrayList<>();
 
     @PrePersist
     private void prePersist() {

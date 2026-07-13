@@ -15,6 +15,7 @@ import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
 import org.grnet.status.dtos.incident.ServiceDto;
@@ -459,7 +460,6 @@ public class TenantEndpointTest extends KeycloakTest {
         assertFalse(resp.exist);
     }
 
-
     @Test
     public void createIncident() {
 
@@ -520,6 +520,158 @@ public class TenantEndpointTest extends KeycloakTest {
 
         assertNotNull(response.createdAt);
         assertNotNull(response.updatedAt);
+    }
+
+    @Test
+    public void updateIncidentStatus() {
+
+        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+
+        currentMockId = tenant.id;
+        mockTenantAdmin();
+
+        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
+                new RoleEndpoint(
+                        1L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "POST_/v1/tenants/{id}/incidents",
+                        LocalDateTime.now(),
+                        null
+                ),
+                new RoleEndpoint(
+                        2L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "PATCH_/v1/tenants/{id}/incidents/{incident_id}/status",
+                        LocalDateTime.now(),
+                        null
+                )
+        ));
+
+        var createRequest = new IncidentRequestDto();
+        createRequest.title = "ESHOP unavailable";
+        createRequest.description = "Users cannot access the ESHOP service.";
+
+        createRequest.service = new ServiceDto();
+        createRequest.service.id = "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
+        createRequest.service.name = "ESHOP";
+
+        var incident = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(createRequest)
+                .when()
+                .post("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        var updateRequest = new IncidentUpdateRequestDto();
+        updateRequest.status = IncidentStatus.INVESTIGATING;
+
+        var response = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(updateRequest)
+                .when()
+                .patch("/v1/tenants/{id}/incidents/{incident_id}/status", tenant.id, incident.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        assertEquals(incident.id, response.id);
+        assertEquals(incident.incidentNumber, response.incidentNumber);
+        assertEquals(IncidentStatus.INVESTIGATING, response.status);
+    }
+
+    @Test
+    public void createIncidentComment() {
+
+        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+
+        currentMockId = tenant.id;
+        mockTenantAdmin();
+
+        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
+                new RoleEndpoint(
+                        1L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "POST_/v1/tenants/{id}/incidents",
+                        LocalDateTime.now(),
+                        null
+                ),
+                new RoleEndpoint(
+                        2L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "POST_/v1/tenants/{id}/incidents/{incident_id}/comments",
+                        LocalDateTime.now(),
+                        null
+                )
+        ));
+
+        var createRequest = new IncidentRequestDto();
+        createRequest.title = "ESHOP unavailable";
+        createRequest.description =
+                "Users cannot access the ESHOP service.";
+
+        createRequest.service = new ServiceDto();
+        createRequest.service.id =
+                "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
+        createRequest.service.name = "ESHOP";
+
+        var incident = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(createRequest)
+                .when()
+                .post("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        var commentRequest = new IncidentCommentRequestDto();
+        commentRequest.comment = "The service owner has been contacted.";
+
+        var response = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(commentRequest)
+                .when()
+                .post("/v1/tenants/{id}/incidents/{incident_id}/comments", tenant.id, incident.id)
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        assertEquals(incident.id, response.id);
+        assertEquals(IncidentStatus.REPORTED, response.status);
+
+        assertNotNull(response.comments);
+        assertEquals(1, response.comments.size());
+
+        var comment = response.comments.get(0);
+
+        assertNotNull(comment.id);
+        assertEquals("The service owner has been contacted.", comment.comment);
+
     }
 
     // -------------------------------------------------------------------------
