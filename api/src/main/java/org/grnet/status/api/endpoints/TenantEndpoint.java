@@ -40,6 +40,8 @@ import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
+import org.grnet.status.dtos.incident.IncidentRequestDto;
+import org.grnet.status.dtos.incident.IncidentResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
 import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
@@ -126,6 +128,7 @@ public class TenantEndpoint {
 
     @Inject
     DowntimeService downtimeService;
+
     @Inject
     IncidentService incidentService;
 
@@ -4334,7 +4337,6 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/{id}/downtimes/{downtime_id}")
-
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -4934,6 +4936,83 @@ public class TenantEndpoint {
 
         return Response.ok(response).build();
     }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Get an incident.",
+            description = "Retrieves a specific incident belonging to the specified tenant."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            )))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/incidents/{incident-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getIncident(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f")
+            @PathParam("id")
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    description = "The ID of the incident.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "8d8102e8-9476-4714-8101-ac76f934781f")
+            @PathParam("incident-id")
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following id: ")
+            String incidentId) {
+
+        var response = incidentService.getIncident(id, incidentId);
+
+        return Response.ok(response).build();
+    }
+
 
 
     public static class PageableIncidents extends PageResource<IncidentResponseDto> {

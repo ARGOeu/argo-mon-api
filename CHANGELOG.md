@@ -32,6 +32,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#194](https://github.com/ARGOeu/argo-mon-api/pull/194) ARGO-5732 [API] Create Incident
 - [#200](https://github.com/ARGOeu/argo-mon-api/pull/200) ARGO-5733 [API] Change incident status / add comment
 - [#202](https://github.com/ARGOeu/argo-mon-api/pull/202) ARGO-5734 [API] Get all incidents
+- [#204](https://github.com/ARGOeu/argo-mon-api/pull/204) ARGO-5735 [API] Get incident
 
 ### Fix 
 
