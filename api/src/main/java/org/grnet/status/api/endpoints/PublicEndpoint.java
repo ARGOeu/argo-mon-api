@@ -2,6 +2,7 @@ package org.grnet.status.api.endpoints;
 
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -14,12 +15,16 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.grnet.status.api.resolvers.CheckDateFormat;
+import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
+import org.grnet.status.dtos.setting.SettingResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
+import org.grnet.status.repositories.SettingRepository;
 import org.grnet.status.services.ReportService;
+import org.grnet.status.services.SettingService;
 import org.grnet.status.services.StatusService;
 import org.grnet.status.services.TenantService;
 
@@ -38,6 +43,8 @@ public class PublicEndpoint {
     @Inject
     ReportService reportService;
 
+    @Inject
+    SettingService settingService;
     @Operation(
             summary = "Get status page configuration by slug",
             description = "Returns only the public configuration (config field) for the given slug."
@@ -325,5 +332,43 @@ public class PublicEndpoint {
         var reports = reportService.fetchReportsByStatus(tenant.id, search, Boolean.TRUE, node);
 
         return Response.ok(reports).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Retrieve the Performance Monitoring configuration.",
+            description = "Exposes performance monitoring base url"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "The performance monitoring setting was found and returned successfully.",
+            content = @Content(schema = @Schema(implementation = SettingResponseDto.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Setting not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/settings/performance")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getPerformanceSetting() {
+        var setting = settingService.getPerformanceSetting();
+        return Response.ok().entity(setting).build();
     }
 }
