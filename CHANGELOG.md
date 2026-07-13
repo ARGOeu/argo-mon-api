@@ -125,7 +125,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#122](https://github.com/ARGOeu/argo-mon-status-api/pull/122) ARGO-5689 Add group roles to group response
 - [#116](https://github.com/ARGOeu/argo-mon-status-api/pull/122) ARGO-5483: Make endpoint topology tags field accept any key-value pairs
 - [#183](https://github.com/ARGOeu/argo-mon-status-api/pull/183) ARGO-5698 Upgrade quarkus auth version in pom.xml
-
+- [#191](https://github.com/ARGOeu/argo-mon-status-api/pull/191) ARGO-5274 [API] - Configuration Settings Page
 
 ### Fix
 
