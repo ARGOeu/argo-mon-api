@@ -37,6 +37,8 @@ import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
+import org.grnet.status.dtos.incident.IncidentRequestDto;
+import org.grnet.status.dtos.incident.IncidentResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
 import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
@@ -112,9 +114,6 @@ public class TenantEndpoint {
     StatusPageService statusPageService;
 
     @Inject
-    GroupManagementService groupManagementService;
-
-    @Inject
     ProfileService profileService;
 
     @Inject
@@ -125,6 +124,10 @@ public class TenantEndpoint {
 
     @Inject
     DowntimeService downtimeService;
+
+    @Inject
+    IncidentService incidentService;
+
 
     @Operation(
             summary = "List Tenants Available to the User",
@@ -4531,4 +4534,89 @@ public class TenantEndpoint {
         }
     }
 
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Create an incident.",
+            description = "Creates a new incident for a service belonging to the specified tenant."
+    )
+    @APIResponse(
+            responseCode = "201",
+            description = "Incident created.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid incident request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or service not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be created.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/{id}/incidents")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response createIncident(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f")
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The incident creation request.")
+            @Valid IncidentRequestDto request) {
+
+        var response = incidentService.createIncident(id, request, utility.getUsername());
+
+        return Response.status(Response.Status.CREATED).entity(response).build();
+    }
 }

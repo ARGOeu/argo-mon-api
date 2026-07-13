@@ -15,6 +15,9 @@ import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.incident.IncidentRequestDto;
+import org.grnet.status.dtos.incident.IncidentResponseDto;
+import org.grnet.status.dtos.incident.ServiceDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
@@ -23,6 +26,7 @@ import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
 import org.grnet.status.enums.DowntimeSeverity;
+import org.grnet.status.enums.IncidentStatus;
 import org.grnet.status.services.clients.AmsClientFactory;
 import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -453,6 +457,69 @@ public class TenantEndpointTest extends KeycloakTest {
                 .as(ExistResponseDto.class);
 
         assertFalse(resp.exist);
+    }
+
+
+    @Test
+    public void createIncident() {
+
+        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+
+        currentMockId = tenant.id;
+        mockTenantAdmin();
+
+        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
+                new RoleEndpoint(
+                        1L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "POST_/v1/tenants/{id}/incidents",
+                        LocalDateTime.now(),
+                        null
+                )
+        ));
+
+        var request = new IncidentRequestDto();
+        request.title = "ESHOP unavailable";
+        request.description = "Users cannot access the ESHOP service.";
+
+        request.service = new ServiceDto();
+        request.service.id = "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
+        request.service.name = "ESHOP";
+
+        var response = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        assertNotNull(response.id);
+        assertNotNull(response.incidentNumber);
+        assertTrue(response.incidentNumber.matches("INC-\\d{4}-\\d{6,}"));
+
+        assertEquals("ESHOP unavailable", response.title);
+        assertEquals("Users cannot access the ESHOP service.", response.description);
+
+        assertEquals(IncidentStatus.REPORTED, response.status);
+
+        assertNotNull(response.createdBy);
+
+        assertNotNull(response.service);
+        assertEquals("6a6e8037-1e23-4b65-a75a-37d9e8d5bc44", response.service.id);
+        assertEquals("ESHOP", response.service.name);
+
+        assertNotNull(response.createdAt);
+        assertNotNull(response.updatedAt);
     }
 
     // -------------------------------------------------------------------------
