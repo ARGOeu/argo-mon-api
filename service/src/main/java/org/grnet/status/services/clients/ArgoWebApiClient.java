@@ -531,4 +531,27 @@ public interface ArgoWebApiClient {
             @QueryParam("end-time") String endTime,
             @QueryParam("granularity") String granularity
     );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/endpoints")
+    TenantWebApiEndpointResultsByReportResponse getEndpointsResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointResultsByReportResponse getEndpointByNameResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("endpoint-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
 }

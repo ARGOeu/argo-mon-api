@@ -1791,6 +1791,16 @@ public class TenantService {
         return webApiService.retrieveResultsGroupByNameByReport(tenantId, reportName, groupName, startTime, endTime, granularity);
 
     }
+    public TenantWebApiEndpointResultsByReportResponse retrieveEndpointsResultsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsEndpointsByReport(tenantId, reportName, startTime, endTime, granularity);
+
+    }
+    public TenantWebApiEndpointResultsByReportResponse retrieveEndpointByNameResultsByReport(String tenantId, String reportName, String endpointName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsEndpointByNameByReport(tenantId, reportName, endpointName, startTime, endTime, granularity);
+
+    }
 
     private boolean isComputeEngineCompleted(TenantStatusDto request) {
         return request.jobs.stream()

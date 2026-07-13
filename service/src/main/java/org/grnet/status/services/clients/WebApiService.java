@@ -670,6 +670,56 @@ public class WebApiService {
         }
     }
 
+
+    public TenantWebApiEndpointResultsByReportResponse retrieveResultsEndpointsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getEndpointsResultsByReport(accessToken, tenantId, reportName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoints by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Endpoints by Report failed in Argo Web Api. reportName=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiEndpointResultsByReportResponse retrieveResultsEndpointByNameByReport(String tenantId, String reportName, String endpointName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getEndpointByNameResultsByReport(accessToken, tenantId, reportName, endpointName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving endpoints by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Endpoints by Report failed in Argo Web Api. reportName=%s, endpointName=%s", reportName, endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+
     public WebApiNodeReportResponse setReportPublicWebApi(String reportId, String tenantId) {
 
         try {
