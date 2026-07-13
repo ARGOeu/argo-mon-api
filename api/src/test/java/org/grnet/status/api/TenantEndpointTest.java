@@ -15,6 +15,8 @@ import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.incident.IncidentRequestDto;
+import org.grnet.status.dtos.incident.ServiceDto;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
@@ -672,6 +674,91 @@ public class TenantEndpointTest extends KeycloakTest {
         assertNotNull(comment.id);
         assertEquals("The service owner has been contacted.", comment.comment);
 
+    }
+
+
+    @Test
+    public void getAllIncidents() {
+
+        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+
+        currentMockId = tenant.id;
+        mockTenantAdmin();
+
+        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
+                new RoleEndpoint(
+                        1L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "POST_/v1/tenants/{id}/incidents",
+                        LocalDateTime.now(),
+                        null
+                ),
+                new RoleEndpoint(
+                        2L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "GET_/v1/tenants/{id}/incidents",
+                        LocalDateTime.now(),
+                        null
+                )
+        ));
+
+        var firstRequest = new IncidentRequestDto();
+        firstRequest.title = "ESHOP unavailable";
+        firstRequest.description = "Users cannot access the ESHOP service.";
+
+        firstRequest.service = new ServiceDto();
+        firstRequest.service.id = "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
+        firstRequest.service.name = "ESHOP";
+
+        given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(firstRequest)
+                .when()
+                .post("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(201);
+
+        var secondRequest = new IncidentRequestDto();
+        secondRequest.title = "FORUM degraded";
+        secondRequest.description = "Users experience delays in the FORUM service.";
+
+        secondRequest.service = new ServiceDto();
+        secondRequest.service.id = "4e4f96be-a7a4-41b7-b765-d003e421ab44";
+        secondRequest.service.name = "FORUM";
+
+        given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(secondRequest)
+                .when()
+                .post("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(201);
+
+        var response = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .queryParam("page", 1)
+                .queryParam("size", 10)
+                .when()
+                .get("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(PageResource.class);
+
+
+        assertEquals(2, response.getTotalElements());
     }
 
     // -------------------------------------------------------------------------
