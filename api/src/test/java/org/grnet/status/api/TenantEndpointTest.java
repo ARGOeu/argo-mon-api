@@ -10,6 +10,9 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
 import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
+import org.grnet.status.dtos.downtime.DowntimeRequest;
+import org.grnet.status.dtos.downtime.DowntimeResponse;
+import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.pagination.PageResource;
@@ -513,4 +516,55 @@ public class TenantEndpointTest extends KeycloakTest {
         r.setData(List.of(d));
         return r;
     }
+
+
+    @Test
+    public void testCreateDowntime() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+        var req = buildCreateDowntime();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req)
+                .when()
+                .post("/v1/tenants/{id}/downtimes",tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(DowntimeResponse.class);
+
+        assertNotNull(created.getId());
+        assertEquals(2,created.getServices().size());
+    }
+
+
+    private DowntimeRequest buildCreateDowntime() {
+
+        var dto = new DowntimeRequest();
+        dto.setName("Test Downtime ");
+        dto.setMessage("This is a test downtime");
+        dto.setSeverity("Outage");
+        dto.setScheduledAt( Instant.parse("2025-10-22T12:44:48.107Z"));
+        dto.setCompletedAt( Instant.parse("2025-10-22T12:44:48.107Z"));
+
+        var service1=new DowntimeServiceEndpointRequest();
+        service1.setHostname("hostname1");
+        service1.setService("service1");
+
+        var service2=new DowntimeServiceEndpointRequest();
+        service2.setHostname("hostname2");
+        service2.setService("service2");
+
+        var list=new ArrayList<DowntimeServiceEndpointRequest>();
+        list.add(service1);
+        list.add(service2);
+        dto.setServices(list);
+        return dto;
+    }
+
 }

@@ -29,6 +29,8 @@ import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.Parti
 import org.grnet.endpoint.scanner.runtime.services.RoleEndpointService;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.downtime.DowntimeRequest;
+import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.metadata.RoleAssignmentMetadataResponseDto;
 import org.grnet.status.dtos.metadata.RoleMetadataResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
@@ -100,6 +102,8 @@ public class AdminEndpoint {
     @Inject
     SettingService settingService;
 
+    @Inject
+    DowntimeService downtimeService;
     // --------------------------------------------------------------------------------------------------------------------------
     // ADMIN TENANT ENDPOINT
     // --------------------------------------------------------------------------------------------------------------------------
@@ -154,7 +158,6 @@ public class AdminEndpoint {
         var response = tenantService.create(request, utility.getUserUniqueIdentifier());
         return Response.ok(response).build();
     }
-
 
 
     @Tag(name = "Admin")
@@ -1400,6 +1403,7 @@ public class AdminEndpoint {
         var settings = settingService.getAllSettings();
         return Response.ok(settings).build();
     }
+
     @Tag(name = "Admin")
     @Operation(
             summary = "Retrieve a specific setting.",
@@ -1446,6 +1450,7 @@ public class AdminEndpoint {
         var setting = settingService.getSettingById(id);
         return Response.ok().entity(setting).build();
     }
+
     @Tag(name = "Admin")
     @Operation(
             summary = "Update a setting.",
@@ -1488,9 +1493,8 @@ public class AdminEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public Response updateSetting(
             @PathParam("id") String id, SettingUpdateDto request) {
-        var updated = settingService.updateSetting(id, request, utility.getUserUniqueIdentifier() );
+        var updated = settingService.updateSetting(id, request, utility.getUserUniqueIdentifier());
         return Response.ok(updated).build();
     }
-
 
 }
