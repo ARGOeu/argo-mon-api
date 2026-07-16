@@ -50,6 +50,7 @@ import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectDto;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
 import org.grnet.status.enums.TenantGroupStatus;
+import org.grnet.status.repositories.DowntimeRepository;
 import org.grnet.status.repositories.ProjectRepository;
 import org.grnet.status.repositories.SettingRepository;
 import org.grnet.status.repositories.TenantRepository;

@@ -1,14 +1,11 @@
 package org.grnet.status.entities;
 
 import jakarta.persistence.*;
-import jakarta.persistence.criteria.CriteriaBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
 
-import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,7 +56,6 @@ public class Downtime {
 
     @Column(name="created_by",nullable = false)
     private String createdBy;
-
 
     @Column(name="updated_by")
     private String updatedBy;
