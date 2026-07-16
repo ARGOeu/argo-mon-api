@@ -3,10 +3,10 @@ package org.grnet.status.services;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.core.UriInfo;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
-import jakarta.ws.rs.core.UriInfo;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.entities.Downtime;
 import org.grnet.status.entities.DowntimeServiceEndpoint;
@@ -17,6 +17,7 @@ import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.util.Utility;
 
 import java.time.Instant;
+
 import java.time.ZoneOffset;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -37,14 +38,14 @@ public class DowntimeService {
 
     /**
      * Creates a new downtime entry for a specific tenant.
-     *
+     * <p>
      * The downtime is stored only in the local database and is not propagated
      * to external systems.
-     *
+     * <p>
      * The downtime classification is calculated based on the scheduled time:
      * - Scheduled: downtime starts at least 24 hours after creation time.
      * - Unscheduled: downtime starts within the next 24 hours.
-     *
+     * <p>
      * All timestamps are stored as UTC instants with second precision.
      */
     @Transactional
@@ -79,7 +80,6 @@ public class DowntimeService {
         }
 
 
-
 //          Map the associated service endpoints.
 //
 //          The relationship is bidirectional, therefore each endpoint must
@@ -104,7 +104,7 @@ public class DowntimeService {
 
     /**
      * Retrieves downtimes for a tenant using pagination.
-     *
+     * <p>
      * If a date is provided, only downtimes active during that UTC day are returned.
      * The input date format is dd-MM-yyyy.
      */
@@ -143,17 +143,31 @@ public class DowntimeService {
         );
     }
 
+    @Transactional
+    public DowntimeResponse fetchDowntimes(String id, String downtimeId) {
+
+        var tenant = tenantRepository.findById(id);
+
+        var downtime = downtimeRepository.findById(downtimeId);
+        if (!downtime.getTenant().equals(id)) {
+            throw new ForbiddenException(
+                    String.format("Downtime with id %s cannot be accessed for tenant %s", downtimeId, id)
+            );
+        }
+        return  DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+    }
+
 
     /**
      * Converts a date provided by the API (dd-MM-yyyy) into a UTC time range.
-     *
+     * <p>
      * Example:
      * Input: 08-07-2027
-     *
+     * <p>
      * Output:
      * Start: 2027-07-08T00:00:00Z
      * End: 2027-07-08T23:59:59Z
-     *
+     * <p>
      * This ensures that filtering is independent of the server timezone.
      */
     private Instant[] convertDate(String date) {

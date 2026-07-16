@@ -130,6 +130,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#192](https://github.com/ARGOeu/argo-mon-status-api/pull/192) ARGO-5748 Expose Performance Settings Through Public API
 - [#193](https://github.com/ARGOeu/argo-mon-status-api/pull/193) ARGO-5740 [API] Add downtime
 - [#195](https://github.com/ARGOeu/argo-mon-status-api/pull/195) ARGO-5744 [API] Get Downtimes
+- [#196](https://github.com/ARGOeu/argo-mon-status-api/pull/19) ARGO-5745 [API] Get Downtime
 
 ### Fix
 

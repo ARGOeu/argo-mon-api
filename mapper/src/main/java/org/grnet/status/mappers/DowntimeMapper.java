@@ -12,9 +12,8 @@ import org.mapstruct.factory.Mappers;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
+
 @Mapper(imports = {Timestamp.class, Instant.class})
 public interface DowntimeMapper {
 
@@ -32,17 +31,4 @@ public interface DowntimeMapper {
     @Mapping(target = "id", ignore = true)
     void updateDowntime(DowntimeRequest dto, @MappingTarget Downtime entity);
 
-
-    default Timestamp map(Instant instant) {
-        return instant != null ? Timestamp.from(instant) : null;
-    }
-
-    default Timestamp map(LocalDateTime localDateTime) {
-        return localDateTime != null ? Timestamp.valueOf(localDateTime) : null;
-    }
-    default Instant map(Timestamp timestamp) {
-        return timestamp != null
-                ? timestamp.toInstant().truncatedTo(ChronoUnit.SECONDS)
-                : null;
-    }
 }

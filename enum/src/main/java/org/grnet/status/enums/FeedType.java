@@ -1,8 +1,6 @@
-package org.grnet.status.enums.resources;
+package org.grnet.status.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
-import java.util.Arrays;
 
 public enum FeedType {
 
