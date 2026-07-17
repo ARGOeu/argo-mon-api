@@ -139,6 +139,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#197](https://github.com/ARGOeu/argo-mon-status-api/pull/197) ARGO-5741 [API] Delete downtime
 - [#198](https://github.com/ARGOeu/argo-mon-status-api/pull/198) ARGO-5743 [API] Update downtime
 - [#201](https://github.com/ARGOeu/argo-mon-status-api/pull/201) ARGO-5762 Restrict downtime management to supported topology feeds
+- [#203](https://github.com/ARGOeu/argo-mon-status-api/pull/203) ARGO-578 Validate downtime service endpoints against tenant topology
+  
 ### Fix
 
 - [#7](https://github.com/ARGOeu/argo-mon-status-api/pull/7) ARGO-5152: Update Keycloak Redirect URIs and Enable CORS for Local UI Development

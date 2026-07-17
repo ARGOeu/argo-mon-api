@@ -11,12 +11,12 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
-import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.general.ExistResponseDto;
+import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.project.ProjectRequestDto;
@@ -32,11 +32,14 @@ import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
 import org.grnet.status.enums.DowntimeSeverity;
 import org.grnet.status.enums.IncidentStatus;
+import org.grnet.status.dtos.topology.EndpointTopologyDto;
+import org.grnet.status.dtos.topology.WebApiEndpointTopologyResponse;
 import org.grnet.status.enums.FeedType;
 import org.grnet.status.services.clients.AmsClientFactory;
 import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -52,7 +55,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 
 @Slf4j
 @QuarkusTest
@@ -88,10 +90,21 @@ public class TenantEndpointTest extends KeycloakTest {
         var feedDto = new FeedTopologyDto();
         feedDto.type = feedType;
         response.data = List.of(feedDto);
-        var status=new Status();
+        var status = new Status();
         status.setMessage("test feed");
         status.setCode("200");
         when(argoWebApiClient.getFeedTopology(any(), any()))
+                .thenReturn(response);
+    }
+
+    private void mockTopologyEndpoints(List<EndpointTopologyDto> endpoints) {
+        WebApiEndpointTopologyResponse response = new WebApiEndpointTopologyResponse();
+        response.data = endpoints;
+
+        Mockito.when(argoWebApiClient.fetchTopologyEndpointsSuperAdmin(
+                        Mockito.anyString(),
+                        Mockito.anyString(),
+                        Mockito.anyString()))
                 .thenReturn(response);
     }
 
@@ -933,6 +946,16 @@ public class TenantEndpointTest extends KeycloakTest {
         var info = new TenantWebApiGetResponse.Info();
         info.setName("LOCALTENANT");
         d.setInfo(info);
+        var dbConf=new TenantWebApiGetResponse.DbConf();
+        dbConf.setPort(80);
+        dbConf.setDatabase("mydb");
+        dbConf.setPassword("password");
+        dbConf.setServer("server1.test.org");
+        dbConf.setStore("store");
+        dbConf.setUsername("username");
+        var list=new ArrayList<TenantWebApiGetResponse.DbConf>();
+        list.add(dbConf);
+        d.setDb_conf(list);
 
         r.setData(List.of(d));
         return r;
@@ -940,12 +963,42 @@ public class TenantEndpointTest extends KeycloakTest {
 
 
     @Test
-    public void testCreateDowntime() {
+    public void testCreateDowntimeNotExistingTopologyItems() {
         currentMockId = UUID.randomUUID().toString();
 
         mockSuperAdmin();
         mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
 
+        mockTopologyEndpoints(List.of(
+                EndpointSample("service3", "host1.example.org"),
+                EndpointSample("service2", "host3.example.org")
+        ));
+        var tenant = createTenant("LOCALTENANT");
+
+        var req = buildCreateDowntime();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(req)
+                .when()
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testCreateDowntime() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+        mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
+  //      mockTenantInitialized(tenant.id);
+
+        mockTopologyEndpoints(List.of(
+                EndpointSample("service1", "host1.example.org"),
+                EndpointSample("service2", "host2.example.org")
+        ));
         var tenant = createTenant("LOCALTENANT");
 
         var req = buildCreateDowntime();
@@ -964,10 +1017,15 @@ public class TenantEndpointTest extends KeycloakTest {
         assertNotNull(created.getId());
         assertEquals(2, created.getServices().size());
     }
+
     @Test
     public void testCreateDowntimeForbiddenFeed() {
         currentMockId = UUID.randomUUID().toString();
         mockArgoClientFeed(FeedType.EXTERNAL);
+        mockTopologyEndpoints(List.of(
+                EndpointSample("service1", "host1.example.org"),
+                EndpointSample("service2", "host2.example.org")
+        ));
 
         mockSuperAdmin();
 
@@ -975,12 +1033,12 @@ public class TenantEndpointTest extends KeycloakTest {
 
         var req = buildCreateDowntime();
 
-         given()
+        given()
                 .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
                 .body(req)
                 .when()
-                .post("/v1/tenants/{id}/downtimes",tenant.id)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
                 .then()
                 .statusCode(403);
 
@@ -989,6 +1047,10 @@ public class TenantEndpointTest extends KeycloakTest {
     @Test
     public void testCreateDowntimeNonFeed() {
         currentMockId = UUID.randomUUID().toString();
+        mockTopologyEndpoints(List.of(
+                EndpointSample("service1", "host1.example.org"),
+                EndpointSample("service2", "host2.example.org")
+        ));
 
         mockSuperAdmin();
 
@@ -997,20 +1059,26 @@ public class TenantEndpointTest extends KeycloakTest {
 
         var req = buildCreateDowntime();
 
-         given()
+        given()
                 .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
                 .body(req)
                 .when()
-                .post("/v1/tenants/{id}/downtimes",tenant.id)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
                 .then()
                 .statusCode(403);
 
-        }
+    }
+
     @Test
     public void testUpdateDowntime() {
         currentMockId = UUID.randomUUID().toString();
         mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
+
+        mockTopologyEndpoints(List.of(
+                EndpointSample("service1", "host1.example.org"),
+                EndpointSample("service2", "host2.example.org")
+        ));
 
         mockSuperAdmin();
 
@@ -1023,12 +1091,15 @@ public class TenantEndpointTest extends KeycloakTest {
                 .contentType(ContentType.JSON)
                 .body(req)
                 .when()
-                .post("/v1/tenants/{id}/downtimes",tenant.id)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
                 .then()
                 .statusCode(200)
                 .extract()
                 .as(DowntimeResponse.class);
 
+        mockTopologyEndpoints(List.of(
+                EndpointSample("service6", "hostname6.example.org")
+        ));
 
         var req2 = buildUpdateDowntime();
 
@@ -1037,15 +1108,15 @@ public class TenantEndpointTest extends KeycloakTest {
                 .contentType(ContentType.JSON)
                 .body(req2)
                 .when()
-                .put("/v1/tenants/{id}/downtimes/{downtime_id}",tenant.id,created.getId())
+                .put("/v1/tenants/{id}/downtimes/{downtime_id}", tenant.id, created.getId())
                 .then()
                 .statusCode(200)
                 .extract()
                 .as(DowntimeResponse.class);
 
-        assertEquals(1,updated.getServices().size());
+        assertEquals(1, updated.getServices().size());
 
-        assertEquals(DowntimeSeverity.Warning.name(),updated.getSeverity());
+        assertEquals(DowntimeSeverity.Warning.name(), updated.getSeverity());
     }
 
 
@@ -1059,11 +1130,11 @@ public class TenantEndpointTest extends KeycloakTest {
         dto.setCompletedAt(Instant.parse("2025-10-22T12:44:48.107Z"));
 
         var service1 = new DowntimeServiceEndpointRequest();
-        service1.setHostname("hostname1");
+        service1.setHostname("host1.example.org");
         service1.setService("service1");
 
         var service2 = new DowntimeServiceEndpointRequest();
-        service2.setHostname("hostname2");
+        service2.setHostname("host2.example.org");
         service2.setService("service2");
 
         var list = new ArrayList<DowntimeServiceEndpointRequest>();
@@ -1093,7 +1164,7 @@ public class TenantEndpointTest extends KeycloakTest {
         dto.setCompletedAt(Instant.parse("2025-01-22T12:44:48.107Z"));
 
         var service1 = new DowntimeServiceEndpointRequest();
-        service1.setHostname("hostname6");
+        service1.setHostname("hostname6.example.org");
         service1.setService("service6");
 
         var list = new ArrayList<DowntimeServiceEndpointRequest>();
@@ -1102,4 +1173,10 @@ public class TenantEndpointTest extends KeycloakTest {
         return dto;
     }
 
+    private EndpointTopologyDto EndpointSample(String service, String hostname) {
+        EndpointTopologyDto dto = new EndpointTopologyDto();
+        dto.setService(service);
+        dto.setHostname(hostname);
+        return dto;
+    }
 }
