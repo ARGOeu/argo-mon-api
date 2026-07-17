@@ -7,8 +7,6 @@ import jakarta.ws.rs.NotFoundException;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.entities.IncidentComment;
 import org.grnet.status.enums.IncidentStatus;
-import org.grnet.status.exceptions.BadRequestException;
-import org.grnet.status.mappers.IncidentCommentMapper;
 import org.grnet.status.mappers.IncidentMapper;
 import org.grnet.status.repositories.IncidentCommentRepository;
 import org.grnet.status.repositories.IncidentRepository;
@@ -17,11 +15,8 @@ import org.grnet.status.repositories.TenantRepository;
 import java.time.Instant;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
-import org.grnet.status.entities.Incident;
-import org.grnet.status.enums.IncidentStatus;
-import org.grnet.status.mappers.IncidentMapper;
-import org.grnet.status.repositories.IncidentRepository;
-import org.grnet.status.repositories.TenantRepository;
+import jakarta.ws.rs.core.UriInfo;
+import org.grnet.status.dtos.pagination.PageResource;
 
 import java.time.Year;
 import java.time.ZoneOffset;
@@ -102,6 +97,13 @@ public class IncidentService {
         return IncidentMapper.INSTANCE.incidentToResponseDto(incident);
     }
 
+
+    public PageResource<IncidentResponseDto> getIncidentsByPageAndSize(String tenantId, int page, int size, String search, UriInfo uriInfo) {
+
+        var incidents = incidentRepository.fetchIncidentsByTenantIdByPageAndSize(tenantId, page, size, search);
+
+        return new PageResource<>(incidents, IncidentMapper.INSTANCE.incidentsToDtos(incidents.list()), uriInfo);
+    }
 
     /**
      * Generates the human-readable incident number.

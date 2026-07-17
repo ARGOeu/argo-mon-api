@@ -4837,4 +4837,117 @@ public class TenantEndpoint {
 
         return Response.status(Response.Status.CREATED).entity(response).build();
     }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Get all incidents.",
+            description = "Retrieves a paginated list of incidents belonging to the specified tenant. Results can be filtered by incident title or service name."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incidents retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = PageableIncidents.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid pagination parameters.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incidents could not be retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/incidents")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getAllIncidents(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f")
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(name = "page", in = QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+            @Parameter(name = "size", in = QUERY,
+                    description = "The page size.")
+            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+            @Parameter(name = "search", in = QUERY,
+                    description = "Optional text used to search incidents by title or service name.")
+            @QueryParam("search")
+            String search,
+            UriInfo uriInfo) {
+
+        var response = incidentService.getIncidentsByPageAndSize(id, page - 1, size, search, uriInfo);
+
+        return Response.ok(response).build();
+    }
+
+
+    public static class PageableIncidents extends PageResource<IncidentResponseDto> {
+
+        private List<IncidentResponseDto> content;
+
+        @Override
+        public List<IncidentResponseDto> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<IncidentResponseDto> content) {
+            this.content = content;
+        }
+    }
 }
