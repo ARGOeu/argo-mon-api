@@ -29,6 +29,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#185](https://github.com/ARGOeu/argo-mon-api/pull/186) ARGO-5706 [API] Fetch monthly and daily A/R supergroup views for all topology levels for tenant
 - [#187](https://github.com/ARGOeu/argo-mon-api/pull/187) ARGO-5711 [API] Fetch monthly and daily A/R groups views for all topology levels for tenant
 - [#190](https://github.com/ARGOeu/argo-mon-api/pull/190) ARGO-5715: [API] Fetch monthly and daily A/R endpoints views for all topology levels for tenant
+- [#194](https://github.com/ARGOeu/argo-mon-api/pull/194) ARGO-5732 [API] Create Incident
 
 ### Fix 
 
