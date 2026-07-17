@@ -1043,6 +1043,7 @@ public class TenantService {
         alert.setProperties(new HashMap<>(Map.of(
                 "tenant_id", tenant.id,
                 "tenant_name", tenant.name
+
         )));
         return alert;
     }
@@ -1571,9 +1572,10 @@ public class TenantService {
         }
 
         switch (request.type) {
-            case DESY_MARKETPLACE:
+            case DESY_MARKETPLACE :
+            case NODE_REGISTRY:
                 try {
-                    notifyAmsInitTopologyIntegrator(tenantId);
+                    notifyAmsInitTopologyIntegrator(tenantId,request.type);
                 } catch (Exception e) {
                     Log.error("Failed to notify AMS for topology integration initialization", e);
                 }
@@ -1979,7 +1981,7 @@ public class TenantService {
      * @return tenant status response
      */
     @Transactional
-    public TenantStatusDto notifyAmsInitTopologyIntegrator(String tenantId) {
+    public TenantStatusDto notifyAmsInitTopologyIntegrator(String tenantId,FeedType feedType) {
 
         var tenant = tenantRepository.findById(tenantId);
 
@@ -1996,6 +1998,7 @@ public class TenantService {
                 String.valueOf(Instant.now())
         );
 
+        alert.getProperties().put("feed_type",feedType.name());
         return notifyAmsInitIntegratorAlert(tenantId, alert);
     }
 
