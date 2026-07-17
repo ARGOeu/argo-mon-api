@@ -25,8 +25,10 @@ public interface IncidentMapper {
     @Mapping(target = "incidentNumber", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "comments", ignore = true)
     Incident incidentRequestToEntity(IncidentRequestDto request);
 
     @IterableMapping(qualifiedByName = "incidentMap")
@@ -36,4 +38,5 @@ public interface IncidentMapper {
     @Mapping(source = "serviceId", target = "service.id")
     @Mapping(source = "serviceName", target = "service.name")
     IncidentResponseDto incidentToResponseDto(Incident incident);
+
 }

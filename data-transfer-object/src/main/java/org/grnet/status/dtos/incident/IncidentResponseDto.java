@@ -1,11 +1,13 @@
 package org.grnet.status.dtos.incident;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.grnet.status.enums.IncidentStatus;
 
 import java.time.Instant;
+import java.util.List;
 
 public class IncidentResponseDto {
 
@@ -81,10 +83,28 @@ public class IncidentResponseDto {
 
     @Schema(
             type = SchemaType.STRING,
+            implementation = String.class,
+            description = "User who added the comment",
+            example = "admin"
+    )
+    @JsonProperty("updated_by")
+    public String updatedBy;
+
+    @Schema(
+            type = SchemaType.STRING,
             implementation = Instant.class,
             description = "Last update timestamp",
             example = "2026-07-13T10:30:00Z"
     )
     @JsonProperty("updated_at")
     public Instant updatedAt;
+
+    @Schema(
+            type = SchemaType.ARRAY,
+            implementation = IncidentCommentResponseDto.class,
+            description = "Comments added to the incident"
+    )
+    @JsonProperty("comments")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public List<IncidentCommentResponseDto> comments;
 }
