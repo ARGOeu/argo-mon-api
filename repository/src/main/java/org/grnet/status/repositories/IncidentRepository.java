@@ -1,6 +1,5 @@
 package org.grnet.status.repositories;
 
-import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.commons.lang3.StringUtils;
 import org.grnet.status.entities.Incident;
@@ -47,12 +46,12 @@ public class IncidentRepository implements Repository<Incident, String> {
      * @param tenantId tenant identifier
      * @return optional incident
      */
-    public Optional<Incident> fetchByIdAndTenantId(String id, String tenantId) {
+    public Incident fetchByIdAndTenantId(String id, String tenantId) {
         return find(
                 "id = ?1 and tenant.id = ?2",
                 id,
                 tenantId
-        ).firstResultOptional();
+        ).firstResult();
     }
 
     /**

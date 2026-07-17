@@ -16,6 +16,9 @@ import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
+import org.grnet.status.dtos.incident.IncidentResponseDto;
+import org.grnet.status.dtos.incident.ServiceDto;
+import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.ServiceDto;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
@@ -29,6 +32,7 @@ import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
 import org.grnet.status.enums.DowntimeSeverity;
+import org.grnet.status.enums.IncidentStatus;
 import org.grnet.status.enums.IncidentStatus;
 import org.grnet.status.services.clients.AmsClientFactory;
 import org.grnet.status.services.clients.ArgoWebApiClient;
@@ -759,6 +763,95 @@ public class TenantEndpointTest extends KeycloakTest {
 
 
         assertEquals(2, response.getTotalElements());
+    }
+
+    @Test
+    public void getIncident() {
+
+        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+
+        currentMockId = tenant.id;
+        mockTenantAdmin();
+
+        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
+                new RoleEndpoint(
+                        1L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "POST_/v1/tenants/{id}/incidents",
+                        LocalDateTime.now(),
+                        null
+                ),
+                new RoleEndpoint(
+                        2L,
+                        "tenant_admin",
+                        "tenant_admin",
+                        "GET_/v1/tenants/{id}/incidents/{incident_id}",
+                        LocalDateTime.now(),
+                        null
+                )
+        ));
+
+        var createRequest = new IncidentRequestDto();
+        createRequest.title = "ESHOP unavailable";
+        createRequest.description = "Users cannot access the ESHOP service.";
+
+        createRequest.service = new ServiceDto();
+        createRequest.service.id =
+                "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
+        createRequest.service.name = "ESHOP";
+
+        var incident = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(createRequest)
+                .when()
+                .post("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        var response = given()
+                .auth()
+                .oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .when()
+                .get(
+                        "/v1/tenants/{id}/incidents/{incident_id}",
+                        tenant.id,
+                        incident.id
+                )
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        assertEquals(incident.id, response.id);
+        assertEquals(incident.incidentNumber, response.incidentNumber);
+        assertEquals("ESHOP unavailable", response.title);
+        assertEquals(
+                "Users cannot access the ESHOP service.",
+                response.description
+        );
+
+        assertEquals(IncidentStatus.REPORTED, response.status);
+        assertNotNull(response.createdBy);
+
+        assertNotNull(response.service);
+        assertEquals(
+                "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44",
+                response.service.id
+        );
+        assertEquals("ESHOP", response.service.name);
+
+        assertNotNull(response.createdAt);
+        assertNotNull(response.updatedAt);
     }
 
     // -------------------------------------------------------------------------
