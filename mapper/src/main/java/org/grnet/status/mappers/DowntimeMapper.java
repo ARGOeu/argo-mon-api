@@ -29,6 +29,12 @@ public interface DowntimeMapper {
     List<DowntimeResponse> downtimesToDtos(List<Downtime> entities);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tenant", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "classification", ignore = true)
+    @Mapping(target = "services", ignore = true)
     void updateDowntime(DowntimeRequest dto, @MappingTarget Downtime entity);
-
 }

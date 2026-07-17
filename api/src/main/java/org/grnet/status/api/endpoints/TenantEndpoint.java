@@ -4330,6 +4330,7 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @GET
     @Path("/{id}/downtimes/{downtime_id}")
+
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -4347,21 +4348,21 @@ public class TenantEndpoint {
     )
 
     public Response getDowntime(
-           @Parameter(
+            @Parameter(
                     description = "The ID of the tenant to fetch the downtime.",
                     required = true,
                     example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
                     schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
             @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
-           @Parameter(
-                   description = "The ID of the downtime.",
-                   required = true,
-                   example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
-                   schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
-           @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
-           @Context UriInfo uriInfo) {
+            @Parameter(
+                    description = "The ID of the downtime.",
+                    required = true,
+                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
+            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
+            @Context UriInfo uriInfo) {
 
-        var response = downtimeService.fetchDowntimes(id,downtimeId);
+        var response = downtimeService.fetchDowntimes(id, downtimeId);
 
         return Response.ok(response).build();
     }
@@ -4373,7 +4374,7 @@ public class TenantEndpoint {
     )
     @APIResponse(
             responseCode = "200",
-            description = "Downtimes fetched successfully.",
+            description = "Downtimes deleted successfully.",
             content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
     )
     @APIResponse(
@@ -4435,7 +4436,7 @@ public class TenantEndpoint {
             @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
             @Context UriInfo uriInfo) {
 
-         downtimeService.deleteDowntime(id,downtimeId);
+        downtimeService.deleteDowntime(id, downtimeId);
         var informativeResponse = new InformativeResponse();
         informativeResponse.code = 200;
         informativeResponse.message = "Downtime has been successfully deleted.";
@@ -4443,6 +4444,78 @@ public class TenantEndpoint {
         return Response.ok().entity(informativeResponse).build();
     }
 
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Update a specific downtime for a tenant.",
+            description = "Returns the tenant's specific updated downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+
+    @SecurityRequirement(name = "Authentication")
+    @PUT
+    @Path("/{id}/downtimes/{downtime_id}")
+
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "downtime_id",
+                            type = ParamType.PATH,
+                            referTo = DowntimeResource.class
+                    )
+            }
+    )
+
+    public DowntimeResponse updateDowntime(
+            @Parameter(
+                    description = "The ID of the tenant to fetch the downtime.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+            @Parameter(
+                    description = "The ID of the downtime.",
+                    required = true,
+                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
+            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
+            @Valid DowntimeRequest request) {
+
+        return downtimeService.updateDowntime(id, downtimeId, request);
+    }
     public static class PageableDowntimes extends PageResource<DowntimeResponse> {
 
         private List<DowntimeResponse> content;
