@@ -4188,7 +4188,6 @@ public class TenantEndpoint {
     @SecurityRequirement(name = "Authentication")
     @POST
     @Path("/{id}/downtimes")
-
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
@@ -4276,7 +4275,7 @@ public class TenantEndpoint {
             @Parameter(name = "date", in = QUERY,
                     required = false,
                     description = "UTC time in W3C format.",
-                    example = "20-07-2026")
+                    example = "2026-07-06")
 
             @CheckDateFormat(pattern = "yyyy-MM-dd",
                     message = "Valid date format is yyyy-MM-dd.") @QueryParam("date")
@@ -4332,7 +4331,6 @@ public class TenantEndpoint {
     @GET
     @Path("/{id}/downtimes/{downtime_id}")
     @Produces(MediaType.APPLICATION_JSON)
-
     @SecuredEndpoint(
             params = {
                     @ParamRef(
@@ -4366,6 +4364,83 @@ public class TenantEndpoint {
         var response = downtimeService.fetchDowntimes(id,downtimeId);
 
         return Response.ok(response).build();
+    }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Deletes a specific downtime for a tenant.",
+            description = "Deletes a  tenant's specific downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @DELETE
+    @Path("/{id}/downtimes/{downtime_id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "downtime_id",
+                            type = ParamType.PATH,
+                            referTo = DowntimeResource.class
+                    )
+            }
+    )
+
+    public Response deleteDowntime(
+            @Parameter(
+                    description = "The ID of the tenant to fetch the downtime.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+            @Parameter(
+                    description = "The ID of the downtime.",
+                    required = true,
+                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
+            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
+            @Context UriInfo uriInfo) {
+
+         downtimeService.deleteDowntime(id,downtimeId);
+        var informativeResponse = new InformativeResponse();
+        informativeResponse.code = 200;
+        informativeResponse.message = "Downtime has been successfully deleted.";
+
+        return Response.ok().entity(informativeResponse).build();
     }
 
     public static class PageableDowntimes extends PageResource<DowntimeResponse> {
