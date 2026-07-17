@@ -132,7 +132,6 @@ public class TenantEndpoint {
     @Inject
     IncidentService incidentService;
 
-
     @Operation(
             summary = "List Tenants Available to the User",
             description = "Retrieves a paginated list of tenants the authenticated user is allowed to access."
@@ -4536,9 +4535,6 @@ public class TenantEndpoint {
             this.content = content;
         }
     }
-
-
-
 
     @Tag(name = "Incident")
     @Operation(

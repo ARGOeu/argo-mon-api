@@ -4,16 +4,21 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.pagination.PageResource;
+import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
 import org.grnet.status.entities.Downtime;
 import org.grnet.status.entities.DowntimeServiceEndpoint;
+import org.grnet.status.entities.Tenant;
 import org.grnet.status.enums.DowntimeClassification;
+import org.grnet.status.enums.FeedType;
 import org.grnet.status.mappers.DowntimeMapper;
 import org.grnet.status.repositories.DowntimeRepository;
 import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.services.clients.WebApiService;
 import org.grnet.status.util.Utility;
 
 import java.time.Instant;
@@ -21,6 +26,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.EnumSet;
 
 @ApplicationScoped
 public class DowntimeService {
@@ -33,7 +39,14 @@ public class DowntimeService {
 
     @Inject
     Utility utility;
+    @Inject
+    WebApiService webApiService;
 
+    private static final EnumSet<FeedType> SUPPORTED_FEEDS = EnumSet.of(
+            FeedType.CSV,
+            FeedType.DESY_MARKETPLACE,
+            FeedType.INTERNAL
+    );
 
     /**
      * Creates a new downtime entry for a specific tenant.
@@ -50,13 +63,15 @@ public class DowntimeService {
     @Transactional
     public DowntimeResponse addDowntime(String id, DowntimeRequest request) {
 
+
+        //var tenant = tenantRepository.findById(id);
+        checkFeedType(id);
+
         // Use UTC timestamp truncated to seconds to keep consistent API responses.
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-
-        var tenant = tenantRepository.findById(id);
         Downtime downtime = DowntimeMapper.INSTANCE.dtoToDowntime(request);
 
-        downtime.setTenant(tenant.id);
+        downtime.setTenant(id);
         downtime.setCreatedBy(utility.getUid());
         downtime.setCreatedAt(now);
 
@@ -145,7 +160,6 @@ public class DowntimeService {
     @Transactional
     public DowntimeResponse fetchDowntimes(String id, String downtimeId) {
 
-        var tenant = tenantRepository.findById(id);
 
         var downtime = downtimeRepository.findById(downtimeId);
         if (!downtime.getTenant().equals(id)) {
@@ -153,7 +167,7 @@ public class DowntimeService {
                     String.format("Downtime with id %s cannot be accessed for tenant %s", downtimeId, id)
             );
         }
-        return  DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+        return DowntimeMapper.INSTANCE.downtimeToDto(downtime);
     }
 
 
@@ -186,11 +200,13 @@ public class DowntimeService {
 
         return new Instant[]{startDate, endDate};
     }
+
     @Transactional
     public void deleteDowntime(String id, String downtimeId) {
 
-        var tenant = tenantRepository.findById(id);
+        //   var tenant = tenantRepository.findById(id);
 
+        checkFeedType(id);
         var downtime = downtimeRepository.findById(downtimeId);
 
         if (!downtime.getTenant().equals(id)) {
@@ -202,11 +218,11 @@ public class DowntimeService {
         downtimeRepository.delete(downtime);
     }
     @Transactional
-    public DowntimeResponse updateDowntime(String tenantId,String downtimeId,DowntimeRequest request) {
+    public DowntimeResponse updateDowntime(String tenantId, String downtimeId, DowntimeRequest request) {
 
+        // var tenant=  tenantRepository.findById(tenantId);
+        checkFeedType(tenantId);
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-
-        tenantRepository.findById(tenantId);
 
         Downtime downtime = downtimeRepository.findById(downtimeId);
 
@@ -252,5 +268,38 @@ public class DowntimeService {
             });
         }
         return DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+    }
+
+    private void checkFeedType(String tenantId) {
+
+        WebApiFeedsTopologyResponse response;
+
+        try {
+            response = webApiService.retrieveFeedTopologyWebApi(tenantId);
+        } catch (WebApplicationException e) {
+            if (e.getResponse().getStatus() == 404) {
+                throw new ForbiddenException(
+                        "Cannot manage downtimes because no topology feed is defined for the tenant.");
+            }
+            throw e;
+        }
+
+        if (response == null
+                || response.data == null
+                || response.data.isEmpty()
+                || response.data.get(0) == null) {
+            throw new ForbiddenException(
+                    "Cannot manage downtimes because no topology feed is defined for the tenant.");
+        }
+
+        var feedType = response.data.get(0).type;
+
+        if (!SUPPORTED_FEEDS.contains(feedType)) {
+            throw new ForbiddenException(
+                    String.format(
+                            "Downtime management is not supported for topology feed type %s.",
+                            feedType.name()
+                    ));
+        }
     }
 }
