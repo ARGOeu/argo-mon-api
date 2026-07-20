@@ -25,14 +25,25 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 ### Added
 - [#182](https://github.com/ARGOeu/argo-mon-api/pull/182) ARGO-5692 Trigger readiness validation on first feed configuration
+- [#183](https://github.com/ARGOeu/argo-mon-status-api/pull/183) ARGO-5698 Upgrade quarkus auth version in pom.xml
 - [#184](https://github.com/ARGOeu/argo-mon-api/pull/184) ARGO-5696 Update tenant resource group deletion to use Quarkus Auth role hierarchy
 - [#185](https://github.com/ARGOeu/argo-mon-api/pull/186) ARGO-5706 [API] Fetch monthly and daily A/R supergroup views for all topology levels for tenant
 - [#187](https://github.com/ARGOeu/argo-mon-api/pull/187) ARGO-5711 [API] Fetch monthly and daily A/R groups views for all topology levels for tenant
 - [#190](https://github.com/ARGOeu/argo-mon-api/pull/190) ARGO-5715: [API] Fetch monthly and daily A/R endpoints views for all topology levels for tenant
+- [#191](https://github.com/ARGOeu/argo-mon-status-api/pull/191) ARGO-5274 [API] - Configuration Settings Page
+- [#192](https://github.com/ARGOeu/argo-mon-status-api/pull/192) ARGO-5748 Expose Performance Settings Through Public API
+- [#193](https://github.com/ARGOeu/argo-mon-status-api/pull/193) ARGO-5740 [API] Add downtime
 - [#194](https://github.com/ARGOeu/argo-mon-api/pull/194) ARGO-5732 [API] Create Incident
+- [#195](https://github.com/ARGOeu/argo-mon-status-api/pull/195) ARGO-5744 [API] Get Downtimes
+- [#196](https://github.com/ARGOeu/argo-mon-status-api/pull/19) ARGO-5745 [API] Get Downtime
+- [#197](https://github.com/ARGOeu/argo-mon-status-api/pull/197) ARGO-5741 [API] Delete downtime
+- [#198](https://github.com/ARGOeu/argo-mon-status-api/pull/198) ARGO-5743 [API] Update downtime
 - [#200](https://github.com/ARGOeu/argo-mon-api/pull/200) ARGO-5733 [API] Change incident status / add comment
+- [#201](https://github.com/ARGOeu/argo-mon-status-api/pull/201) ARGO-5762 Restrict downtime management to supported topology feeds
 - [#202](https://github.com/ARGOeu/argo-mon-api/pull/202) ARGO-5734 [API] Get all incidents
+- [#203](https://github.com/ARGOeu/argo-mon-status-api/pull/203) ARGO-578 Validate downtime service endpoints against tenant topology
 - [#204](https://github.com/ARGOeu/argo-mon-api/pull/204) ARGO-5735 [API] Get incident
+- [#205](https://github.com/ARGOeu/argo-mon-status-api/pull/205) ARGO-5771 Support node-registry feed#205
 
 ### Fix 
 
@@ -129,18 +140,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#129](https://github.com/ARGOeu/argo-mon-status-api/pull/129) ARGO-5541 Use quarkus-auth deps in project
 - [#122](https://github.com/ARGOeu/argo-mon-status-api/pull/122) ARGO-5689 Add group roles to group response
 - [#116](https://github.com/ARGOeu/argo-mon-status-api/pull/122) ARGO-5483: Make endpoint topology tags field accept any key-value pairs
-- [#183](https://github.com/ARGOeu/argo-mon-status-api/pull/183) ARGO-5698 Upgrade quarkus auth version in pom.xml
-- [#191](https://github.com/ARGOeu/argo-mon-status-api/pull/191) ARGO-5274 [API] - Configuration Settings Page
-- [#192](https://github.com/ARGOeu/argo-mon-status-api/pull/192) ARGO-5748 Expose Performance Settings Through Public API
-- [#193](https://github.com/ARGOeu/argo-mon-status-api/pull/193) ARGO-5740 [API] Add downtime
-- [#195](https://github.com/ARGOeu/argo-mon-status-api/pull/195) ARGO-5744 [API] Get Downtimes
-- [#196](https://github.com/ARGOeu/argo-mon-status-api/pull/19) ARGO-5745 [API] Get Downtime
-- [#196](https://github.com/ARGOeu/argo-mon-status-api/pull/196) ARGO-5745 [API] Get Downtime
-- [#197](https://github.com/ARGOeu/argo-mon-status-api/pull/197) ARGO-5741 [API] Delete downtime
-- [#198](https://github.com/ARGOeu/argo-mon-status-api/pull/198) ARGO-5743 [API] Update downtime
-- [#201](https://github.com/ARGOeu/argo-mon-status-api/pull/201) ARGO-5762 Restrict downtime management to supported topology feeds
-- [#203](https://github.com/ARGOeu/argo-mon-status-api/pull/203) ARGO-578 Validate downtime service endpoints against tenant topology
-  
+
 ### Fix
 
 - [#7](https://github.com/ARGOeu/argo-mon-status-api/pull/7) ARGO-5152: Update Keycloak Redirect URIs and Enable CORS for Local UI Development

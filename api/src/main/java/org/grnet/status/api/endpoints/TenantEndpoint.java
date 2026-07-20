@@ -2064,11 +2064,20 @@ public class TenantEndpoint {
                                             name = "Desy-Marketplace",
                                             value = """
                                                     {
-                                                      "type": "Desy-Marketplace",
+                                                      "type": "desy-marketplace",
                                                       "feed_url": "https://desy-marketplace"
                                                     }
                                                     """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Node-Registry",
+                                            value = """
+                                                    {
+                                                      "type": "node-registry"
+                                                    }
+                                                    """
                                     )
+
                             }
                     )
             )
