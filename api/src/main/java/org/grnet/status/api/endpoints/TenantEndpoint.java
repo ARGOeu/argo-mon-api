@@ -4345,7 +4345,7 @@ public class TenantEndpoint {
     )
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("/{id}/downtimes/{downtime_id}")
+    @Path("/{id}/downtimes/{downtime-id}")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -4355,7 +4355,7 @@ public class TenantEndpoint {
                             referTo = TenantResource.class
                     ),
                     @ParamRef(
-                            param = "downtime_id",
+                            param = "downtime-id",
                             type = ParamType.PATH,
                             referTo = DowntimeResource.class
                     )
@@ -4368,14 +4368,17 @@ public class TenantEndpoint {
                     required = true,
                     example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
                     schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
-            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
-            @Parameter(
-                    description = "The ID of the downtime.",
-                    required = true,
-                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
-                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
-            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
-            @Context UriInfo uriInfo) {
+           @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+           String id,
+           @Parameter(
+                   description = "The ID of the downtime.",
+                   required = true,
+                   example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                   schema = @Schema(type = SchemaType.STRING))
+           @PathParam("downtime-id")
+           @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ")
+           String downtimeId,
+           @Context UriInfo uriInfo) {
 
         var response = downtimeService.fetchDowntimes(id, downtimeId);
 
@@ -4419,7 +4422,7 @@ public class TenantEndpoint {
     )
     @SecurityRequirement(name = "Authentication")
     @DELETE
-    @Path("/{id}/downtimes/{downtime_id}")
+    @Path("/{id}/downtimes/{downtime-id}")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -4429,7 +4432,7 @@ public class TenantEndpoint {
                             referTo = TenantResource.class
                     ),
                     @ParamRef(
-                            param = "downtime_id",
+                            param = "downtime-id",
                             type = ParamType.PATH,
                             referTo = DowntimeResource.class
                     )
@@ -4447,7 +4450,7 @@ public class TenantEndpoint {
                     description = "The ID of the downtime.",
                     required = true,
                     example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
-                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime-id")
             @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
             @Context UriInfo uriInfo) {
 
@@ -4497,7 +4500,7 @@ public class TenantEndpoint {
 
     @SecurityRequirement(name = "Authentication")
     @PUT
-    @Path("/{id}/downtimes/{downtime_id}")
+    @Path("/{id}/downtimes/{downtime-id}")
 
     @SecuredEndpoint(
             params = {
@@ -4507,7 +4510,7 @@ public class TenantEndpoint {
                             referTo = TenantResource.class
                     ),
                     @ParamRef(
-                            param = "downtime_id",
+                            param = "downtime-id",
                             type = ParamType.PATH,
                             referTo = DowntimeResource.class
                     )
@@ -4525,7 +4528,7 @@ public class TenantEndpoint {
                     description = "The ID of the downtime.",
                     required = true,
                     example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
-                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime_id")
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime-id")
             @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
             @Valid DowntimeRequest request) {
 
@@ -4686,7 +4689,7 @@ public class TenantEndpoint {
     )
     @SecurityRequirement(name = "Authentication")
     @PATCH
-    @Path("/{id}/incidents/{incident_id}/status")
+    @Path("/{id}/incidents/{incident-id}/status")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
@@ -4695,6 +4698,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
                     )
             }
     )
@@ -4719,9 +4727,9 @@ public class TenantEndpoint {
                     example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
                     schema = @Schema(type = SchemaType.STRING)
             )
-            @PathParam("incident_id")
+            @PathParam("incident-id")
             @Valid
-            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident_id: ")
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
             String incidentId,
             @Parameter(
                     description = "The incident update request.",
@@ -4791,7 +4799,7 @@ public class TenantEndpoint {
     )
     @SecurityRequirement(name = "Authentication")
     @POST
-    @Path("/{id}/incidents/{incident_id}/comments")
+    @Path("/{id}/incidents/{incident-id}/comments")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
@@ -4800,6 +4808,11 @@ public class TenantEndpoint {
                             param = "id",
                             type = ParamType.PATH,
                             referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
                     )
             }
     )
@@ -4825,11 +4838,11 @@ public class TenantEndpoint {
                     example = "62491b9b-7c95-4f66-bbd2-2eb407118afc",
                     schema = @Schema(type = SchemaType.STRING)
             )
-            @PathParam("incident_id")
+            @PathParam("incident-id")
             @Valid
             @NotFoundEntity(
                     repository = IncidentRepository.class,
-                    message = "There is no Incident with the following incident_id: "
+                    message = "There is no Incident with the following incident-id: "
             )
             String incidentId,
 

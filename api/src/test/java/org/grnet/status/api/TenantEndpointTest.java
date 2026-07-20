@@ -993,7 +993,7 @@ public class TenantEndpointTest extends KeycloakTest {
 
         mockSuperAdmin();
         mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
-  //      mockTenantInitialized(tenant.id);
+        //      mockTenantInitialized(tenant.id);
 
         mockTopologyEndpoints(List.of(
                 EndpointSample("service1", "host1.example.org"),
