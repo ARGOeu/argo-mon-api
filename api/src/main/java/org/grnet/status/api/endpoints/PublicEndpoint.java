@@ -850,4 +850,162 @@ public class PublicEndpoint {
                 ));
     }
 
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report group endpoints results.",
+            description = "Retrieves availability and reliability results for the group endpoints of a tenant's report and specific group.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report groups endpoints results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiGroupEndpointResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @GET
+    @Path("{id}/results/{report-name}/groups/{group-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getGroupsEndpointResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "groupName",
+                    required = true,
+                    description = "The name of the group.",
+                    example = "ARCHIVE")
+            @PathParam("group-name")
+            String groupName,
+
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        checkPublicReport(id,reportName);
+        var response = tenantService.retrieveResultsEndpointByReportAndGroup(id, reportName, groupName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report group endpoints results by endpoint.",
+            description = "Retrieves availability and reliability results for the group endpoints of a tenant's report and specific group and a specific endpoint.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report groups endpoint results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiGroupEndpointResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @GET
+    @Path("{id}/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getGroupsEndpointResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "groupName",
+                    required = true,
+                    description = "The name of the group.",
+                    example = "ARCHIVE")
+            @PathParam("group-name")
+            String groupName,
+
+            @Parameter(name = "endpointName",
+                    required = true,
+                    description = "The name of the endpoint.",
+                    example = "hostname1.project-a.foo")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+        checkPublicReport(id, reportName);
+        var response = tenantService.retrieveResultsEndpointByReportGroupAndEndpoint(id, reportName, groupName, endpointName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
 }
