@@ -91,7 +91,34 @@ public enum MailType {
 
             return new MailTemplate(subject, body);
         }
-    },;
+    },
+
+    INCIDENT_REPORTED {
+        @Override
+        public MailTemplate execute(Template emailTemplate, HashMap<String, Object> templateParams) {
+
+            var body = emailTemplate
+                    .data("logoUrl", templateParams.get("logoUrl"))
+                    .data("title", templateParams.get("title"))
+                    .data("replyTo", templateParams.get("replyTo"))
+
+                    .data("incidentNumber", templateParams.get("incidentNumber"))
+                    .data("incidentTitle", templateParams.get("incidentTitle"))
+                    .data("description", templateParams.get("description"))
+                    .data("serviceName", templateParams.get("serviceName"))
+                    .data("status", templateParams.get("status"))
+                    .data("createdBy", templateParams.get("createdBy"))
+                    .data("createdAt", templateParams.get("createdAt"))
+                    .data("incidentUrl", templateParams.get("incidentUrl"))
+                    .render();
+
+            var subject = "[" + templateParams.get("title") + "] New incident reported: " + templateParams.get("incidentNumber");
+
+            return new MailTemplate(subject, body);
+        }
+    };
+
+
 
     public abstract MailTemplate execute(Template mailTemplate, HashMap<String, Object> templateParams);
 

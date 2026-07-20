@@ -1,10 +1,14 @@
 package org.grnet.status.services;
 
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
+import org.grnet.status.entities.Contact;
+import org.grnet.status.entities.Incident;
 import org.grnet.status.enums.IncidentStatus;
 import org.grnet.status.mappers.IncidentMapper;
 import org.grnet.status.repositories.IncidentRepository;
@@ -20,6 +24,7 @@ import org.grnet.status.dtos.pagination.PageResource;
 
 import java.time.Year;
 import java.time.ZoneOffset;
+import java.util.Objects;
 
 @ApplicationScoped
 public class IncidentService {
@@ -33,6 +38,12 @@ public class IncidentService {
     @Inject
     IncidentCommentRepository incidentCommentRepository;
 
+    @Inject
+    MailerService mailerService;
+
+    @ConfigProperty(name = "api.ui.url")
+    String uiBaseUrl;
+
     /**
      * Creates a new incident for a tenant.
      *
@@ -45,7 +56,6 @@ public class IncidentService {
     public IncidentResponseDto createIncident(String tenantId, IncidentRequestDto request, String createdBy) {
 
         var tenant = tenantRepository.findById(tenantId);
-
         var incident = IncidentMapper.INSTANCE.incidentRequestToEntity(request);
 
         incident.setTenant(tenant);
@@ -54,6 +64,37 @@ public class IncidentService {
         incident.setCreatedBy(createdBy);
 
         incidentRepository.persist(incident);
+
+        var recipientEmails = incident.getTenant()
+                .getContacts()
+                .stream()
+                .map(Contact::getContactEmail)
+                .filter(Objects::nonNull)
+                .filter(email -> !email.isBlank())
+                .distinct()
+                .toList();
+
+        try {
+            if (!recipientEmails.isEmpty()) {
+
+                var incidentUrl = uiBaseUrl + "/tenants/" + tenantId + "/incidents/" + incident.getId();
+
+                mailerService.sendIncidentReportedEmail(
+                        recipientEmails,
+                        incident.getIncidentNumber(),
+                        incident.getTitle(),
+                        incident.getDescription(),
+                        incident.getServiceName(),
+                        incident.getStatus().name(),
+                        incident.getCreatedBy(),
+                        incident.getCreatedAt().toString(),
+                        incidentUrl
+                );
+            }
+
+        } catch (Exception e) {
+            Log.warn("Incident reported email notification failed.", e);
+        }
 
         return IncidentMapper.INSTANCE.incidentToResponseDto(incident);
     }
