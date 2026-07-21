@@ -50,7 +50,7 @@ public class Incident {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private IncidentStatus status = IncidentStatus.REPORTED;
+    private IncidentStatus status = IncidentStatus.NEW;
 
     @NotBlank
     @Column(name = "created_by")
@@ -80,7 +80,7 @@ public class Incident {
         var now = Instant.now();
 
         if (status == null) {
-            status = IncidentStatus.REPORTED;
+            status = IncidentStatus.NEW;
         }
 
         if (createdAt == null) {

@@ -9,8 +9,11 @@ import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
 import org.grnet.status.entities.Contact;
 import org.grnet.status.entities.Incident;
+import org.grnet.status.entities.IncidentActivity;
 import org.grnet.status.enums.IncidentStatus;
+import org.grnet.status.mappers.IncidentActivityMapper;
 import org.grnet.status.mappers.IncidentMapper;
+import org.grnet.status.repositories.IncidentActivityRepository;
 import org.grnet.status.repositories.IncidentRepository;
 import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.dtos.incident.*;
@@ -24,6 +27,7 @@ import org.grnet.status.dtos.pagination.PageResource;
 
 import java.time.Year;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Objects;
 
 @ApplicationScoped
@@ -37,6 +41,9 @@ public class IncidentService {
 
     @Inject
     IncidentCommentRepository incidentCommentRepository;
+
+    @Inject
+    IncidentActivityRepository incidentActivityRepository;
 
     @Inject
     MailerService mailerService;
@@ -60,7 +67,6 @@ public class IncidentService {
 
         incident.setTenant(tenant);
         incident.setIncidentNumber(generateIncidentNumber());
-        incident.setStatus(IncidentStatus.REPORTED);
         incident.setCreatedBy(createdBy);
 
         incidentRepository.persist(incident);
@@ -79,7 +85,7 @@ public class IncidentService {
 
                 var incidentUrl = uiBaseUrl + "/tenants/" + tenantId + "/incidents/" + incident.getId();
 
-                mailerService.sendIncidentReportedEmail(
+                mailerService.sendIncidentCreatedEmail(
                         recipientEmails,
                         incident.getIncidentNumber(),
                         incident.getTitle(),
@@ -104,8 +110,19 @@ public class IncidentService {
 
         var incident = incidentRepository.fetchByIdAndTenantId(incidentId, tenantId);
 
-        if (request.status != null) {
+        var previousStatus = incident.getStatus();
+
+        if (request.status != null && request.status != previousStatus) {
+
             incident.setStatus(request.status);
+
+            var activity = new IncidentActivity();
+            activity.setIncident(incident);
+            activity.setPreviousStatus(previousStatus);
+            activity.setNewStatus(request.status);
+            activity.setChangedBy(updatedBy);
+
+            incidentActivityRepository.persist(activity);
         }
 
         incident.setUpdatedAt(Instant.now());
@@ -146,6 +163,14 @@ public class IncidentService {
         var incident = incidentRepository.fetchByIdAndTenantId(incidentId, tenantId);
 
         return IncidentMapper.INSTANCE.incidentToResponseDto(incident);
+    }
+
+
+    public List<IncidentActivityResponseDto> getIncidentActivity(String tenantId, String incidentId) {
+
+        var activities = incidentActivityRepository.fetchByIncidentId(incidentId);
+
+        return IncidentActivityMapper.INSTANCE.incidentActivitiesToDtos(activities);
     }
 
     /**
