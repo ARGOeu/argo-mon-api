@@ -3591,7 +3591,7 @@ public class TenantEndpoint {
             @Parameter(name = "start-time", in = QUERY,
                     required = true,
                     description = "UTC time in W3C format.",
-                    example = "2026-05-21T12:00:00Z")
+                    example = "2026-07-02T00:00:00Z")
             @QueryParam("start-time")
             String startTime,
             @Parameter(name = "end-time", in = QUERY,
@@ -3676,7 +3676,7 @@ public class TenantEndpoint {
             @Parameter(name = "start-time", in = QUERY,
                     required = true,
                     description = "UTC time in W3C format.",
-                    example = "2026-05-21T12:00:00Z")
+                    example = "2026-07-02T00:00:00Z")
             @QueryParam("start-time")
             String startTime,
             @Parameter(name = "end-time", in = QUERY,
@@ -3755,7 +3755,7 @@ public class TenantEndpoint {
             @Parameter(name = "start-time", in = QUERY,
                     required = true,
                     description = "UTC time in W3C format.",
-                    example = "2026-05-21T12:00:00Z")
+                    example = "2026-07-02T00:00:00Z")
             @QueryParam("start-time")
             String startTime,
             @Parameter(name = "end-time", in = QUERY,
@@ -3841,7 +3841,7 @@ public class TenantEndpoint {
             @Parameter(name = "start-time", in = QUERY,
                     required = true,
                     description = "UTC time in W3C format.",
-                    example = "2026-05-21T12:00:00Z")
+                    example = "2026-07-02T00:00:00Z")
             @QueryParam("start-time")
             String startTime,
             @Parameter(name = "end-time", in = QUERY,

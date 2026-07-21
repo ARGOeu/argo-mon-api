@@ -45,6 +45,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#204](https://github.com/ARGOeu/argo-mon-api/pull/204) ARGO-5735 [API] Get incident
 - [#205](https://github.com/ARGOeu/argo-mon-status-api/pull/205) ARGO-5771 Support node-registry feed#205
 - [#207](https://github.com/ARGOeu/argo-mon-api/pull/207) ARGO-5736 [API] Send email when reported
+- [#206](https://github.com/ARGOeu/argo-mon-api/pull/206) ARGO-5775 Add public API endpoints for A/R results
 
 ### Fix 
 
