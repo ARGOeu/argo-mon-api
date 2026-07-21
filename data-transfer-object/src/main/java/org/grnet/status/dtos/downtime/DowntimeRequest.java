@@ -1,6 +1,7 @@
 package org.grnet.status.dtos.downtime;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -59,6 +60,7 @@ public class DowntimeRequest {
             timezone = "UTC"
     )
     @JsonProperty("scheduled_at")
+    @NotNull(message = "scheduled_at can not be null")
     public Instant scheduledAt;
 
 
@@ -73,8 +75,10 @@ public class DowntimeRequest {
             shape = JsonFormat.Shape.STRING,
             pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
             timezone = "UTC"
+
     )
     @JsonProperty("completed_at")
+    @NotNull(message = "completed_at can not be null")
     public Instant completedAt;
 
     private List<DowntimeServiceEndpointRequest> services;
