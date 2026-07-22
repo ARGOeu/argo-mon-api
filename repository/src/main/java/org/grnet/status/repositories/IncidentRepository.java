@@ -7,6 +7,8 @@ import org.grnet.status.entities.Page;
 import org.grnet.status.entities.PageQuery;
 import org.grnet.status.entities.PageQueryImpl;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -63,7 +65,7 @@ public class IncidentRepository implements Repository<Incident, String> {
      * @param search optional search term applied to incident title and service name
      * @return paginated incidents
      */
-    public PageQuery<Incident> fetchIncidentsByTenantIdByPageAndSize(String tenantId, int page, int size, String search) {
+    public PageQuery<Incident> fetchIncidentsByTenantIdByPageAndSize(String tenantId, int page, int size, String search, String date) {
 
         var joiner = new StringJoiner(StringUtils.SPACE);
         joiner.add("from Incident i");
@@ -73,8 +75,19 @@ public class IncidentRepository implements Repository<Incident, String> {
         map.put("tenantId", tenantId);
 
         if (StringUtils.isNotBlank(search)) {
-            joiner.add(" and ( i.title ilike :search or i.serviceName ilike :search or i.incidentNumber ilike :search)");
+            joiner.add("and (i.title ilike :search or i.serviceName ilike :search or i.incidentNumber ilike :search)");
             map.put("search", "%" + search.trim() + "%");
+        }
+
+        if (StringUtils.isNotBlank(date)) {
+            var requestedDate = LocalDate.parse(date);
+
+            var startOfDay = requestedDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+            var startOfNextDay = requestedDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+            joiner.add("and i.createdAt >= :startOfDay and i.createdAt < :startOfNextDay");
+            map.put("startOfDay", startOfDay);
+            map.put("startOfNextDay", startOfNextDay);
         }
 
         joiner.add("order by i.createdAt desc");

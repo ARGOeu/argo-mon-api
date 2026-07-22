@@ -151,9 +151,9 @@ public class IncidentService {
     }
 
 
-    public PageResource<IncidentResponseDto> getIncidentsByPageAndSize(String tenantId, int page, int size, String search, UriInfo uriInfo) {
+    public PageResource<IncidentResponseDto> getIncidentsByPageAndSize(String tenantId, int page, int size, String search, String date, UriInfo uriInfo) {
 
-        var incidents = incidentRepository.fetchIncidentsByTenantIdByPageAndSize(tenantId, page, size, search);
+        var incidents = incidentRepository.fetchIncidentsByTenantIdByPageAndSize(tenantId, page, size, search, date);
 
         return new PageResource<>(incidents, IncidentMapper.INSTANCE.incidentsToDtos(incidents.list()), uriInfo);
     }
