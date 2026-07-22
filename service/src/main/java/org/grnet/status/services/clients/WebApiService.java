@@ -645,6 +645,55 @@ public class WebApiService {
             );
         }
     }
+    //get endpoint results by group
+    public TenantWebApiGroupEndpointResultsByReportResponse retrieveResultsEndpointsByReportAndGroup(String tenantId, String reportName,String groupName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getResultsEndpointsByReportAndGroup(accessToken, tenantId, reportName, groupName,startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Groups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Groups services by Report failed in Argo Web Api. reportName=%s, groupType=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Services... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    //get endpoint results by group and endpoint
+    public TenantWebApiGroupEndpointResultsByReportResponse retrieveResultsEndpointsByReportGroupAndEndpoint(String tenantId, String reportName,String groupName, String endpointName,String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getResultsEndpointsByReportAndGroup(accessToken, tenantId, reportName, groupName,startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Groups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Groups services by Report failed in Argo Web Api. reportName=%s, groupType=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Services... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
 
     public TenantWebApiGroupResultsByReportResponse retrieveResultsGroupByNameByReport(String tenantId, String reportName, String groupName, String startTime, String endTime, String granularity) {
 

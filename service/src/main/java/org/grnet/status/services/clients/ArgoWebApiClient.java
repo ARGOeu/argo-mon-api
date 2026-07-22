@@ -331,7 +331,7 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-tenant-id") String tenantId,
             @QueryParam("date") String date,
             @QueryParam("force") Boolean force,
-            List<ServiceTypeDto> request) throws WebApplicationException,ProcessingException;
+            List<ServiceTypeDto> request) throws WebApplicationException, ProcessingException;
 
     @POST
     @Path("/api/v2/admin/tenants/{id}/node-set")
@@ -554,4 +554,30 @@ public interface ArgoWebApiClient {
             @QueryParam("end-time") String endTime,
             @QueryParam("granularity") String granularity
     );
+
+
+    @GET
+    @Path("/api/v5/results/{report-name}/groups/{group-name}/endpoints")
+    TenantWebApiGroupEndpointResultsByReportResponse getResultsEndpointsByReportAndGroup(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+    @GET
+    @Path("/api/v5/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    TenantWebApiGroupEndpointResultsByReportResponse geResultsEndpointsByReportGroupAndEndpoint(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
 }
