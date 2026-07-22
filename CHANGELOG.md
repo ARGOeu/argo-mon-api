@@ -47,6 +47,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#206](https://github.com/ARGOeu/argo-mon-api/pull/206) ARGO-5775 Add public API endpoints for A/R results
 - [#207](https://github.com/ARGOeu/argo-mon-api/pull/207) ARGO-5736 [API] Send email when reported
 - [#208](https://github.com/ARGOeu/argo-mon-api/pull/208) ARGO-5781 Fetch Endpoint A/R Results per Report and Group via Status API#208
+- [#209](https://github.com/ARGOeu/argo-mon-api/pull/209) ARGO-5737 [API] Activity log / history of status changes
 
 ### Fix 
 

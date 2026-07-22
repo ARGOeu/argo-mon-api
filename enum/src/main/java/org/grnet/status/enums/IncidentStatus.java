@@ -2,9 +2,10 @@ package org.grnet.status.enums;
 
 public enum IncidentStatus {
 
-    REPORTED,
-    INVESTIGATING,
-    IDENTIFIED,
-    WATCHING,
+    NEW,
+    ASSIGNED,
+    IN_PROGRESS,
+    PENDING,
+    RESOLVED,
     CLOSED
 }

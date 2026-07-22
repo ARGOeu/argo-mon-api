@@ -54,8 +54,8 @@ public class MailerService {
     Template tenantAddedToGroupTemplate;
 
     @Inject
-    @Location("incident_reported.html")
-    Template incidentReportedTemplate;
+    @Location("incident_created.html")
+    Template incidentCreatedTemplate;
 
     /**
      * Sends a tenant invitation email to the specified recipients.
@@ -186,7 +186,7 @@ public class MailerService {
      * @param createdAt incident creation timestamp
      * @param incidentUrl incident details URL
      */
-    public void sendIncidentReportedEmail(List<String> recipientEmails,
+    public void sendIncidentCreatedEmail(List<String> recipientEmails,
                                           String incidentNumber,
                                           String incidentTitle,
                                           String description,
@@ -213,7 +213,7 @@ public class MailerService {
         params.put("createdAt", createdAt);
         params.put("incidentUrl", incidentUrl);
 
-        sendBcc(incidentReportedTemplate, params, MailType.INCIDENT_REPORTED, recipientEmails);
+        sendBcc(incidentCreatedTemplate, params, MailType.INCIDENT_CREATED, recipientEmails);
     }
 
     /**

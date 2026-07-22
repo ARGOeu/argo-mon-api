@@ -11,12 +11,13 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
 import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
 import org.grnet.endpoint.scanner.runtime.repositories.RoleEndpointRepository;
+import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.Status;
+import org.grnet.status.dtos.ams.PublishResponse;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.downtime.DowntimeServiceEndpointRequest;
 import org.grnet.status.dtos.general.ExistResponseDto;
-import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.project.ProjectRequestDto;
@@ -28,13 +29,14 @@ import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
+import org.grnet.status.dtos.topology.EndpointTopologyDto;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
+import org.grnet.status.dtos.topology.WebApiEndpointTopologyResponse;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
 import org.grnet.status.enums.DowntimeSeverity;
-import org.grnet.status.enums.IncidentStatus;
-import org.grnet.status.dtos.topology.EndpointTopologyDto;
-import org.grnet.status.dtos.topology.WebApiEndpointTopologyResponse;
 import org.grnet.status.enums.FeedType;
+import org.grnet.status.enums.IncidentStatus;
+import org.grnet.status.services.clients.AmsClient;
 import org.grnet.status.services.clients.AmsClientFactory;
 import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,51 +78,19 @@ public class TenantEndpointTest extends KeycloakTest {
 
     private String currentMockId;
 
-    private FeedType feedType;
-
     @BeforeEach
     public void mockArgoClient() throws Exception {
         when(argoWebApiClient.createTenant(any(), any())).thenAnswer(invocation -> loadMockTenantResponse(currentMockId));
         when(argoWebApiClient.getTenant(any(), any())).thenAnswer(invocation -> loadMockTenantGetResponse(currentMockId));
-
     }
 
-    private void mockArgoClientFeed(FeedType feedType) {
-        var response = new WebApiFeedsTopologyResponse();
-        var feedDto = new FeedTopologyDto();
-        feedDto.type = feedType;
-        response.data = List.of(feedDto);
-        var status = new Status();
-        status.setMessage("test feed");
-        status.setCode("200");
-        when(argoWebApiClient.getFeedTopology(any(), any()))
-                .thenReturn(response);
-    }
-
-    private void mockTopologyEndpoints(List<EndpointTopologyDto> endpoints) {
-        WebApiEndpointTopologyResponse response = new WebApiEndpointTopologyResponse();
-        response.data = endpoints;
-
-        Mockito.when(argoWebApiClient.fetchTopologyEndpointsSuperAdmin(
-                        Mockito.anyString(),
-                        Mockito.anyString(),
-                        Mockito.anyString()))
-                .thenReturn(response);
-    }
-
-    // -------------------------------------------------------------------------
-    // SETUP ROLE REPOSITORY
-    // -------------------------------------------------------------------------
     @BeforeEach
     void setupRepo() {
-        TestRoleEndpointRepository testRepo = new TestRoleEndpointRepository();
+        var testRepo = new TestRoleEndpointRepository();
         QuarkusMock.installMockForType(testRepo, RoleEndpointRepository.class);
         this.roleEndpointRepository = testRepo;
     }
 
-    // -------------------------------------------------------------------------
-    // RESET STATE
-    // -------------------------------------------------------------------------
     @BeforeEach
     void reset() {
         entitlementProvider.reset();
@@ -132,10 +102,17 @@ public class TenantEndpointTest extends KeycloakTest {
         tenantService.deleteAll();
     }
 
+    @BeforeEach
+    void mockAms() {
+        var mockClient = mock(AmsClient.class);
+        when(amsClientFactory.buildClient(anyString())).thenReturn(mockClient);
 
-    // -------------------------------------------------------------------------
-    // ENTITLEMENTS
-    // -------------------------------------------------------------------------
+        var response = new PublishResponse();
+        response.setMessageIds(List.of("mock-msg"));
+
+        when(mockClient.publish(anyString(), anyString(), anyString(), any())).thenReturn(response);
+    }
+
     private void mockSuperAdmin() {
         entitlementProvider.setSuperAdmin(true);
         entitlementProvider.setEntitlements(List.of());
@@ -143,16 +120,12 @@ public class TenantEndpointTest extends KeycloakTest {
 
     private void mockTenantAdmin() {
         entitlementProvider.setSuperAdmin(false);
-        entitlementProvider.setEntitlements(List.of(
-                entitlement(currentMockId, "tenant_admin")
-        ));
+        entitlementProvider.setEntitlements(List.of(entitlement(currentMockId, "tenant_admin")));
     }
 
     private void mockTenantViewer() {
         entitlementProvider.setSuperAdmin(false);
-        entitlementProvider.setEntitlements(List.of(
-                entitlement(currentMockId, "tenant_viewer")
-        ));
+        entitlementProvider.setEntitlements(List.of(entitlement(currentMockId, "tenant_viewer")));
     }
 
     private Entitlement entitlement(String tenantId, String role) {
@@ -167,47 +140,56 @@ public class TenantEndpointTest extends KeycloakTest {
         );
     }
 
-    // -------------------------------------------------------------------------
-    // AMS MOCK
-    // -------------------------------------------------------------------------
-    @BeforeEach
-    void mockAms() {
-        var mockClient = mock(org.grnet.status.services.clients.AmsClient.class);
+    private void mockRoleEndpoints(String role, String... endpoints) {
+        var roleEndpoints = new ArrayList<RoleEndpoint>();
 
-        when(amsClientFactory.buildClient(anyString()))
-                .thenReturn(mockClient);
+        for (int i = 0; i < endpoints.length; i++) {
+            roleEndpoints.add(new RoleEndpoint(
+                    (long) i + 1,
+                    role,
+                    role,
+                    endpoints[i],
+                    LocalDateTime.now(),
+                    null
+            ));
+        }
 
-        var resp = new org.grnet.status.dtos.ams.PublishResponse();
-        resp.setMessageIds(List.of("mock-msg"));
-
-        when(mockClient.publish(anyString(), anyString(), anyString(), any()))
-                .thenReturn(resp);
+        ((TestRoleEndpointRepository) roleEndpointRepository).set(roleEndpoints);
     }
 
-    // -------------------------------------------------------------------------
-    // TESTS (UNCHANGED LOGIC, ONLY FIXED CONTEXT ORDERING)
-    // -------------------------------------------------------------------------
+    private void mockArgoClientFeed(FeedType feedType) {
+        var response = new WebApiFeedsTopologyResponse();
+        var feedDto = new FeedTopologyDto();
+        feedDto.type = feedType;
+        response.data = List.of(feedDto);
+
+        var status = new Status();
+        status.setMessage("test feed");
+        status.setCode("200");
+
+        when(argoWebApiClient.getFeedTopology(any(), any())).thenReturn(response);
+    }
+
+    private void mockTopologyEndpoints(List<EndpointTopologyDto> endpoints) {
+        var response = new WebApiEndpointTopologyResponse();
+        response.data = endpoints;
+
+        Mockito.when(argoWebApiClient.fetchTopologyEndpointsSuperAdmin(
+                Mockito.anyString(),
+                Mockito.anyString(),
+                Mockito.anyString()
+        )).thenReturn(response);
+    }
 
     @Test
     public void getTenant() {
-
         currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
 
         mockSuperAdmin();
 
-        var tenant = createTenant("LOCALTENANT");
+        var tenant = createTenant();
 
-        // IMPORTANT: allow interceptor access
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "GET_/v1/tenants/{id}",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
+        mockRoleEndpoints("tenant_admin", "GET_/v1/tenants/{id}");
 
         var result = given()
                 .auth().oauth2(adminToken)
@@ -223,11 +205,11 @@ public class TenantEndpointTest extends KeycloakTest {
 
     @Test
     public void updateTenant() {
-        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
-        mockSuperAdmin();
-        var request = createTenant("LOCALTENANT");
+        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
 
-        //var webApi = new ArgoWebApiRequest();
+        mockSuperAdmin();
+
+        var request = createTenant();
 
         var request1 = new TenantRequestDto();
         var tenantInfo1 = new TenantInfoDto();
@@ -250,7 +232,6 @@ public class TenantEndpointTest extends KeycloakTest {
                 .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
                 .body(request1)
-                .contentType(ContentType.JSON)
                 .when()
                 .put("/v1/tenants/{id}", request.id)
                 .then()
@@ -261,23 +242,23 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals("LOCALTENANT", response1.info.name);
     }
 
-
     @Test
     public void updateNotExistingTenant() {
         currentMockId = UUID.randomUUID().toString();
 
         mockSuperAdmin();
 
-        var req = new TenantRequestDto();
+        var request = new TenantRequestDto();
         var info = new TenantInfoDto();
+
         info.name = "NOT_EXIST";
         info.email = "test@test.com";
-        req.info = info;
+        request.info = info;
 
         var response = given()
                 .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
-                .body(req)
+                .body(request)
                 .put("/v1/tenants/{id}", currentMockId)
                 .then()
                 .statusCode(404)
@@ -293,16 +274,18 @@ public class TenantEndpointTest extends KeycloakTest {
 
         mockSuperAdmin();
 
-        var tenant = createTenant("LOCALTENANT");
+        var tenant = createTenant();
+
+        currentMockId = tenant.id;
         mockTenantViewer();
 
-        var req = new TenantRequestDto();
-        req.info = new TenantInfoDto();
+        var request = new TenantRequestDto();
+        request.info = new TenantInfoDto();
 
         given()
                 .auth().oauth2(tenantViewer)
                 .contentType(ContentType.JSON)
-                .body(req)
+                .body(request)
                 .put("/v1/tenants/{id}", tenant.id)
                 .then()
                 .statusCode(403);
@@ -310,27 +293,17 @@ public class TenantEndpointTest extends KeycloakTest {
 
     @Test
     public void viewTenants() {
-
         currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
+
         mockSuperAdmin();
         mockTenantViewer();
 
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_viewer",
-                        "tenant_viewer",
-                        "GET_/v1/tenants",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
+        mockRoleEndpoints("tenant_viewer", "GET_/v1/tenants");
 
-        var tenant = createTenant("LOCALTENANT");
+        createTenant();
 
         var list = given()
-                .auth()
-                .oauth2(tenantViewer)
+                .auth().oauth2(tenantViewer)
                 .contentType(ContentType.JSON)
                 .get("/v1/tenants")
                 .then()
@@ -341,47 +314,13 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals(0, list.getContent().size());
     }
 
-
-    //    @Test
-//    public void viewTenants() {
-//
-//        currentMockId = UUID.randomUUID().toString();
-//
-//        mockSuperAdmin();
-//        mockTenantViewer();
-//
-//        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-//                new RoleEndpoint(
-//                        1L,
-//                        "tenant_viewer",
-//                        "tenant_viewer",
-//                        "GET_/v1/tenants",
-//                        LocalDateTime.now()
-//                )
-//        ));
-//
-//        // FIX: unique tenant to avoid duplicate error
-//        var tenantName = "LOCALTENANT-" + UUID.randomUUID();
-//        createTenant(tenantName);
-//
-//        var list = given()
-//                .auth().oauth2(tenantViewer)
-//                .contentType(ContentType.JSON)
-//                .get("/v1/tenants")
-//                .then()
-//                .statusCode(200)
-//                .extract()
-//                .as(PageResource.class);
-//
-//        assertEquals(1, list.getContent().size());
-//    }
     @Test
     public void testGetProjectsByTenant() {
         currentMockId = UUID.randomUUID().toString();
 
         mockSuperAdmin();
 
-        var tenant = createTenant("LOCALTENANT");
+        var tenant = createTenant();
 
         var project = given()
                 .auth().oauth2(adminToken)
@@ -417,41 +356,6 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals(1, result.getContent().size());
     }
 
-//    @Test
-//    public void fetchReports() {
-//
-//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
-//        mockSuperAdmin();
-//        var tenant = createTenant("LOCALTENANT");
-//
-//        mockTenantViewer();
-//
-//        // IMPORTANT: mock interceptor role endpoint lookup
-//        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-//                new RoleEndpoint(
-//                        1L,
-//                        "tenant_viewer",
-//                        "tenant_viewer",
-//                        "GET_/v1/tenants/{id}/reports",
-//                        LocalDateTime.now()
-//                )
-//        ));
-//
-//        var reports = given()
-//                .auth()
-//                .oauth2(tenantViewer)
-//                .contentType(ContentType.JSON)
-//                .when()
-//                .get("/v1/tenants/{id}/reports", tenant.id)
-//                .then()
-//                .statusCode(200)
-//                .extract()
-//                .as(PartialReportResponseDto[].class);
-//
-//        assertNotNull(reports);
-//        assertTrue(reports.length > 0);
-//    }
-
     @Test
     public void notExistingTenant() {
         currentMockId = UUID.randomUUID().toString();
@@ -465,31 +369,23 @@ public class TenantEndpointTest extends KeycloakTest {
                 .statusCode(404);
     }
 
-
     @Test
     public void checkSlugNotExists() {
-
         currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
 
         mockSuperAdmin();
 
-        var tenant = createTenant("LOCALTENANT");
+        var tenant = createTenant();
 
+        currentMockId = tenant.id;
         mockTenantViewer();
 
-        // IMPORTANT: mock interceptor role endpoint lookup
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_viewer",
-                        "tenant_viewer",
-                        "GET_/v1/tenants/{id}/pages/check-slug/{slug}",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
+        mockRoleEndpoints(
+                "tenant_viewer",
+                "GET_/v1/tenants/{id}/pages/check-slug/{slug}"
+        );
 
-        var resp = given()
+        var response = given()
                 .auth().oauth2(tenantViewer)
                 .get("/v1/tenants/{id}/pages/check-slug/{slug}", tenant.id, "slug")
                 .then()
@@ -497,213 +393,80 @@ public class TenantEndpointTest extends KeycloakTest {
                 .extract()
                 .as(ExistResponseDto.class);
 
-        assertFalse(resp.exist);
+        assertFalse(response.exist);
     }
 
     @Test
     public void createIncident() {
+        var tenant = setupTenantAdmin();
 
-        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+        mockRoleEndpoints(
+                "tenant_admin",
+                "POST_/v1/tenants/{id}/incidents"
+        );
 
-        mockSuperAdmin();
-
-        var tenant = createTenant("LOCALTENANT");
-
-        currentMockId = tenant.id;
-        mockTenantAdmin();
-
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "POST_/v1/tenants/{id}/incidents",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
-
-        var request = new IncidentRequestDto();
-        request.title = "ESHOP unavailable";
-        request.description = "Users cannot access the ESHOP service.";
-
-        request.service = new ServiceDto();
-        request.service.id = "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
-        request.service.name = "ESHOP";
-
-        var response = given()
-                .auth()
-                .oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-                .when()
-                .post("/v1/tenants/{id}/incidents", tenant.id)
-                .then()
-                .statusCode(201)
-                .extract()
-                .as(IncidentResponseDto.class);
+        var response = createIncident(tenant.id);
 
         assertNotNull(response.id);
         assertNotNull(response.incidentNumber);
         assertTrue(response.incidentNumber.matches("INC-\\d{4}-\\d{6,}"));
-
         assertEquals("ESHOP unavailable", response.title);
         assertEquals("Users cannot access the ESHOP service.", response.description);
-
-        assertEquals(IncidentStatus.REPORTED, response.status);
-
+        assertEquals(IncidentStatus.NEW, response.status);
         assertNotNull(response.createdBy);
-
         assertNotNull(response.service);
         assertEquals("6a6e8037-1e23-4b65-a75a-37d9e8d5bc44", response.service.id);
         assertEquals("ESHOP", response.service.name);
-
         assertNotNull(response.createdAt);
         assertNotNull(response.updatedAt);
     }
 
     @Test
     public void updateIncidentStatus() {
+        var tenant = setupTenantAdmin();
 
-        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+        mockRoleEndpoints(
+                "tenant_admin",
+                "POST_/v1/tenants/{id}/incidents",
+                "PATCH_/v1/tenants/{id}/incidents/{incident-id}/status"
+        );
 
-        mockSuperAdmin();
+        var incident = createIncident(tenant.id);
 
-        var tenant = createTenant("LOCALTENANT");
-
-        currentMockId = tenant.id;
-        mockTenantAdmin();
-
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "POST_/v1/tenants/{id}/incidents",
-                        LocalDateTime.now(),
-                        null
-                ),
-                new RoleEndpoint(
-                        2L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "PATCH_/v1/tenants/{id}/incidents/{incident_id}/status",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
-
-        var createRequest = new IncidentRequestDto();
-        createRequest.title = "ESHOP unavailable";
-        createRequest.description = "Users cannot access the ESHOP service.";
-
-        createRequest.service = new ServiceDto();
-        createRequest.service.id = "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
-        createRequest.service.name = "ESHOP";
-
-        var incident = given()
-                .auth()
-                .oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(createRequest)
-                .when()
-                .post("/v1/tenants/{id}/incidents", tenant.id)
-                .then()
-                .statusCode(201)
-                .extract()
-                .as(IncidentResponseDto.class);
-
-        var updateRequest = new IncidentUpdateRequestDto();
-        updateRequest.status = IncidentStatus.INVESTIGATING;
-
-        var response = given()
-                .auth()
-                .oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(updateRequest)
-                .when()
-                .patch("/v1/tenants/{id}/incidents/{incident_id}/status", tenant.id, incident.id)
-                .then()
-                .statusCode(200)
-                .extract()
-                .as(IncidentResponseDto.class);
+        var response = updateIncidentStatus(tenant.id, incident.id, IncidentStatus.ASSIGNED);
 
         assertEquals(incident.id, response.id);
         assertEquals(incident.incidentNumber, response.incidentNumber);
-        assertEquals(IncidentStatus.INVESTIGATING, response.status);
+        assertEquals(IncidentStatus.ASSIGNED, response.status);
     }
 
     @Test
     public void createIncidentComment() {
+        var tenant = setupTenantAdmin();
 
-        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+        mockRoleEndpoints(
+                "tenant_admin",
+                "POST_/v1/tenants/{id}/incidents",
+                "POST_/v1/tenants/{id}/incidents/{incident-id}/comments"
+        );
 
-        mockSuperAdmin();
-
-        var tenant = createTenant("LOCALTENANT");
-
-        currentMockId = tenant.id;
-        mockTenantAdmin();
-
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "POST_/v1/tenants/{id}/incidents",
-                        LocalDateTime.now(),
-                        null
-                ),
-                new RoleEndpoint(
-                        2L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "POST_/v1/tenants/{id}/incidents/{incident_id}/comments",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
-
-        var createRequest = new IncidentRequestDto();
-        createRequest.title = "ESHOP unavailable";
-        createRequest.description =
-                "Users cannot access the ESHOP service.";
-
-        createRequest.service = new ServiceDto();
-        createRequest.service.id =
-                "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
-        createRequest.service.name = "ESHOP";
-
-        var incident = given()
-                .auth()
-                .oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(createRequest)
-                .when()
-                .post("/v1/tenants/{id}/incidents", tenant.id)
-                .then()
-                .statusCode(201)
-                .extract()
-                .as(IncidentResponseDto.class);
+        var incident = createIncident(tenant.id);
 
         var commentRequest = new IncidentCommentRequestDto();
         commentRequest.comment = "The service owner has been contacted.";
 
         var response = given()
-                .auth()
-                .oauth2(adminToken)
+                .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
                 .body(commentRequest)
-                .when()
-                .post("/v1/tenants/{id}/incidents/{incident_id}/comments", tenant.id, incident.id)
+                .post("/v1/tenants/{id}/incidents/{incident-id}/comments", tenant.id, incident.id)
                 .then()
                 .statusCode(201)
                 .extract()
                 .as(IncidentResponseDto.class);
 
         assertEquals(incident.id, response.id);
-        assertEquals(IncidentStatus.REPORTED, response.status);
-
+        assertEquals(IncidentStatus.NEW, response.status);
         assertNotNull(response.comments);
         assertEquals(1, response.comments.size());
 
@@ -711,156 +474,65 @@ public class TenantEndpointTest extends KeycloakTest {
 
         assertNotNull(comment.id);
         assertEquals("The service owner has been contacted.", comment.comment);
-
     }
-
 
     @Test
     public void getAllIncidents() {
+        var tenant = setupTenantAdmin();
 
-        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+        mockRoleEndpoints(
+                "tenant_admin",
+                "POST_/v1/tenants/{id}/incidents",
+                "GET_/v1/tenants/{id}/incidents"
+        );
 
-        mockSuperAdmin();
+        createIncident(tenant.id);
 
-        var tenant = createTenant("LOCALTENANT");
-
-        currentMockId = tenant.id;
-        mockTenantAdmin();
-
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "POST_/v1/tenants/{id}/incidents",
-                        LocalDateTime.now(),
-                        null
-                ),
-                new RoleEndpoint(
-                        2L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "GET_/v1/tenants/{id}/incidents",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
-
-        var firstRequest = new IncidentRequestDto();
-        firstRequest.title = "ESHOP unavailable";
-        firstRequest.description = "Users cannot access the ESHOP service.";
-
-        firstRequest.service = new ServiceDto();
-        firstRequest.service.id = "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
-        firstRequest.service.name = "ESHOP";
+        var secondRequest = buildIncidentRequest(
+                "FORUM degraded",
+                "Users experience delays in the FORUM service.",
+                "4e4f96be-a7a4-41b7-b765-d003e421ab44",
+                "FORUM"
+        );
 
         given()
-                .auth()
-                .oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(firstRequest)
-                .when()
-                .post("/v1/tenants/{id}/incidents", tenant.id)
-                .then()
-                .statusCode(201);
-
-        var secondRequest = new IncidentRequestDto();
-        secondRequest.title = "FORUM degraded";
-        secondRequest.description = "Users experience delays in the FORUM service.";
-
-        secondRequest.service = new ServiceDto();
-        secondRequest.service.id = "4e4f96be-a7a4-41b7-b765-d003e421ab44";
-        secondRequest.service.name = "FORUM";
-
-        given()
-                .auth()
-                .oauth2(adminToken)
+                .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
                 .body(secondRequest)
-                .when()
                 .post("/v1/tenants/{id}/incidents", tenant.id)
                 .then()
                 .statusCode(201);
 
         var response = given()
-                .auth()
-                .oauth2(adminToken)
+                .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
                 .queryParam("page", 1)
                 .queryParam("size", 10)
-                .when()
                 .get("/v1/tenants/{id}/incidents", tenant.id)
                 .then()
                 .statusCode(200)
                 .extract()
                 .as(PageResource.class);
 
-
         assertEquals(2, response.getTotalElements());
     }
 
     @Test
     public void getIncident() {
+        var tenant = setupTenantAdmin();
 
-        currentMockId = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f";
+        mockRoleEndpoints(
+                "tenant_admin",
+                "POST_/v1/tenants/{id}/incidents",
+                "GET_/v1/tenants/{id}/incidents/{incident-id}"
+        );
 
-        mockSuperAdmin();
-
-        var tenant = createTenant("LOCALTENANT");
-
-        currentMockId = tenant.id;
-        mockTenantAdmin();
-
-        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-                new RoleEndpoint(
-                        1L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "POST_/v1/tenants/{id}/incidents",
-                        LocalDateTime.now(),
-                        null
-                ),
-                new RoleEndpoint(
-                        2L,
-                        "tenant_admin",
-                        "tenant_admin",
-                        "GET_/v1/tenants/{id}/incidents/{incident_id}",
-                        LocalDateTime.now(),
-                        null
-                )
-        ));
-
-        var createRequest = new IncidentRequestDto();
-        createRequest.title = "ESHOP unavailable";
-        createRequest.description = "Users cannot access the ESHOP service.";
-
-        createRequest.service = new ServiceDto();
-        createRequest.service.id =
-                "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
-        createRequest.service.name = "ESHOP";
-
-        var incident = given()
-                .auth()
-                .oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(createRequest)
-                .when()
-                .post("/v1/tenants/{id}/incidents", tenant.id)
-                .then()
-                .statusCode(201)
-                .extract()
-                .as(IncidentResponseDto.class);
+        var incident = createIncident(tenant.id);
 
         var response = given()
-                .auth()
-                .oauth2(adminToken)
+                .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
-                .when()
-                .get(
-                        "/v1/tenants/{id}/incidents/{incident_id}",
-                        tenant.id,
-                        incident.id
-                )
+                .get("/v1/tenants/{id}/incidents/{incident-id}", tenant.id, incident.id)
                 .then()
                 .statusCode(200)
                 .extract()
@@ -869,33 +541,199 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals(incident.id, response.id);
         assertEquals(incident.incidentNumber, response.incidentNumber);
         assertEquals("ESHOP unavailable", response.title);
-        assertEquals(
-                "Users cannot access the ESHOP service.",
-                response.description
-        );
-
-        assertEquals(IncidentStatus.REPORTED, response.status);
+        assertEquals("Users cannot access the ESHOP service.", response.description);
+        assertEquals(IncidentStatus.NEW, response.status);
         assertNotNull(response.createdBy);
-
         assertNotNull(response.service);
-        assertEquals(
-                "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44",
-                response.service.id
-        );
+        assertEquals("6a6e8037-1e23-4b65-a75a-37d9e8d5bc44", response.service.id);
         assertEquals("ESHOP", response.service.name);
-
         assertNotNull(response.createdAt);
         assertNotNull(response.updatedAt);
     }
 
-    // -------------------------------------------------------------------------
-    // HELPERS
-    // -------------------------------------------------------------------------
-    private TenantResponseDto createTenant(String tenantName) {
+    @Test
+    public void getIncidentActivity() {
+        var tenant = setupTenantAdmin();
+
+        mockRoleEndpoints(
+                "tenant_admin",
+                "POST_/v1/tenants/{id}/incidents",
+                "PATCH_/v1/tenants/{id}/incidents/{incident-id}/status",
+                "GET_/v1/tenants/{id}/incidents/{incident-id}/activity"
+        );
+
+        var incident = createIncident(tenant.id);
+
+        updateIncidentStatus(tenant.id, incident.id, IncidentStatus.ASSIGNED);
+        updateIncidentStatus(tenant.id, incident.id, IncidentStatus.IN_PROGRESS);
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .get("/v1/tenants/{id}/incidents/{incident-id}/activity", tenant.id, incident.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(IncidentActivityResponseDto[].class);
+
+        assertEquals(2, response.length);
+        assertEquals(IncidentStatus.NEW, response[0].previousStatus);
+        assertEquals(IncidentStatus.ASSIGNED, response[0].newStatus);
+        assertEquals("admin", response[1].changedBy);
+        assertNotNull(response[1].createdAt);
+    }
+
+    @Test
+    public void testCreateDowntimeNotExistingTopologyItems() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+        mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
+
+        mockTopologyEndpoints(List.of(
+                endpointSample("service3", "host1.example.org"),
+                endpointSample("service2", "host3.example.org")
+        ));
+
+        var tenant = createTenant();
+        var request = buildCreateDowntime();
+
+        given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testCreateDowntime() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+        mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
+
+        mockTopologyEndpoints(List.of(
+                endpointSample("service1", "host1.example.org"),
+                endpointSample("service2", "host2.example.org")
+        ));
+
+        var tenant = createTenant();
+        var request = buildCreateDowntime();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(DowntimeResponse.class);
+
+        assertNotNull(created.getId());
+        assertEquals(2, created.getServices().size());
+    }
+
+    @Test
+    public void testCreateDowntimeForbiddenFeed() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockArgoClientFeed(FeedType.EXTERNAL);
+
+        mockTopologyEndpoints(List.of(
+                endpointSample("service1", "host1.example.org"),
+                endpointSample("service2", "host2.example.org")
+        ));
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+        var request = buildCreateDowntime();
+
+        given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    public void testCreateDowntimeNonFeed() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockTopologyEndpoints(List.of(
+                endpointSample("service1", "host1.example.org"),
+                endpointSample("service2", "host2.example.org")
+        ));
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+        var request = buildCreateDowntime();
+
+        given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    public void testUpdateDowntime() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
+
+        mockTopologyEndpoints(List.of(
+                endpointSample("service1", "host1.example.org"),
+                endpointSample("service2", "host2.example.org")
+        ));
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+        var request = buildCreateDowntime();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(DowntimeResponse.class);
+
+        mockTopologyEndpoints(List.of(endpointSample("service6", "hostname6.example.org")));
+
+        var updateRequest = buildUpdateDowntime();
+
+        var updated = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(updateRequest)
+                .put("/v1/tenants/{id}/downtimes/{downtime_id}", tenant.id, created.getId())
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(DowntimeResponse.class);
+
+        assertEquals(1, updated.getServices().size());
+        assertEquals(DowntimeSeverity.Warning.name(), updated.getSeverity());
+    }
+
+    private TenantResponseDto createTenant() {
         var request = new TenantRequestDto();
         var tenantInfo = new TenantInfoDto();
         var tenantContact = new ContactDto();
-        tenantInfo.name = tenantName;
+
+        tenantInfo.name = "LOCALTENANT";
         tenantInfo.email = "test@gmail.com";
         tenantInfo.description = "this is test tenant description";
         tenantInfo.image = "https://example/image.png";
@@ -912,7 +750,6 @@ public class TenantEndpointTest extends KeycloakTest {
                 .auth().oauth2(adminToken)
                 .contentType(ContentType.JSON)
                 .body(request)
-                .when()
                 .post("/v1/admin/tenants")
                 .then()
                 .statusCode(200)
@@ -920,6 +757,75 @@ public class TenantEndpointTest extends KeycloakTest {
                 .as(TenantResponseDto.class);
     }
 
+    private TenantResponseDto setupTenantAdmin() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        currentMockId = tenant.id;
+        mockTenantAdmin();
+
+        return tenant;
+    }
+
+    private IncidentRequestDto buildIncidentRequest() {
+        return buildIncidentRequest(
+                "ESHOP unavailable",
+                "Users cannot access the ESHOP service.",
+                "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44",
+                "ESHOP"
+        );
+    }
+
+    private IncidentRequestDto buildIncidentRequest(
+            String title,
+            String description,
+            String serviceId,
+            String serviceName
+    ) {
+        var request = new IncidentRequestDto();
+
+        request.title = title;
+        request.description = description;
+        request.service = new ServiceDto();
+        request.service.id = serviceId;
+        request.service.name = serviceName;
+
+        return request;
+    }
+
+    private IncidentResponseDto createIncident(String tenantId) {
+        return given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(buildIncidentRequest())
+                .post("/v1/tenants/{id}/incidents", tenantId)
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(IncidentResponseDto.class);
+    }
+
+    private IncidentResponseDto updateIncidentStatus(
+            String tenantId,
+            String incidentId,
+            IncidentStatus status
+    ) {
+        var request = new IncidentUpdateRequestDto();
+        request.status = status;
+
+        return given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .patch("/v1/tenants/{id}/incidents/{incident-id}/status", tenantId, incidentId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(IncidentResponseDto.class);
+    }
 
     private ProjectRequestDto buildProject() {
         var dto = new ProjectRequestDto();
@@ -931,198 +837,45 @@ public class TenantEndpointTest extends KeycloakTest {
     }
 
     private TenantWebApiCreateResponse loadMockTenantResponse(String id) {
-        var r = new TenantWebApiCreateResponse();
-        var d = new TenantWebApiCreateResponse.Data();
-        d.setId(id);
-        r.setData(d);
-        return r;
+        var response = new TenantWebApiCreateResponse();
+        var data = new TenantWebApiCreateResponse.Data();
+
+        data.setId(id);
+        response.setData(data);
+
+        return response;
     }
 
     private TenantWebApiGetResponse loadMockTenantGetResponse(String id) {
-        var r = new TenantWebApiGetResponse();
-        var d = new TenantWebApiGetResponse.Data();
-        d.setId(id);
+        var response = new TenantWebApiGetResponse();
+        var data = new TenantWebApiGetResponse.Data();
+
+        data.setId(id);
 
         var info = new TenantWebApiGetResponse.Info();
         info.setName("LOCALTENANT");
-        d.setInfo(info);
-        var dbConf=new TenantWebApiGetResponse.DbConf();
+        data.setInfo(info);
+
+        var dbConf = new TenantWebApiGetResponse.DbConf();
         dbConf.setPort(80);
         dbConf.setDatabase("mydb");
         dbConf.setPassword("password");
         dbConf.setServer("server1.test.org");
         dbConf.setStore("store");
         dbConf.setUsername("username");
-        var list=new ArrayList<TenantWebApiGetResponse.DbConf>();
+
+        var list = new ArrayList<TenantWebApiGetResponse.DbConf>();
         list.add(dbConf);
-        d.setDb_conf(list);
 
-        r.setData(List.of(d));
-        return r;
+        data.setDb_conf(list);
+        response.setData(List.of(data));
+
+        return response;
     }
-
-
-    @Test
-    public void testCreateDowntimeNotExistingTopologyItems() {
-        currentMockId = UUID.randomUUID().toString();
-
-        mockSuperAdmin();
-        mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
-
-        mockTopologyEndpoints(List.of(
-                EndpointSample("service3", "host1.example.org"),
-                EndpointSample("service2", "host3.example.org")
-        ));
-        var tenant = createTenant("LOCALTENANT");
-
-        var req = buildCreateDowntime();
-
-        var created = given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(req)
-                .when()
-                .post("/v1/tenants/{id}/downtimes", tenant.id)
-                .then()
-                .statusCode(404);
-    }
-
-    @Test
-    public void testCreateDowntime() {
-        currentMockId = UUID.randomUUID().toString();
-
-        mockSuperAdmin();
-        mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
-        //      mockTenantInitialized(tenant.id);
-
-        mockTopologyEndpoints(List.of(
-                EndpointSample("service1", "host1.example.org"),
-                EndpointSample("service2", "host2.example.org")
-        ));
-        var tenant = createTenant("LOCALTENANT");
-
-        var req = buildCreateDowntime();
-
-        var created = given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(req)
-                .when()
-                .post("/v1/tenants/{id}/downtimes", tenant.id)
-                .then()
-                .statusCode(200)
-                .extract()
-                .as(DowntimeResponse.class);
-
-        assertNotNull(created.getId());
-        assertEquals(2, created.getServices().size());
-    }
-
-    @Test
-    public void testCreateDowntimeForbiddenFeed() {
-        currentMockId = UUID.randomUUID().toString();
-        mockArgoClientFeed(FeedType.EXTERNAL);
-        mockTopologyEndpoints(List.of(
-                EndpointSample("service1", "host1.example.org"),
-                EndpointSample("service2", "host2.example.org")
-        ));
-
-        mockSuperAdmin();
-
-        var tenant = createTenant("LOCALTENANT");
-
-        var req = buildCreateDowntime();
-
-        given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(req)
-                .when()
-                .post("/v1/tenants/{id}/downtimes", tenant.id)
-                .then()
-                .statusCode(403);
-
-    }
-
-    @Test
-    public void testCreateDowntimeNonFeed() {
-        currentMockId = UUID.randomUUID().toString();
-        mockTopologyEndpoints(List.of(
-                EndpointSample("service1", "host1.example.org"),
-                EndpointSample("service2", "host2.example.org")
-        ));
-
-        mockSuperAdmin();
-
-        var tenant = createTenant("LOCALTENANT");
-
-
-        var req = buildCreateDowntime();
-
-        given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(req)
-                .when()
-                .post("/v1/tenants/{id}/downtimes", tenant.id)
-                .then()
-                .statusCode(403);
-
-    }
-
-    @Test
-    public void testUpdateDowntime() {
-        currentMockId = UUID.randomUUID().toString();
-        mockArgoClientFeed(FeedType.DESY_MARKETPLACE);
-
-        mockTopologyEndpoints(List.of(
-                EndpointSample("service1", "host1.example.org"),
-                EndpointSample("service2", "host2.example.org")
-        ));
-
-        mockSuperAdmin();
-
-        var tenant = createTenant("LOCALTENANT");
-        var req = buildCreateDowntime();
-
-
-        var created = given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(req)
-                .when()
-                .post("/v1/tenants/{id}/downtimes", tenant.id)
-                .then()
-                .statusCode(200)
-                .extract()
-                .as(DowntimeResponse.class);
-
-        mockTopologyEndpoints(List.of(
-                EndpointSample("service6", "hostname6.example.org")
-        ));
-
-        var req2 = buildUpdateDowntime();
-
-        var updated = given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(req2)
-                .when()
-                .put("/v1/tenants/{id}/downtimes/{downtime_id}", tenant.id, created.getId())
-                .then()
-                .statusCode(200)
-                .extract()
-                .as(DowntimeResponse.class);
-
-        assertEquals(1, updated.getServices().size());
-
-        assertEquals(DowntimeSeverity.Warning.name(), updated.getSeverity());
-    }
-
 
     private DowntimeRequest buildCreateDowntime() {
-
         var dto = new DowntimeRequest();
+
         dto.setName("Test Downtime ");
         dto.setMessage("This is a test downtime");
         dto.setSeverity("Outage");
@@ -1137,44 +890,31 @@ public class TenantEndpointTest extends KeycloakTest {
         service2.setHostname("host2.example.org");
         service2.setService("service2");
 
-        var list = new ArrayList<DowntimeServiceEndpointRequest>();
-        list.add(service1);
-        list.add(service2);
-        dto.setServices(list);
-        return dto;
-    }
-
-    private FeedTopologyDto buildFeedType(FeedType type) {
-
-        var dto = new FeedTopologyDto();
-        dto.type = type;
-        dto.feedUrl = "https://example.com";
+        dto.setServices(List.of(service1, service2));
 
         return dto;
     }
-
 
     private DowntimeRequest buildUpdateDowntime() {
-
         var dto = new DowntimeRequest();
+
         dto.setName("Test Downtime Updated");
         dto.setMessage("This is a test downtime updated");
         dto.setSeverity("Warning");
         dto.setScheduledAt(Instant.parse("2025-01-22T12:44:48.107Z"));
         dto.setCompletedAt(Instant.parse("2025-01-22T12:44:48.107Z"));
 
-        var service1 = new DowntimeServiceEndpointRequest();
-        service1.setHostname("hostname6.example.org");
-        service1.setService("service6");
+        var service = new DowntimeServiceEndpointRequest();
+        service.setHostname("hostname6.example.org");
+        service.setService("service6");
 
-        var list = new ArrayList<DowntimeServiceEndpointRequest>();
-        list.add(service1);
-        dto.setServices(list);
+        dto.setServices(List.of(service));
+
         return dto;
     }
 
-    private EndpointTopologyDto EndpointSample(String service, String hostname) {
-        EndpointTopologyDto dto = new EndpointTopologyDto();
+    private EndpointTopologyDto endpointSample(String service, String hostname) {
+        var dto = new EndpointTopologyDto();
         dto.setService(service);
         dto.setHostname(hostname);
         return dto;

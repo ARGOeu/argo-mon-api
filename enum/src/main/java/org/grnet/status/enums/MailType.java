@@ -93,7 +93,7 @@ public enum MailType {
         }
     },
 
-    INCIDENT_REPORTED {
+    INCIDENT_CREATED {
         @Override
         public MailTemplate execute(Template emailTemplate, HashMap<String, Object> templateParams) {
 

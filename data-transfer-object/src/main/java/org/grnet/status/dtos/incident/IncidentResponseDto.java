@@ -58,7 +58,7 @@ public class IncidentResponseDto {
     @Schema(
             implementation = IncidentStatus.class,
             description = "Current incident status",
-            example = "REPORTED"
+            example = "NEW"
     )
     @JsonProperty("status")
     public IncidentStatus status;

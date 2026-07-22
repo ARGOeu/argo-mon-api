@@ -40,8 +40,6 @@ import org.grnet.status.dtos.general.ExistResponseDto;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
-import org.grnet.status.dtos.incident.IncidentRequestDto;
-import org.grnet.status.dtos.incident.IncidentResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
 import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
@@ -4952,6 +4950,94 @@ public class TenantEndpoint {
             UriInfo uriInfo) {
 
         var response = incidentService.getIncidentsByPageAndSize(id, page - 1, size, search, uriInfo);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Get incident activity.",
+            description = "Retrieves the status change history of a specific incident."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident activity retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentActivityResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident activity could not be retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/incidents/{incident-id}/activity")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            }
+    )
+    public Response getIncidentActivity(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id") @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    description = "The ID of the incident.",
+                    required = true,
+                    example = "62491b9b-7c95-4f66-bbd2-2eb407118afc",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
+            String incidentId) {
+
+        var response = incidentService.getIncidentActivity(id, incidentId);
 
         return Response.ok(response).build();
     }
