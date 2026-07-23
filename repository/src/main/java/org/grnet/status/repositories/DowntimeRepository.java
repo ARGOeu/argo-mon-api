@@ -107,4 +107,19 @@ public class DowntimeRepository implements Repository<Downtime,String> {
 
         return find(joiner.toString(), map).list();
     }
+    public boolean existsOverlappingDowntime(
+            String tenantId,
+            Instant scheduledAt,
+            Instant completedAt) {
+
+        return count("""
+            tenant = ?1
+            AND scheduledAt <= ?3
+            AND (completedAt IS NULL OR completedAt >= ?2)
+            """,
+                tenantId,
+                scheduledAt,
+                completedAt == null ? Instant.MAX : completedAt
+        ) > 0;
+    }
 }

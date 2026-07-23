@@ -3,6 +3,7 @@ package org.grnet.status.services;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
@@ -114,11 +115,25 @@ public class DowntimeService {
 
         checkFeedType(id);
         checkEndpoints(id, request.scheduledAt, request.getServices());
-        // Use UTC timestamp truncated to seconds to keep consistent API responses.
-        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        Downtime downtime = DowntimeMapper.INSTANCE.dtoToDowntime(request);
 
-        downtime.setTenant(id);
+        if (request.getScheduledAt() != null) {
+
+            boolean exists = downtimeRepository.existsOverlappingDowntime(
+                    id,
+                    request.getScheduledAt(),
+                    request.getCompletedAt()
+            );
+
+            if (exists) {
+                throw new BadRequestException(
+                        "A downtime already exists for the given period"
+                );
+            }
+        }
+
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        Downtime downtime = DowntimeMapper.INSTANCE.dtoToDowntime(request);        downtime.setTenant(id);
         downtime.setCreatedBy(utility.getUid());
         downtime.setCreatedAt(now);
 
@@ -173,37 +188,56 @@ public class DowntimeService {
     public PageResource<DowntimeResponse> fetchDowntimesByPageAndSize(
             int page,
             int size,
-            String id,
+            String tenantId,
             String date,
+            String startDate,
+            String endDate,
             UriInfo uriInfo) {
 
-        Instant[] timestamps = new Instant[2];
+        Instant start = null;
+        Instant end = null;
 
-        /*
-         * Date filtering is optional.
-         * When provided, it is converted into a UTC start/end range.
-         */
         if (date != null && !date.isBlank()) {
-            timestamps = convertDate(date);
+
+            Instant[] timestamps = convertDate(date);
+            start = timestamps[0];
+            end = timestamps[1];
+
+        } else if (startDate != null && endDate != null) {
+
+            LocalDate startLocal = LocalDate.parse(startDate);
+            LocalDate endLocal = LocalDate.parse(endDate);
+
+            if (startLocal.isAfter(endLocal)) {
+                throw new BadRequestException(
+                        "start_date must be before or equal to end_date.");
+            }
+
+            start = startLocal
+                    .atStartOfDay(ZoneOffset.UTC)
+                    .toInstant();
+
+            end = endLocal
+                    .plusDays(1)
+                    .atStartOfDay(ZoneOffset.UTC)
+                    .minusNanos(1)
+                    .toInstant();
         }
 
-        var tenant = tenantRepository.findById(id);
+        var tenant = tenantRepository.findById(tenantId);
 
         var downtimes = downtimeRepository.findByTenantPageAndSize(
                 page,
                 size,
                 tenant.id,
-                timestamps[0],
-                timestamps[1]
-        );
+                start,
+                end);
 
         return new PageResource<>(
                 downtimes,
                 DowntimeMapper.INSTANCE.downtimesToDtos(downtimes.list()),
-                uriInfo
-        );
+                uriInfo);
     }
-
     @Transactional
     public DowntimeResponse fetchDowntimes(String id, String downtimeId) {
         var downtime = downtimeRepository.findById(downtimeId);
