@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Map;
+
 @Getter
 public class TenantWebApiGroupEndpointResultsByReportResponse {
 
@@ -27,6 +29,7 @@ public class TenantWebApiGroupEndpointResultsByReportResponse {
     public static class EndpointData {
         public String name;
         public String type;
+        public Map<String, String> info;
         public List<ResultData> results;
     }
 

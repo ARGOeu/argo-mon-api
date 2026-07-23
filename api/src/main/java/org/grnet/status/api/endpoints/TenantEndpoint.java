@@ -34,6 +34,8 @@ import org.grnet.status.api.resolvers.CheckDateFormat;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.Status;
+import org.grnet.status.dtos.downtime.DailyDowntimeEndpointResponse;
+import org.grnet.status.dtos.downtime.DailyDowntimeResponse;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
@@ -5324,6 +5326,79 @@ public class TenantEndpoint {
         return Response.ok(response).build();
     }
 
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Fetch a daily downtime for a tenant.",
+            description = "Returns the tenant's specific daily downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DailyDowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
 
+    @GET
+    @Path("/{id}/downtimes/daily")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getDailyDowntimes(
+            @Parameter(
+                    description = "The ID of the tenant to fetch downtimes.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+            @Parameter(
+                    name = "date",
+                    description = "UTC date in yyyy-MM-dd format",
+                    example = "2026-07-22",
+                    required = true
+            )
+            @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd."
+            )
+            @QueryParam("date")
+            @NotNull
+            String date
+    ) {
 
+        return Response.ok(
+                downtimeService.fetchDailyDowntimes(id, date)
+        ).build();
+    }
 }
