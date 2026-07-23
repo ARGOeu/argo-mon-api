@@ -53,7 +53,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 ### Fix 
 
 - [#210](https://github.com/ARGOeu/argo-mon-api/pull/210) ARGO-5792 Enforce Non-Null completed_at and Request Validation for Downtime Dates
-
+- [#212](https://github.com/ARGOeu/argo-mon-api/pull/212) ARGO-5797 Update public REST endpoint paths to use tenant name instead of tenant ID
 ## 1.0.0 - 2026-06-26
 ---
 ### Added
