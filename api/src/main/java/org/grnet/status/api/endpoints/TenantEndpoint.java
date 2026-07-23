@@ -4947,9 +4947,15 @@ public class TenantEndpoint {
                     description = "Optional text used to search incidents by title or service name.")
             @QueryParam("search")
             String search,
-            UriInfo uriInfo) {
+            @Parameter(name = "date", in = QUERY,
+                    description = "Optional creation date used to filter incidents. Format: YYYY-MM-DD.",
+                    example = "2026-07-21")
+            @QueryParam("date")
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            String date,
+            @Context UriInfo uriInfo) {
 
-        var response = incidentService.getIncidentsByPageAndSize(id, page - 1, size, search, uriInfo);
+        var response = incidentService.getIncidentsByPageAndSize(id, page - 1, size, search, date, uriInfo);
 
         return Response.ok(response).build();
     }
