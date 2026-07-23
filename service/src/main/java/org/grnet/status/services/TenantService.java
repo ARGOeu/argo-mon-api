@@ -1021,8 +1021,24 @@ public class TenantService {
     private void sendNotifications(Tenant tenant) {
 
         String createdAt = String.valueOf(Instant.now());
+        AlertDefinitionRequest initAmsAlert =
+                buildAlert(EventName.INIT_AMS, tenant, createdAt);
+       // send(tenant.id, buildAlert(EventName.INIT_AMS, tenant, createdAt), "");
 
-        send(tenant.id, buildAlert(EventName.INIT_AMS, tenant, createdAt), "");
+        // INIT_AMS must complete before INIT_ARCHIVER starts
+        send(tenant.id, initAmsAlert, "")
+                .thenRun(() -> {
+
+                    AlertDefinitionRequest initArchiverAlert =
+                            buildAlert(EventName.INIT_ARCHIVER, tenant, createdAt);
+
+                    send(
+                            tenant.id,
+                            initArchiverAlert,
+                            ""
+                    );
+
+                });
         send(tenant.id, buildAlert(EventName.INIT_MONGO, tenant, createdAt), "");
         send(tenant.id, buildAlert(EventName.INIT_COMPUTE_ENGINE, tenant, createdAt), "");
     }
@@ -1055,40 +1071,191 @@ public class TenantService {
      * @param alert    alert request
      * @param eventMsg custom publish message
      */
-    private void send(String id, AlertDefinitionRequest alert, String eventMsg) {
+//    private void send(String id, AlertDefinitionRequest alert, String eventMsg) {
+//
+//        final var hasCustomMsg = eventMsg != null && !eventMsg.isEmpty();
+//
+//
+//        // INITIALISING message
+//        final var publishingMsg = hasCustomMsg
+//                ? eventMsg
+//                : "The event notification " + alert.name + " has been sent to the queue to start the required job.";
+//
+//
+//        // Your special INITIALISED message (only when eventMsg exists)
+//        final var customInitialisedMsg =
+//                "The validation check has been scheduled for execution, and will ensure all data, " +
+//                        "variables, and configuration environments are properly aligned before any further action is taken.";
+//
+//
+//        // FINAL INITIALISED message
+//        final var initialisedMsg = hasCustomMsg
+//                ? customInitialisedMsg
+//                : "Acknowledged. The event " + alert.name +
+//                " has been received by the queue and scheduled for execution.";
+//
+//        // CUSTOM FAILED
+//        final var customFailedMsg =
+//                "Failed: The validation check has failed to start. ";
+//
+//        // FAILED
+//        final var failedMsg =
+//                hasCustomMsg
+//                        ? customFailedMsg
+//                        : "Failed: The initialization of job " +
+//                        alert.name + " failed.";
+//        try {
+//            final var now = Instant.now();
+//
+//            final var objectMapper = new ObjectMapper();
+//            final var json = objectMapper.writeValueAsString(alert);
+//
+//            Log.infof(
+//                    "Sending to Messaging Service | project=%s | topic=%s | tenantId=%s | event=%s",
+//                    amsService.getProject(),
+//                    amsService.getTopic(),
+//                    id,
+//                    alert.name.toUpperCase()
+//            );
+//
+//
+//            final var encodedData = Base64.getEncoder().encodeToString(json.getBytes());
+//
+//            final var message = new PublishRequest.Message();
+//
+//            message.setData(encodedData);
+//
+//            final var publishData = new PublishRequest();
+//            publishData.setMessages(List.of(message));
+//
+//
+//            // 1. INITIALISING
+//            updateTenantAlerts(
+//                    id,
+//                    setAlert(
+//                            alert.name,
+//                            EventStatus.INITIALISING,
+//                            publishingMsg,
+//                            now,
+//                            alert.properties
+//                    )
+//            );
+//
+//
+//            // 2. Async publish
+//            CompletableFuture
+//                    .runAsync(
+//                            () -> amsService.publishMessage(publishData),
+//                            executorService
+//                    )
+//
+//
+//                    // 3. INITIALISED
+//                    .thenRun(() -> {
+//                        try {
+//                            updateTenantAlerts(
+//                                    id,
+//                                    setAlert(
+//                                            alert.name,
+//                                            EventStatus.INITIALISED,
+//                                            initialisedMsg,
+//                                            now,
+//                                            alert.properties
+//                                    )
+//                            );
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
+//                    })
+//
+//
+//                    // 4. FINAL RESULT
+//                    .whenComplete((ignored, throwable) -> {
+//
+//                        try {
+//                            if (throwable == null) {
+//
+//                                updateTenantAlerts(
+//                                        id,
+//                                        setAlert(
+//                                                alert.name,
+//                                                EventStatus.INITIALISED,
+//                                                initialisedMsg,
+//                                                now,
+//                                                alert.properties
+//                                        )
+//                                );
+//
+//                                Log.debugf(
+//                                        "Messaging Service publish succeeded for tenantId=%s, alert=%s",
+//                                        id,
+//                                        alert.name
+//                                );
+//
+//                            } else {
+//
+//                                Log.errorf(
+//                                        throwable,
+//                                        "Messaging Service publish failed for tenantId=%s, alert=%s",
+//                                        id,
+//                                        alert.name
+//                                );
+//
+//                                updateTenantAlerts(
+//                                        id,
+//                                        setAlert(
+//                                                alert.name,
+//                                                EventStatus.FAILED_INITIALISATION,
+//                                                failedMsg,
+//                                                now,
+//                                                alert.properties
+//                                        )
+//                                );
+//                            }
+//
+//                        } catch (Exception e) {
+//                            Log.error("Failed to update tenant status", e);
+//                        }
+//                    });
+//
+//        } catch (Exception e) {
+//
+//            Log.error("Failed to send alert to Messaging Service", e);
+//
+//            throw new RuntimeException(
+//                    "Sending notification... Event " + alert.name + " delivery failed.",
+//                    e
+//            );
+//        }
+//    }
+
+
+    private CompletableFuture<Void> send(String id, AlertDefinitionRequest alert, String eventMsg) {
 
         final var hasCustomMsg = eventMsg != null && !eventMsg.isEmpty();
 
-
-        // INITIALISING message
         final var publishingMsg = hasCustomMsg
                 ? eventMsg
                 : "The event notification " + alert.name + " has been sent to the queue to start the required job.";
 
-
-        // Your special INITIALISED message (only when eventMsg exists)
         final var customInitialisedMsg =
                 "The validation check has been scheduled for execution, and will ensure all data, " +
                         "variables, and configuration environments are properly aligned before any further action is taken.";
 
-
-        // FINAL INITIALISED message
         final var initialisedMsg = hasCustomMsg
                 ? customInitialisedMsg
                 : "Acknowledged. The event " + alert.name +
                 " has been received by the queue and scheduled for execution.";
 
-        // CUSTOM FAILED
         final var customFailedMsg =
-                "Failed: The validation check has failed to start. ";
+                "Failed: The validation check has failed to start.";
 
-        // FAILED
-        final var failedMsg =
-                hasCustomMsg
-                        ? customFailedMsg
-                        : "Failed: The initialization of job " +
-                        alert.name + " failed.";
+        final var failedMsg = hasCustomMsg
+                ? customFailedMsg
+                : "Failed: The initialization of job " + alert.name + " failed.";
+
         try {
+
             final var now = Instant.now();
 
             final var objectMapper = new ObjectMapper();
@@ -1102,18 +1269,17 @@ public class TenantService {
                     alert.name.toUpperCase()
             );
 
-
-            final var encodedData = Base64.getEncoder().encodeToString(json.getBytes());
+            final var encodedData =
+                    Base64.getEncoder().encodeToString(json.getBytes());
 
             final var message = new PublishRequest.Message();
-
             message.setData(encodedData);
 
             final var publishData = new PublishRequest();
             publishData.setMessages(List.of(message));
 
 
-            // 1. INITIALISING
+            // 1. INITIALISING status
             updateTenantAlerts(
                     id,
                     setAlert(
@@ -1126,15 +1292,14 @@ public class TenantService {
             );
 
 
-            // 2. Async publish
-            CompletableFuture
+            // 2. Publish asynchronously and return future
+            return CompletableFuture
                     .runAsync(
                             () -> amsService.publishMessage(publishData),
                             executorService
                     )
 
-
-                    // 3. INITIALISED
+                    // 3. Successful completion
                     .thenRun(() -> {
                         try {
                             updateTenantAlerts(
@@ -1143,63 +1308,49 @@ public class TenantService {
                                             alert.name,
                                             EventStatus.INITIALISED,
                                             initialisedMsg,
-                                            now,
+                                            Instant.now(),
                                             alert.properties
                                     )
                             );
+
+                            Log.debugf(
+                                    "Messaging Service publish succeeded for tenantId=%s, alert=%s",
+                                    id,
+                                    alert.name
+                            );
+
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     })
 
+                    // 4. Failure handling
+                    .exceptionally(throwable -> {
 
-                    // 4. FINAL RESULT
-                    .whenComplete((ignored, throwable) -> {
+                        Log.errorf(
+                                throwable,
+                                "Messaging Service publish failed for tenantId=%s, alert=%s",
+                                id,
+                                alert.name
+                        );
 
                         try {
-                            if (throwable == null) {
-
-                                updateTenantAlerts(
-                                        id,
-                                        setAlert(
-                                                alert.name,
-                                                EventStatus.INITIALISED,
-                                                initialisedMsg,
-                                                now,
-                                                alert.properties
-                                        )
-                                );
-
-                                Log.debugf(
-                                        "Messaging Service publish succeeded for tenantId=%s, alert=%s",
-                                        id,
-                                        alert.name
-                                );
-
-                            } else {
-
-                                Log.errorf(
-                                        throwable,
-                                        "Messaging Service publish failed for tenantId=%s, alert=%s",
-                                        id,
-                                        alert.name
-                                );
-
-                                updateTenantAlerts(
-                                        id,
-                                        setAlert(
-                                                alert.name,
-                                                EventStatus.FAILED_INITIALISATION,
-                                                failedMsg,
-                                                now,
-                                                alert.properties
-                                        )
-                                );
-                            }
+                            updateTenantAlerts(
+                                    id,
+                                    setAlert(
+                                            alert.name,
+                                            EventStatus.FAILED_INITIALISATION,
+                                            failedMsg,
+                                            Instant.now(),
+                                            alert.properties
+                                    )
+                            );
 
                         } catch (Exception e) {
                             Log.error("Failed to update tenant status", e);
                         }
+
+                        return null;
                     });
 
         } catch (Exception e) {

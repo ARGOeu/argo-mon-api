@@ -11,6 +11,7 @@ import org.grnet.status.entities.*;
 import org.grnet.status.entities.*;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.StringJoiner;
 
 @ApplicationScoped
@@ -84,5 +85,42 @@ public class DowntimeRepository implements Repository<Downtime,String> {
         pageable.page = Page.of(page , size);
 
         return pageable;
+    }
+
+    public List<Downtime> findOverlappingDowntimes(
+            String tenantId,
+            Instant startDate,
+            Instant endDate) {
+
+        var joiner = new StringJoiner(StringUtils.SPACE);
+
+        joiner.add("from Downtime d");
+        joiner.add("where d.tenant = :tenantId");
+        joiner.add("and d.scheduledAt <= :endDate");
+        joiner.add("and (d.completedAt is null or d.completedAt >= :startDate)");
+        joiner.add("order by d.scheduledAt DESC");
+
+        var map = new HashMap<String, Object>();
+        map.put("tenantId", tenantId);
+        map.put("startDate", startDate);
+        map.put("endDate", endDate);
+
+        return find(joiner.toString(), map).list();
+    }
+
+    public boolean existsOverlappingDowntime(
+            String tenantId,
+            Instant scheduledAt,
+            Instant completedAt) {
+
+        return count("""
+            tenant = ?1
+            AND scheduledAt <= ?3
+            AND (completedAt IS NULL OR completedAt >= ?2)
+            """,
+                tenantId,
+                scheduledAt,
+                completedAt == null ? Instant.MAX : completedAt
+        ) > 0;
     }
 }

@@ -2,7 +2,6 @@ package org.grnet.status.api.endpoints;
 
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
-import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -14,18 +13,12 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.grnet.endpoint.scanner.runtime.ParamRef;
-import org.grnet.endpoint.scanner.runtime.ParamType;
-import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.api.resolvers.CheckDateFormat;
-import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.setting.SettingResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.tenant.webapi.*;
-import org.grnet.status.enums.resources.TenantResource;
-import org.grnet.status.repositories.SettingRepository;
 import org.grnet.status.services.ReportService;
 import org.grnet.status.services.SettingService;
 import org.grnet.status.services.StatusService;
@@ -850,7 +843,7 @@ public class PublicEndpoint {
                 ));
     }
 
-    @Tag(name = "Reports")
+    @Tag(name = "Public")
     @Operation(
             summary = "Get report group endpoints results.",
             description = "Retrieves availability and reliability results for the group endpoints of a tenant's report and specific group.")
@@ -881,14 +874,16 @@ public class PublicEndpoint {
             content = @Content(schema = @Schema(
                     implementation = InformativeResponse.class)))
     @GET
-    @Path("{id}/results/{report-name}/groups/{group-name}/endpoints")
+    @Path("/tenants/{tenant-name}/results/{report-name}/groups/{group-name}/endpoints")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getGroupsEndpointResultsByReport(
-            @Parameter(description = "The ID of the tenant.",
+            @Parameter(
+                    description = "The name of the tenant.",
                     required = true,
-                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    example = "TENANT-TEST",
                     schema = @Schema(type = SchemaType.STRING))
-            @PathParam("id") String id,
+            @PathParam("tenant-name")
+            String tenantName,
             @Parameter(name = "reportName",
                     required = true,
                     description = "The name of the report.",
@@ -920,14 +915,16 @@ public class PublicEndpoint {
             @QueryParam("granularity")
             String granularity) {
 
-        checkPublicReport(id,reportName);
-        var response = tenantService.retrieveResultsEndpointByReportAndGroup(id, reportName, groupName, startTime, endTime, granularity);
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        checkPublicReport(tenant.id, reportName);
+        var response = tenantService.retrieveResultsEndpointByReportAndGroup(tenant.id, reportName, groupName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }
 
 
-    @Tag(name = "Reports")
+    @Tag(name = "Public")
     @Operation(
             summary = "Get report group endpoints results by endpoint.",
             description = "Retrieves availability and reliability results for the group endpoints of a tenant's report and specific group and a specific endpoint.")
@@ -958,14 +955,16 @@ public class PublicEndpoint {
             content = @Content(schema = @Schema(
                     implementation = InformativeResponse.class)))
     @GET
-    @Path("{id}/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    @Path("/tenants/{tenant-name}/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getGroupsEndpointResultsByReport(
-            @Parameter(description = "The ID of the tenant.",
+            @Parameter(
+                    description = "The name of the tenant.",
                     required = true,
-                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    example = "TENANT-TEST",
                     schema = @Schema(type = SchemaType.STRING))
-            @PathParam("id") String id,
+            @PathParam("tenant-name")
+            String tenantName,
             @Parameter(name = "reportName",
                     required = true,
                     description = "The name of the report.",
@@ -1002,8 +1001,12 @@ public class PublicEndpoint {
                     example = "daily")
             @QueryParam("granularity")
             String granularity) {
-        checkPublicReport(id, reportName);
-        var response = tenantService.retrieveResultsEndpointByReportGroupAndEndpoint(id, reportName, groupName, endpointName, startTime, endTime, granularity);
+
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        checkPublicReport(tenant.id, reportName);
+
+        var response = tenantService.retrieveResultsEndpointByReportGroupAndEndpoint(tenant.id, reportName, groupName, endpointName, startTime, endTime, granularity);
 
         return Response.ok(response).build();
     }

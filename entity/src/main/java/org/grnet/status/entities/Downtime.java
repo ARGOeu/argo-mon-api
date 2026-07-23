@@ -8,7 +8,6 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-
 @Entity
 @Table(name = "t_downtime")
 @Getter
@@ -20,7 +19,7 @@ public class Downtime {
     @Column(length = 36)
     private String id;
 
-    @Column(name="tenant_id",nullable = false)
+    @Column(name="tenant_id", nullable = false)
     private String tenant;
 
     @Column(nullable = false)
@@ -47,6 +46,7 @@ public class Downtime {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+
     @OneToMany(
             mappedBy = "downtime",
             cascade = CascadeType.ALL,
@@ -55,11 +55,26 @@ public class Downtime {
     )
     private List<DowntimeServiceEndpoint> services = new ArrayList<>();
 
-    @Column(name="created_by",nullable = false)
+
+    @Column(name="created_by", nullable = false)
     private String createdBy;
 
     @Column(name="updated_by")
     private String updatedBy;
+
+
     public Downtime() {
+    }
+
+
+    public void addService(DowntimeServiceEndpoint service) {
+        services.add(service);
+        service.setDowntime(this);
+    }
+
+
+    public void removeService(DowntimeServiceEndpoint service) {
+        services.remove(service);
+        service.setDowntime(null);
     }
 }
