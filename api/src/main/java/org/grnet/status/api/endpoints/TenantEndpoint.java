@@ -4694,7 +4694,7 @@ public class TenantEndpoint {
 
     @Tag(name = "Incident")
     @Operation(
-            summary = "Update an incident.",
+            summary = "Update an incident status.",
             description = "Updates the status of an incident, adds a comment, or performs both operations."
     )
     @APIResponse(
@@ -4762,7 +4762,8 @@ public class TenantEndpoint {
                             type = ParamType.PATH,
                             referTo = IncidentResource.class
                     )
-            }
+            },
+            scope = {Scope.ALL, Scope.MINE}
     )
     public Response updateIncident(
             @Parameter(
@@ -4773,14 +4774,9 @@ public class TenantEndpoint {
             )
             @PathParam("id")
             @Valid
-            @NotFoundEntity(
-                    repository = TenantRepository.class,
-                    message = "There is no Tenant with the following id: "
-            )
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
             String id,
-
-            @Parameter(
-                    description = "The ID of the incident.",
+            @Parameter(description = "The ID of the incident.",
                     required = true,
                     example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
                     schema = @Schema(type = SchemaType.STRING)
@@ -4794,10 +4790,11 @@ public class TenantEndpoint {
                     required = true
             )
             @NotNull(message = "Incident update request cannot be null.")
-            @Valid
-            IncidentUpdateRequestDto request) {
+            @Valid IncidentUpdateRequestDto request) {
 
-        var response = incidentService.updateIncident(id, incidentId, request, utility.getUserUniqueIdentifier());
+        var roles = RoleEndpointHolder.get();
+
+        var response = incidentService.updateIncident(roles, id, incidentId, request, utility.getUserUniqueIdentifier());
 
         return Response.ok(response).build();
     }
