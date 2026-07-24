@@ -49,6 +49,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#208](https://github.com/ARGOeu/argo-mon-api/pull/208) ARGO-5781 Fetch Endpoint A/R Results per Report and Group via Status API#208
 - [#209](https://github.com/ARGOeu/argo-mon-api/pull/209) ARGO-5737 [API] Activity log / history of status changes
 - [#211](https://github.com/ARGOeu/argo-mon-api/pull/211) ARGO-5738 [API] Get daily incidents
+- [#213](https://github.com/ARGOeu/argo-mon-api/pull/213) ARGO-5738 [API] ARGO-5746 [API] Get tenants daily downtimes
 
 ### Fix 
 
