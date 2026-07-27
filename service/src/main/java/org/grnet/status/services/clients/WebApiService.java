@@ -12,6 +12,7 @@ import org.grnet.status.dtos.argo.ArgoWebApiErrorResponse;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.WebApiReportResponse;
 import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
@@ -955,5 +956,70 @@ public class WebApiService {
             );
         }
         return "Data Inconsistency: Tenant entry is present in status-api but missing from web-api.";
+    }
+
+    public TenantWebApiServiceTypeStatusTimelineResponse retrieveStatusTimelineServiceTypesByGroup(String tenantId, String reportName, String groupName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getServiceTypesStatusTimelineByGroup(accessToken, tenantId, reportName, groupName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Service Type Status", groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Service Type Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s",
+                    tenantId,
+                    reportName,
+                    groupName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiServiceTypeStatusTimelineResponse retrieveStatusTimelineServiceTypeByName(String tenantId, String reportName, String groupName, String serviceTypeName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getServiceTypeStatusTimelineByName(accessToken, tenantId, reportName, groupName, serviceTypeName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Service Type Status", serviceTypeName);
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Service Type Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s",
+                    tenantId,
+                    reportName,
+                    groupName,
+                    serviceTypeName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... failed in Argo Web Api",
+                    500
+            );
+        }
     }
 }

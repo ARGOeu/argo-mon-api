@@ -12,6 +12,8 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
 import org.grnet.status.dtos.status.StatusGroupResponseDto;
 import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
+import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigResponse;
 import org.grnet.status.mappers.StatusPageMapper;
 import org.grnet.status.repositories.StatusPageRepository;
@@ -181,6 +183,16 @@ public class StatusService {
     public TenantWebApiGroupStatusTimelineResponse retrieveStatusTimelineGroupByNameByReport(String tenantId, String reportName, String groupName, String startTime, String endTime) {
 
         return webApiService.retrieveStatusTimelineGroupByNameByReport(tenantId, reportName, groupName, startTime, endTime);
+    }
+
+    public TenantWebApiServiceTypeStatusTimelineResponse retrieveStatusTimelineServiceTypesByGroup(String tenantId, String reportName, String groupName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineServiceTypesByGroup(tenantId, reportName, groupName, startTime, endTime);
+    }
+
+    public TenantWebApiServiceTypeStatusTimelineResponse retrieveStatusTimelineServiceTypeByName(String tenantId, String reportName, String groupName, String serviceTypeName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineServiceTypeByName(tenantId, reportName, groupName, serviceTypeName, startTime, endTime);
     }
 
 }
