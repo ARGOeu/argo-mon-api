@@ -9,5 +9,6 @@ public enum EventName {
         INIT_POEM,
         INIT_MONITORING_BOX,
         INIT_INTEGRATION_TOPO,
-        DELETE_TENANT
+        DELETE_TENANT,
+        INIT_ARCHIVER
 }

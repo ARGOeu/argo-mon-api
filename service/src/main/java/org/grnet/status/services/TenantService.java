@@ -720,6 +720,7 @@ public class TenantService {
 
         var shouldTriggerPoem = isComputeEngineCompleted(request);
         var shouldTriggerMonBox = isPoemCompleted(request);
+        var shouldTriggerArchiver = isAmsCompleted(request);
 
         var shouldResetAfterComputeEngine = isComputeEngineReset(request);
         var shouldResetAfterPoem = isPoemReset(request);
@@ -739,7 +740,14 @@ public class TenantService {
             if (shouldResetAfterPoem) {
                 updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_MONITORING_BOX));
             }
-
+            if (shouldTriggerArchiver) {
+                var alert = buildAlert(
+                        EventName.INIT_ARCHIVER,
+                        tenant,
+                        String.valueOf(Instant.now())
+                );
+                notifyAms(id, alert);
+            }
             var statusDto = tenantRepository.fetchTenantStatus(id)
                     .map(TenantMapper.INSTANCE::mapStatusObject)
                     .orElse(null);
@@ -1816,7 +1824,12 @@ public class TenantService {
 
     }
 
-
+    private boolean isAmsCompleted(TenantStatusDto request) {
+        return request.jobs.stream()
+                .anyMatch(j ->
+                        EventName.INIT_AMS.name().equals(j.name) &&
+                                EventStatus.COMPLETED.name().equals(j.getStatus()));
+    }
     private boolean isComputeEngineCompleted(TenantStatusDto request) {
         return request.jobs.stream()
                 .anyMatch(j -> EventName.INIT_COMPUTE_ENGINE.name().equals(j.name) &&

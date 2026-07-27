@@ -25,7 +25,8 @@ public enum TenantJobEvent {
 
     INIT_MONITORING_BOX("init_monitoring_box", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)), // no properties for now
 
-    INIT_POEM("init_poem", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME));
+    INIT_POEM("init_poem", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_ARCHIVER("init_archiver", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME));
 
     private final String key;
     private final EventMode mode;
