@@ -11,6 +11,7 @@ import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.argo.ArgoWebApiErrorResponse;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.WebApiReportResponse;
+import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
 import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
@@ -866,6 +867,59 @@ public class WebApiService {
             throw new WebApplicationException(
                     "Retrieving Reports... failed to retrieve reports for tenant with id: "
                             + tenantId + " from Argo Web Api",
+                    500
+            );
+        }
+    }
+
+
+    public TenantWebApiGroupStatusTimelineResponse retrieveStatusTimelineGroupsByReport(String tenantId, String reportName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getGroupsStatusTimelineByReport(accessToken, tenantId, reportName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups Status", "all");
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e, "Retrieving Groups Status failed in Argo Web Api. tenantId=%s", tenantId);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiGroupStatusTimelineResponse retrieveStatusTimelineGroupByNameByReport(String tenantId, String reportName, String groupName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getGroupStatusTimelineByGroupNameByReport(accessToken, tenantId, reportName, groupName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Group Status", groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Group Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e, "Retrieving Group Status failed in Argo Web Api. groupName=%s", groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Group Status... failed in Argo Web Api",
                     500
             );
         }
