@@ -52,6 +52,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#213](https://github.com/ARGOeu/argo-mon-api/pull/213) ARGO-5738 [API] ARGO-5746 [API] Get tenants daily downtimes
 - [#218](https://github.com/ARGOeu/argo-mon-api/pull/218) ARGO-5802 [API] Group status timeline
 - [#219](https://github.com/ARGOeu/argo-mon-api/pull/219) ARGO-5803 [API] Service-type status timeline
+- [#222](https://github.com/ARGOeu/argo-mon-api/pull/222) ARGO-5796 Create event for initialising archiver compoent - #222
 
 ### Fix 
 

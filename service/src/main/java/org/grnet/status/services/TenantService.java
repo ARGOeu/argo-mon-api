@@ -721,6 +721,7 @@ public class TenantService {
         var shouldTriggerPoem = isComputeEngineCompleted(request);
         var shouldTriggerMonBox = isPoemCompleted(request);
 
+        var shouldTriggerInitArchiver = isAmsCompleted(request);
         var shouldResetAfterComputeEngine = isComputeEngineReset(request);
         var shouldResetAfterPoem = isPoemReset(request);
 
@@ -757,6 +758,11 @@ public class TenantService {
                 var alert = buildAlert(EventName.INIT_MONITORING_BOX, tenant, String.valueOf(Instant.now()));
                 notifyAmsInitConnector(id, alert);
             }
+            if (shouldTriggerInitArchiver) {
+                var alert = buildAlert(EventName.INIT_ARCHIVER, tenant, String.valueOf(Instant.now()));
+                notifyAms(id, alert);
+            }
+
 
             return response;
 
@@ -1839,6 +1845,11 @@ public class TenantService {
         return request.jobs != null && request.jobs.stream()
                 .anyMatch(j -> EventName.INIT_POEM.name().equals(j.name)
                         && !EventStatus.COMPLETED.name().equalsIgnoreCase(j.getStatus()));
+    }
+    private boolean isAmsCompleted(TenantStatusDto request) {
+        return request.jobs.stream()
+                .anyMatch(j -> EventName.INIT_AMS.name().equals(j.name) &&
+                        EventStatus.COMPLETED.name().equals(j.getStatus()));
     }
 
     private void resetJob(List<EventStatusDto> jobs, TenantJobEvent event) {
