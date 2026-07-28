@@ -11,6 +11,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
 import org.grnet.status.dtos.status.StatusGroupResponseDto;
+import org.grnet.status.dtos.status.TenantWebApiEndpointStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
@@ -193,6 +194,26 @@ public class StatusService {
     public TenantWebApiServiceTypeStatusTimelineResponse retrieveStatusTimelineServiceTypeByName(String tenantId, String reportName, String groupName, String serviceTypeName, String startTime, String endTime) {
 
         return webApiService.retrieveStatusTimelineServiceTypeByName(tenantId, reportName, groupName, serviceTypeName, startTime, endTime);
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointsByGroup(String tenantId, String reportName, String groupName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineEndpointsByGroup(tenantId, reportName, groupName, startTime, endTime);
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointByGroupAndName(String tenantId, String reportName, String groupName, String endpointName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineEndpointByGroupAndName(tenantId, reportName, groupName, endpointName, startTime, endTime);
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointsByServiceType(String tenantId, String reportName, String groupName, String serviceTypeName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineEndpointsByServiceType(tenantId, reportName, groupName, serviceTypeName, startTime, endTime);
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointByServiceTypeAndName(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineEndpointByServiceTypeAndName(tenantId, reportName, groupName, serviceTypeName, endpointName, startTime, endTime);
     }
 
 }

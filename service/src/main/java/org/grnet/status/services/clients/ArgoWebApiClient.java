@@ -11,6 +11,7 @@ import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
 import org.grnet.status.dtos.profile.operation.OperationProfileResponse;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.WebApiReportResponse;
+import org.grnet.status.dtos.status.TenantWebApiEndpointStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
 import org.grnet.status.dtos.tenant.node.*;
@@ -599,6 +600,55 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-tenant-id") String tenantId,
             @PathParam("report-name") String reportName,
             @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/endpoints")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByGroup(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointStatusTimelineByGroupAndName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByServiceType(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointStatusTimelineByServiceTypeAndName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @PathParam("endpoint-name") String endpointName,
             @QueryParam("start-time") String startTime,
             @QueryParam("end-time") String endTime
     );
