@@ -12,6 +12,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
 import org.grnet.status.dtos.status.StatusGroupResponseDto;
 import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiMetricStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigResponse;
@@ -194,5 +195,27 @@ public class StatusService {
 
         return webApiService.retrieveStatusTimelineServiceTypeByName(tenantId, reportName, groupName, serviceTypeName, startTime, endTime);
     }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricsByEndpoint(String tenantId, String reportName, String groupName, String endpointName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineMetricsByEndpoint(tenantId, reportName, groupName, endpointName, startTime, endTime);
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricByEndpointAndName(String tenantId, String reportName, String groupName, String endpointName, String metricName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineMetricByEndpointAndName(tenantId, reportName, groupName, endpointName, metricName, startTime, endTime);
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricsByServiceTypeAndEndpoint(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineMetricsByServiceTypeAndEndpoint(tenantId, reportName, groupName, serviceTypeName, endpointName, startTime, endTime);
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricByServiceTypeEndpointAndName(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String metricName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineMetricByServiceTypeEndpointAndName(tenantId, reportName, groupName, serviceTypeName, endpointName, metricName, startTime, endTime);
+    }
+
+
 
 }

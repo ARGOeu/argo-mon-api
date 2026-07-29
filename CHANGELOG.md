@@ -52,6 +52,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#213](https://github.com/ARGOeu/argo-mon-api/pull/213) ARGO-5738 [API] ARGO-5746 [API] Get tenants daily downtimes
 - [#218](https://github.com/ARGOeu/argo-mon-api/pull/218) ARGO-5802 [API] Group status timeline
 - [#219](https://github.com/ARGOeu/argo-mon-api/pull/219) ARGO-5803 [API] Service-type status timeline
+- [#223](https://github.com/ARGOeu/argo-mon-api/pull/223) ARGO-5805 [API] Metric status timeline
+
 
 ### Fix 
 
