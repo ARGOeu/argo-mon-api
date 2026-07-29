@@ -53,12 +53,17 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#218](https://github.com/ARGOeu/argo-mon-api/pull/218) ARGO-5802 [API] Group status timeline
 - [#219](https://github.com/ARGOeu/argo-mon-api/pull/219) ARGO-5803 [API] Service-type status timeline
 - [#220](https://github.com/ARGOeu/argo-mon-api/pull/220) ARGO-5804 [API] Endpoint status timeline
-- [#222](https://github.com/ARGOeu/argo-mon-api/pull/222) ARGO-5796 Create event for initialising archiver compoent - #222
+- [#222](https://github.com/ARGOeu/argo-mon-api/pull/222) ARGO-5796 Create event for initialising archiver component
+- [#224](https://github.com/ARGOeu/argo-mon-api/pull/224) ARGO-5805 [API] Metric status timeline
+
 
 ### Fix 
 
 - [#210](https://github.com/ARGOeu/argo-mon-api/pull/210) ARGO-5792 Enforce Non-Null completed_at and Request Validation for Downtime Dates
 - [#212](https://github.com/ARGOeu/argo-mon-api/pull/212) ARGO-5797 Update public REST endpoint paths to use tenant name instead of tenant ID
+
+
+
 ## 1.0.0 - 2026-06-26
 ---
 ### Added
