@@ -128,6 +128,11 @@ public class TenantEndpointTest extends KeycloakTest {
         entitlementProvider.setEntitlements(List.of(entitlement(currentMockId, "tenant_viewer")));
     }
 
+    private void mockIncidentAdmin() {
+        entitlementProvider.setSuperAdmin(false);
+        entitlementProvider.setEntitlements(List.of(entitlement(currentMockId, "incident_admin")));
+    }
+
     private Entitlement entitlement(String tenantId, String role) {
         String raw = "urn:mace:grnet.gr:einfra:login-devel:group:status-pages:"
                 + role + ":TENANT:" + tenantId + ":role=member";
@@ -151,6 +156,23 @@ public class TenantEndpointTest extends KeycloakTest {
                     endpoints[i],
                     LocalDateTime.now(),
                     null
+            ));
+        }
+
+        ((TestRoleEndpointRepository) roleEndpointRepository).set(roleEndpoints);
+    }
+
+    private void mockRoleEndpointsWithScope(String role, String scope, String... endpoints) {
+        var roleEndpoints = new ArrayList<RoleEndpoint>();
+
+        for (int i = 0; i < endpoints.length; i++) {
+            roleEndpoints.add(new RoleEndpoint(
+                    (long) i + 1,
+                    role,
+                    role,
+                    endpoints[i],
+                    LocalDateTime.now(),
+                    scope
             ));
         }
 
@@ -423,10 +445,20 @@ public class TenantEndpointTest extends KeycloakTest {
 
     @Test
     public void updateIncidentStatus() {
-        var tenant = setupTenantAdmin();
+        currentMockId = UUID.randomUUID().toString();
 
-        mockRoleEndpoints(
-                "tenant_admin",
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        currentMockId = tenant.id;
+
+        entitlementProvider.setSuperAdmin(false);
+        entitlementProvider.setEntitlements(List.of(entitlement(currentMockId, "incident_admin")));
+
+        mockRoleEndpointsWithScope(
+                "incident_admin",
+                "ALL",
                 "POST_/v1/tenants/{id}/incidents",
                 "PATCH_/v1/tenants/{id}/incidents/{incident-id}/status"
         );
@@ -478,10 +510,22 @@ public class TenantEndpointTest extends KeycloakTest {
 
     @Test
     public void getAllIncidents() {
-        var tenant = setupTenantAdmin();
+        currentMockId = UUID.randomUUID().toString();
 
-        mockRoleEndpoints(
-                "tenant_admin",
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        currentMockId = tenant.id;
+
+        entitlementProvider.setSuperAdmin(false);
+        entitlementProvider.setEntitlements(
+                List.of(entitlement(currentMockId, "incident_admin"))
+        );
+
+        mockRoleEndpointsWithScope(
+                "incident_admin",
+                "ALL",
                 "POST_/v1/tenants/{id}/incidents",
                 "GET_/v1/tenants/{id}/incidents"
         );
@@ -555,8 +599,9 @@ public class TenantEndpointTest extends KeycloakTest {
     public void getIncidentActivity() {
         var tenant = setupTenantAdmin();
 
-        mockRoleEndpoints(
+        mockRoleEndpointsWithScope(
                 "tenant_admin",
+                "ALL",
                 "POST_/v1/tenants/{id}/incidents",
                 "PATCH_/v1/tenants/{id}/incidents/{incident-id}/status",
                 "GET_/v1/tenants/{id}/incidents/{incident-id}/activity"

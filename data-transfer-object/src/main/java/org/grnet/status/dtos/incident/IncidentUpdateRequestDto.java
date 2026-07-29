@@ -13,7 +13,7 @@ public class IncidentUpdateRequestDto {
     @Schema(
             implementation = IncidentStatus.class,
             description = "New lifecycle status of the incident",
-            example = "INVESTIGATING"
+            example = "IN_PROGRESS"
     )
     @NotNull
     @JsonProperty("status")

@@ -4,13 +4,18 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.ForbiddenException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.grnet.endpoint.scanner.runtime.context.RoleEndpointHolder;
+import org.grnet.endpoint.scanner.runtime.Scope;
+import org.grnet.endpoint.scanner.runtime.entities.RoleEndpoint;
+import org.grnet.endpoint.scanner.runtime.entitlements.Entitlement;
+import org.grnet.endpoint.scanner.runtime.entitlements.EntitlementProvider;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
 import org.grnet.status.entities.Contact;
 import org.grnet.status.entities.Incident;
 import org.grnet.status.entities.IncidentActivity;
-import org.grnet.status.enums.IncidentStatus;
 import org.grnet.status.mappers.IncidentActivityMapper;
 import org.grnet.status.mappers.IncidentMapper;
 import org.grnet.status.repositories.IncidentActivityRepository;
@@ -27,8 +32,10 @@ import org.grnet.status.dtos.pagination.PageResource;
 
 import java.time.Year;
 import java.time.ZoneOffset;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class IncidentService {
@@ -47,6 +54,16 @@ public class IncidentService {
 
     @Inject
     MailerService mailerService;
+
+    @Inject
+    AccessControlService accessControlService;
+
+    @Inject
+    EntitlementProvider entitlementProvider;
+
+    @ConfigProperty(name = "api.auth.entitlements.parent-group")
+    String parentGroup;
+
 
     @ConfigProperty(name = "api.ui.url")
     String uiBaseUrl;
@@ -106,9 +123,9 @@ public class IncidentService {
     }
 
     @Transactional
-    public IncidentResponseDto updateIncident(String tenantId, String incidentId, IncidentUpdateRequestDto request, String updatedBy) {
+    public IncidentResponseDto updateIncident(List<RoleEndpoint> roles, String tenantId, String incidentId, IncidentUpdateRequestDto request, String updatedBy) {
 
-        var incident = incidentRepository.fetchByIdAndTenantId(incidentId, tenantId);
+        var incident = getIncidentForModification(roles, tenantId, incidentId, updatedBy);
 
         var previousStatus = incident.getStatus();
 
@@ -173,6 +190,44 @@ public class IncidentService {
         return IncidentActivityMapper.INSTANCE.incidentActivitiesToDtos(activities);
     }
 
+
+    private Incident getIncidentForModification(List<RoleEndpoint> roles, String tenantId, String incidentId, String userId) {
+
+        var incident = incidentRepository.fetchByIdAndTenantId(incidentId, tenantId);
+
+        if (accessControlService.isSuperAdmin()) {
+            return incident;
+        }
+
+        var userRoles = getRolesFromEntitlements(
+                entitlementProvider.fetchEntitlements()
+                        .stream()
+                        .map(Entitlement::getRaw)
+                        .collect(Collectors.toList())
+        );
+
+        var scope = roles.stream()
+                .filter(role -> userRoles.contains(role.getRoleName()))
+                .map(RoleEndpoint::getScope)
+                .filter(Objects::nonNull)
+                .max(Comparator.comparing(s -> s.equalsIgnoreCase("ALL") ? 1 : 0))
+                .orElse(null);
+
+        if (Objects.isNull(scope)) {
+            throw new ForbiddenException("Scope must be defined for this endpoint!");
+        }
+
+        var resolvedScope = Scope.valueOf(scope.toUpperCase());
+
+        if (resolvedScope == Scope.MINE
+                && !Objects.equals(incident.getCreatedBy(), userId)) {
+
+            throw new ForbiddenException("You are not allowed to modify this incident.");
+        }
+
+        return incident;
+    }
+
     /**
      * Generates the human-readable incident number.
      *
@@ -189,5 +244,50 @@ public class IncidentService {
                 year,
                 sequenceValue
         );
+    }
+
+    private Scope resolveScope() {
+
+        if (accessControlService.isSuperAdmin()) {
+            return Scope.ALL;
+        }
+
+        var roles = RoleEndpointHolder.get();
+
+        var userRoles = getRolesFromEntitlements(
+                entitlementProvider.fetchEntitlements()
+                        .stream()
+                        .map(Entitlement::getRaw)
+                        .collect(Collectors.toList())
+        );
+
+        var scope = roles.stream()
+                .filter(role -> userRoles.contains(role.getRoleName()))
+                .map(RoleEndpoint::getScope)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() ->
+                        new ForbiddenException(
+                                "Scope must be defined for this endpoint!"
+                        )
+                );
+
+        return Scope.valueOf(scope.toUpperCase());
+    }
+
+    private List<String> getRolesFromEntitlements(List<String> rawEntitlements) {
+
+        return rawEntitlements.stream()
+                .map(ent -> {
+                    var idx = ent.indexOf(parentGroup);
+
+                    if (idx == -1) { return null; }
+
+                    var remaining = ent.substring(idx + parentGroup.length() + 1);
+
+                    return remaining.split(":")[0];
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
 }
