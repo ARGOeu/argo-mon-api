@@ -345,4 +345,33 @@ public class PublicEndpointTest extends KeycloakTest {
                 .statusCode(200)
                 .header("Access-Control-Allow-Origin", org.hamcrest.Matchers.nullValue());
     }
+
+    @Test
+    public void fetchTenantPublicInformationWithoutAuthentication() {
+
+        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+
+        given()
+                .header("Origin", "https://frontend.com")
+                .when()
+                .get("/v1/public/tenants/{tenant-name}/info", tenant.info.name)
+                .then()
+                .statusCode(200)
+                .header("Access-Control-Allow-Origin", "*")
+                .body("logo", org.hamcrest.Matchers.equalTo("https://example/image.png"));
+    }
+
+    @Test
+    public void fetchTenantPublicInformationNotFound() {
+
+        given()
+                .when()
+                .get("/v1/public/tenants/{tenant-name}/info", "UNKNOWN-TENANT")
+                .then()
+                .statusCode(404);
+    }
 }
