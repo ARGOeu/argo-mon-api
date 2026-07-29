@@ -59,6 +59,10 @@ public class Tenant {
     @Getter
     private Boolean node;
 
+    @Column(name = "performance", nullable = false)
+    @Getter
+    private Boolean performance;
+
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(
             name = "tenant_contact",

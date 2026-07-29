@@ -210,6 +210,8 @@ public class AdminEndpointTest extends KeycloakTest {
         var request = createTenant("LOCALTENANT");
 
         assertEquals(request.info.name, request.info.name);
+        assertEquals(request.performance, Boolean.TRUE);
+
         assertEquals(currentMockId, request.id);  // check that the id matches what you set
     }
 
@@ -590,7 +592,7 @@ public class AdminEndpointTest extends KeycloakTest {
 
         request.info = tenantInfo;
         request.contacts = Collections.singletonList(tenantContact);
-
+       request.performance=Boolean.TRUE;
 
         return given()
                 .auth().oauth2(adminToken)

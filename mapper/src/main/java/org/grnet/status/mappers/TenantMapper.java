@@ -145,7 +145,7 @@ public interface TenantMapper {
         dto.status = mapStatusObject(tenant.getStatus());
         dto.contacts = contactsToDtos(tenant.getContacts());
         dto.node = webApiGetResponse.getData().get(0).getNode();
-
+        dto.performance=tenant.getPerformance();
         return dto;
     }
 
@@ -219,6 +219,7 @@ public interface TenantMapper {
     @Mapping(target = "contacts", source = "contacts", qualifiedByName = "contactsToDtos")
     @Mapping(target = "status", expression = "java(mapStatusObject(tenant.getStatus()))")
     //@Mapping(target = "node", expression = "java(mapNodeObject(tenant.getNode()))")
+    @Mapping(target = "performance", source = "performance")
     TenantResponseDto tenantToDto(Tenant tenant);
 
 
@@ -251,7 +252,7 @@ public interface TenantMapper {
     @Mapping(target = "image", source = "info.image")
     @Mapping(target = "description", source = "info.description")
     @Mapping(target = "email", source = "info.email")
-    void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
+    @Mapping(target = "performance", expression = "java(dto.getPerformance() != null ? dto.getPerformance() : false)")    void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
 
     @IterableMapping(qualifiedByName = "map3")
     List<Contact> dtosToContacts(List<ContactDto> dtos);

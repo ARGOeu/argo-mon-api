@@ -56,8 +56,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#220](https://github.com/ARGOeu/argo-mon-api/pull/220) ARGO-5804 [API] Endpoint status timeline
 - [#222](https://github.com/ARGOeu/argo-mon-api/pull/222) ARGO-5796 Create event for initialising archiver component
 - [#224](https://github.com/ARGOeu/argo-mon-api/pull/224) ARGO-5805 [API] Metric status timeline
+- [#225](https://github.com/ARGOeu/argo-mon-api/pull/225) ARGO-5811 [API] - add a new true/false field at tenant
 - [#226](https://github.com/ARGOeu/argo-mon-api/pull/226) ARGO-5758 Add public endpoint for tenant basic info
-
 
 ### Fix 
 
