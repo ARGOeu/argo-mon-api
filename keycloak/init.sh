@@ -1,6 +1,7 @@
 #!/bin/sh
 
 REALM_LIST="rciam"
+SUPER_ADMIN_ROLE="${API_AUTH_ENTITLEMENTS_SUPER_ADMIN_ROLE:-super_admin}"
 
 set -eu
 
@@ -155,6 +156,20 @@ ID=$(echo "$body" | awk -F'"' '
 ')
 
 response=$(curl -s -w "\n%{http_code}" -X POST \
+  "http://keycloak:8080/realms/${REALM_NAME}/agm/account/group-admin/group/${ID}/roles?name=${SUPER_ADMIN_ROLE}" \
+  -H "Authorization: Bearer $ACCTOK" \
+  -H "Accept: application/json")
+
+status=$(echo "$response" | tail -n1)
+
+if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+  echo "❌ Failed to add role '${SUPER_ADMIN_ROLE}' to status-pages group. HTTP $status"
+  exit 1
+fi
+
+echo "✅ Success: role '${SUPER_ADMIN_ROLE}' added to status-pages group"
+
+response=$(curl -s -w "\n%{http_code}" -X POST \
   "http://keycloak:8080/realms/${REALM_NAME}/agm/account/group-admin/group/${ID}/children" \
   -H "Authorization: Bearer $ACCTOK" \
   -H "Content-Type: application/json" \
@@ -192,14 +207,14 @@ response=$(curl -s -w "\n%{http_code}" -X POST \
   -H "Authorization: Bearer $ACCTOK" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{
-    "user": {
-      "username": "admin"
+  -d "{
+    \"user\": {
+      \"username\": \"admin\"
     },
-    "groupRoles": [
-      "member"
+    \"groupRoles\": [
+      \"$SUPER_ADMIN_ROLE\"
     ]
-  }')
+  }")
 
 status=$(echo "$response" | tail -n1)
 
