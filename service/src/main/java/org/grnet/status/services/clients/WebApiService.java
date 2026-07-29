@@ -13,6 +13,7 @@ import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.WebApiReportResponse;
 import org.grnet.status.dtos.status.TenantWebApiEndpointStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiMetricStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.webapi.*;
@@ -1152,6 +1153,131 @@ public class WebApiService {
 
             throw new WebApplicationException(
                     "Retrieving Service Type Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricsByEndpoint(String tenantId, String reportName, String groupName, String endpointName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricsStatusTimelineByEndpoint(
+                    accessToken, tenantId, reportName, groupName, endpointName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metrics Status", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metrics Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, endpointName=%s",
+                    tenantId, reportName, groupName, endpointName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricByEndpointAndName(String tenantId, String reportName, String groupName, String endpointName, String metricName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricStatusTimelineByEndpointAndName(
+                    accessToken, tenantId, reportName, groupName, endpointName, metricName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metric Status", metricName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metric Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, endpointName=%s, metricName=%s",
+                    tenantId, reportName, groupName, endpointName, metricName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricsByServiceTypeAndEndpoint(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricsStatusTimelineByServiceTypeAndEndpoint(
+                    accessToken, tenantId, reportName, groupName, serviceTypeName, endpointName, startTime, endTime
+            );
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metrics Status", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metrics Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s, endpointName=%s",
+                    tenantId, reportName, groupName, serviceTypeName, endpointName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricByServiceTypeEndpointAndName(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String metricName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricStatusTimelineByServiceTypeEndpointAndName(
+                    accessToken, tenantId, reportName, groupName, serviceTypeName, endpointName, metricName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metric Status", metricName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metric Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s, endpointName=%s, metricName=%s",
+                    tenantId, reportName, groupName, serviceTypeName, endpointName, metricName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... failed in Argo Web Api",
                     500
             );
         }
