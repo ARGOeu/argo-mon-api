@@ -18,6 +18,7 @@ import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.setting.SettingResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
+import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.services.ReportService;
 import org.grnet.status.services.SettingService;
@@ -1011,4 +1012,43 @@ public class PublicEndpoint {
         return Response.ok(response).build();
     }
 
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch tenant public information.",
+            description = "Retrieves public information about a tenant.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Tenant public information retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = PublicTenantInformationResponseDto.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @GET
+    @Path("/tenants/{tenant-name}/info")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response fetchTenantPublicInformation(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-GRNET",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName) {
+
+        var tenant = tenantService.getTenantPublicInformation(tenantName);
+
+        return Response.ok(tenant).build();
+    }
 }

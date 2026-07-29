@@ -21,6 +21,7 @@ import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.tenant.ContactDto;
+import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
@@ -252,6 +253,14 @@ public class TenantService {
                     502
             );
         }
+    }
+
+    public PublicTenantInformationResponseDto getTenantPublicInformation(String tenantName) {
+
+        var tenant = tenantRepository.fetchTenantByName(tenantName)
+                .orElseThrow(() -> new WebApplicationException("Tenant with name: " + tenantName + " not found", 404));
+
+        return TenantMapper.INSTANCE.tenantToPublicInformationDto(tenant);
     }
 
     /**

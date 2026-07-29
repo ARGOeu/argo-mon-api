@@ -289,6 +289,10 @@ public interface TenantMapper {
         return dto;
     }
 
+    @Named("tenantToPublicInfo")
+    @Mapping(source = "image", target = "logo")
+    PublicTenantInformationResponseDto tenantToPublicInformationDto(Tenant tenant);
+
     public default Tenant mapMetadata(TenantRequestDto dto, Tenant tenant) {
         // Convert metadata object → JSON string for DB
         try {
