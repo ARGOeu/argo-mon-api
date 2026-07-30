@@ -163,7 +163,7 @@ public class TenantService {
         var status = TenantMapper.INSTANCE.mapStatusToString(setDefaultStatus());
         tenant.setStatus(status);
         tenant.setNode(Boolean.TRUE.equals(request.node) ? true : null);
-
+        tenant.setPerformance(Boolean.TRUE.equals(request.performance) ? true : false);
         try {
             TenantMapper.INSTANCE.mapMetadata(request, tenant);
             writeInDB(request, tenant, remoteTenantId, userId);

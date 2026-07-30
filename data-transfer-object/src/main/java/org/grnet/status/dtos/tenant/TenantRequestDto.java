@@ -50,4 +50,14 @@ public class TenantRequestDto {
     )
     @JsonProperty("node")
     public Boolean node;
+
+
+    @Schema(
+            type = SchemaType.BOOLEAN,
+            implementation = Boolean.class,
+            description = "Indicates whether the tenant is configured to have performance data",
+            example = "true"
+    )
+    @JsonProperty("performance")
+    public Boolean performance;
 }
