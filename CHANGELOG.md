@@ -58,6 +58,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#224](https://github.com/ARGOeu/argo-mon-api/pull/224) ARGO-5805 [API] Metric status timeline
 - [#225](https://github.com/ARGOeu/argo-mon-api/pull/225) ARGO-5811 [API] - add a new true/false field at tenant
 - [#226](https://github.com/ARGOeu/argo-mon-api/pull/226) ARGO-5758 Add public endpoint for tenant basic info
+- [#228](https://github.com/ARGOeu/argo-mon-api/pull/228) ARGO-5839 [API] Run Local Keycloak as a Quarkus Dev Service
 
 ### Fix 
 
