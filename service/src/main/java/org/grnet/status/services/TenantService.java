@@ -1719,6 +1719,7 @@ public class TenantService {
             tenant.setMetadata(TenantMapper.INSTANCE.mapMetadataToString(metadata));
             tenant.setStatus(TenantMapper.INSTANCE.mapStatusToString(setDefaultStatus()));
             tenant.setNode(Boolean.TRUE.equals(remoteTenant.getNode()) ? Boolean.TRUE : null);
+            tenant.setPerformance(false);
 
             tenantRepository.persist(tenant);
 

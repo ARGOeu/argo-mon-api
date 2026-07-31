@@ -43,15 +43,21 @@ services:
     volumes:
       - ./realms:/opt/keycloak/data/import
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/58080; echo -e 'GET /realms/master/.well-known/openid-configuration HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; cat <&3 | grep -q '200 OK'"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9000/health/ready > /dev/null || exit 1"
+        ]
       interval: 10s
       timeout: 5s
-      retries: 2
+      retries: 20
+      start_period: 30s
 
   run-entitlements:
     image: test1_keycloak
     depends_on:
-      - keycloak
+      keycloak:
+        condition: service_healthy
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/postgres2
@@ -59,10 +65,7 @@ services:
       KC_DB_PASSWORD: postgres
     volumes:
       - ./init.sh:/tmp/init.sh
-
-    # Override entrypoint to run our script
     entrypoint: ["sh", "/tmp/init.sh"]
-
     restart: "no"
 
 volumes:

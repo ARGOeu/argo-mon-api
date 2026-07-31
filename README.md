@@ -126,62 +126,70 @@ This command installs all required dependencies in your local Maven repository.
 ---
 ## Start Argo Web API in Development Profile
 
-In development mode, Argo Mon Api uses a locally hosted Argo Web API instead of the production service. To start the local Argo Web API instance, follow these instructions:
+In development mode, Argo Mon API uses a locally hosted Argo Web API instead of the production service. To start the local Argo Web API instance, follow these instructions:
 
-1. Clone the Argo Web API repository
-Clone the repository and checkout the devel branch:
+1. **Clone the ARGO Web API repository**
 
+Clone the repository and check out the `devel` branch:
+
+```bash
 git clone -b devel https://github.com/argoeu/argo-web-api
 
+Clone the repository and check out the `devel` branch:
 
-2. Navigate to the Docker folder
-Change directory to the Docker setup folder:
-
-cd argo-web-api/docker
-
-3. Start the local Argo Web API using Docker Compose
+```bash
+git clone -b devel https://github.com/argoeu/argo-web-api
+```
+3. 
+4. **Start the local Argo Web API using Docker Compose**
 Run the following command to start the services:
 
-docker-compose up
+```bash
+docker compose up
+```
 
 The local instance of the Argo Web API will then be accessible at:
+```text
 http://localhost:8843
-
+```
 
 
 ## Start the Application with Quarkus Dev Services
 
-## Running Keycloak
+### Running the API
 
-The API in dev mode uses Keycloak for authentication and authorization.
+The development environment uses **Quarkus Compose Dev Services** to automatically start the required Keycloak container.
 
-To start Keycloak, navigate to the `keycloak/` directory and run:
-
-```bash
-docker-compose up
-```
-
-Wait until all Keycloak services are fully started before launching the application.
-
-## Stopping Keycloak
-
-To stop Keycloak, navigate to the `keycloak/` directory and run:
-
-```bash
-docker-compose down -v
-```
-
-## Running the API
+Simply run:
 
 ```bash
 mvn clean quarkus:dev
 ```
 
-Once the application is running, open:
+On the first startup, Quarkus will automatically start the local Keycloak instance using the Docker Compose configuration located under:
+
+```text
+keycloak/docker-compose.yml
+```
+
+No manual `docker-compose up` is required.
+
+Once the services are running, Keycloak is available at:
+
+```text
+http://localhost:58080
+```
+
+The API is available at:
 
 ```text
 http://localhost:8080
 ```
+
+> **Note**
+>
+> Ensure the local Argo Web API is running before starting the API.
+
 
 ## Welcome Page
 
@@ -229,14 +237,10 @@ Login with:
 ## Running Tests Locally
 
 > ⚠️ **Important**
-> 
-> Before running the tests locally, make sure to execute the following command from within the `keycloak` folder:
 >
-> ```bash
-> docker-compose down -v
-> ```
-
-> 📝 **Note:** Tests currently run against the **dev** Keycloak service, not the **rciam** Keycloak instance.
+> Make sure Docker is running before executing the tests.
+>
+> If you have manually started a local Keycloak instance, stop it first to avoid port conflicts with Quarkus Dev Services.
 
 
 ## Access the Dev Service Database
@@ -256,22 +260,37 @@ docker exec -it <container_id> psql -U status -d status
 
 ---
 
-## Configure Authentication for Local Builds
+## GitHub Packages
 
-ARGO Mon API depends on the quarkus-auth library, which is distributed through GitHub Packages.
+ARGO Mon API depends on the `quarkus-auth` library, which is distributed through GitHub Packages.
 
-Although the package is public, GitHub Packages Maven registry requires authentication in order to download dependencies.
+Although the package is publicly available, GitHub Packages requires authentication when downloading Maven dependencies.
 
-To configure access locally, follow these steps:
+### 1. Create a GitHub Personal Access Token
 
-1. Create or update Maven settings
+Create a Personal Access Token at:
+
+https://github.com/settings/tokens
+
+The token must include the following permission:
+
+- `read:packages`
+
+If you also need access to private repositories, include:
+
+- `repo`
+
+### 2. Configure Maven
 
 Create or edit the following file:
 
+```text
 ~/.m2/settings.xml
+```
 
 Add the following configuration:
 
+```xml
 <settings>
     <servers>
         <server>
@@ -281,35 +300,15 @@ Add the following configuration:
         </server>
     </servers>
 </settings>
-2. Create a GitHub Personal Access Token
+```
 
-Go to:
+Replace `YOUR_GITHUB_USERNAME` and `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` with your GitHub credentials.
 
-GitHub Personal Access Tokens
+### 3. Build the Project
 
-Create a token with the following scope:
-
-read:packages
-
-Optionally, include:
-
-repo
-
-if you need access to private repositories.
-
-3. Use the token in Maven settings
-
-Replace:
-
-YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
-
-with the generated token value in your settings.xml file.
-
-4. Build the project
-
-You should now be able to build the project successfully:
-
+```bash
 mvn clean install
+```
 
 ## License & Credits
 
