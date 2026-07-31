@@ -9,6 +9,7 @@ import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
@@ -36,6 +37,7 @@ import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
+import org.grnet.status.dtos.topology.IsExternalFeedTopologyResponse;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
 import org.grnet.status.entities.Contact;
 import org.grnet.status.entities.Page;
@@ -1561,6 +1563,19 @@ public class TenantService {
         }
 
         return webApiResponse.data.get(0);
+    }
+    public IsExternalFeedTopologyResponse isExternalFeedTopology(String tenantId) {
+
+        var webApiResponse = webApiService.retrieveFeedTopologyWebApi(tenantId);
+
+        if (webApiResponse == null
+                || webApiResponse.data == null
+                || webApiResponse.data.isEmpty()) {
+            throw new NotFoundException("Not Found Feed Topology");
+        }
+        var response =new IsExternalFeedTopologyResponse();
+        response.external=FeedType.EXTERNAL.equals(webApiResponse.data.get(0).type);
+        return response;
     }
 
     @Transactional
