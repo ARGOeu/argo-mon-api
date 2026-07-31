@@ -58,10 +58,8 @@ public class DowntimeService {
                 .format(DATE_FORMATTER);
     }
 
-    private static final EnumSet<FeedType> SUPPORTED_FEEDS = EnumSet.of(
-            FeedType.CSV,
-            FeedType.DESY_MARKETPLACE,
-            FeedType.INTERNAL
+    private static final EnumSet<FeedType> NOT_SUPPORTED_FEEDS = EnumSet.of(
+           FeedType.EXTERNAL
     );
 
     private void checkEndpoints(String id,
@@ -373,7 +371,7 @@ public class DowntimeService {
 
         var feedType = response.data.get(0).type;
 
-        if (!SUPPORTED_FEEDS.contains(feedType)) {
+        if (NOT_SUPPORTED_FEEDS.contains(feedType)) {
             throw new ForbiddenException(
                     String.format(
                             "Downtime management is not supported for topology feed type %s.",

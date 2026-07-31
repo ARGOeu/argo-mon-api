@@ -651,6 +651,34 @@ public class TenantEndpointTest extends KeycloakTest {
                 .then()
                 .statusCode(404);
     }
+    @Test
+    public void testCreateDowntimeNodeRegistry() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+        mockArgoClientFeed(FeedType.NODE_REGISTRY);
+
+        mockTopologyEndpoints(List.of(
+                endpointSample("service1", "host1.example.org"),
+                endpointSample("service2", "host2.example.org")
+        ));
+
+        var tenant = createTenant();
+        var request = buildCreateDowntime();
+
+        var created = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/v1/tenants/{id}/downtimes", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(DowntimeResponse.class);
+
+        assertNotNull(created.getId());
+        assertEquals(2, created.getServices().size());
+    }
 
     @Test
     public void testCreateDowntime() {
