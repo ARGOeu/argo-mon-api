@@ -292,6 +292,7 @@ public interface TenantMapper {
 
     @Named("tenantToPublicInfo")
     @Mapping(source = "image", target = "logo")
+    @Mapping(source = "performance", target = "performance")
     PublicTenantInformationResponseDto tenantToPublicInformationDto(Tenant tenant);
 
     public default Tenant mapMetadata(TenantRequestDto dto, Tenant tenant) {
