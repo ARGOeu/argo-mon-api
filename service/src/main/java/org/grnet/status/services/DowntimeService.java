@@ -114,18 +114,49 @@ public class DowntimeService {
         checkFeedType(id);
         checkEndpoints(id, request.scheduledAt, request.getServices());
 
+        String warning = null;
+
         if (request.getScheduledAt() != null) {
 
-            boolean exists = downtimeRepository.existsOverlappingDowntime(
-                    id,
-                    request.getScheduledAt(),
-                    request.getCompletedAt()
-            );
+            if (request.getScheduledAt() != null) {
 
-            if (exists) {
-                throw new BadRequestException(
-                        "A downtime already exists for the given period"
-                );
+                List<Downtime> existingDowntimes =
+                        downtimeRepository.findOverlappingDowntimes(
+                                id,
+                                request.getScheduledAt(),
+                                request.getCompletedAt()
+                        );
+
+                Set<String> duplicatedEndpoints = new HashSet<>();
+
+                for (Downtime existingDowntime : existingDowntimes) {
+
+                    existingDowntime.getServices().forEach(existingService -> {
+
+                        boolean existsInRequest = request.getServices()
+                                .stream()
+                                .anyMatch(requestService ->
+                                        requestService.getHostname()
+                                                .equals(existingService.getHostname())
+                                                &&
+                                                requestService.getService()
+                                                        .equals(existingService.getService())
+                                );
+
+                        if (existsInRequest) {
+                            duplicatedEndpoints.add(
+                                    existingService.getHostname()
+                                            + "/"
+                                            + existingService.getService()
+                            );
+                        }
+                    });
+                }
+
+                if (!duplicatedEndpoints.isEmpty()) {
+                    warning = "The following service endpoints already have a downtime for the requested period: "
+                            + String.join(", ", duplicatedEndpoints);
+                }
             }
         }
 
@@ -173,7 +204,9 @@ public class DowntimeService {
 
         downtimeRepository.persist(downtime);
 
-        return DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+        var response= DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+        response.setWarning(warning);
+        return response;
     }
 
     /**
@@ -380,6 +413,66 @@ public class DowntimeService {
         }
     }
 
+    private List<DailyDowntimeEndpointResponse> mergeOverlappingDowntimes(
+            List<DailyDowntimeEndpointResponse> endpoints) {
+
+        Map<String, List<DailyDowntimeEndpointResponse>> grouped =
+                endpoints.stream()
+                        .collect(Collectors.groupingBy(
+                                endpoint ->
+                                        endpoint.getHostname()
+                                                + "|"
+                                                + endpoint.getService()
+                        ));
+
+
+        List<DailyDowntimeEndpointResponse> result = new ArrayList<>();
+
+        grouped.values().forEach(endpointList -> {
+
+            endpointList.sort(
+                    Comparator.comparing(
+                            DailyDowntimeEndpointResponse::getStartTime
+                    )
+            );
+
+
+            DailyDowntimeEndpointResponse current =
+                    endpointList.get(0);
+
+
+            for (int i = 1; i < endpointList.size(); i++) {
+
+                DailyDowntimeEndpointResponse next =
+                        endpointList.get(i);
+
+
+                // overlap check
+                if (!next.getStartTime().isAfter(current.getEndTime())) {
+
+                    // extend end time if needed
+                    if (next.getEndTime().isAfter(current.getEndTime())) {
+                        current.setEndTime(next.getEndTime());
+                    }
+
+                    // keep the earliest start time
+                    if (next.getStartTime().isBefore(current.getStartTime())) {
+                        current.setStartTime(next.getStartTime());
+                    }
+
+                } else {
+
+                    result.add(current);
+                    current = next;
+                }
+            }
+
+            result.add(current);
+        });
+
+
+        return result;
+    }
 
     public DailyDowntimeResponse fetchDailyDowntimes(
             String tenantId,
@@ -395,7 +488,6 @@ public class DowntimeService {
         Instant dayEnd = requestedDate
                 .plusDays(1)
                 .atStartOfDay()
-                .minusSeconds(1)
                 .toInstant(ZoneOffset.UTC);
 
 
@@ -422,11 +514,11 @@ public class DowntimeService {
 
                                             Instant endTime =
                                                     downtime.getCompletedAt() == null
-                                                            ? dayEnd
+                                                            ? dayEnd.minusSeconds(1)
                                                             : downtime.getCompletedAt()
                                                             .isBefore(dayEnd)
                                                             ? downtime.getCompletedAt()
-                                                            : dayEnd;
+                                                            : dayEnd.minusSeconds(1);
 
 
                                             return DowntimeMapper.INSTANCE
@@ -440,9 +532,13 @@ public class DowntimeService {
                         .toList();
 
 
+        List<DailyDowntimeEndpointResponse> mergedEndpoints =
+                mergeOverlappingDowntimes(endpoints);
+
+
         DailyDowntimeResponse response = new DailyDowntimeResponse();
         response.setDate(date);
-        response.setEndpoints(endpoints);
+        response.setEndpoints(mergedEndpoints);
 
         return response;
     }
