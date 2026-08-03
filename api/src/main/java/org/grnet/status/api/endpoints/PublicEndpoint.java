@@ -2,10 +2,16 @@ package org.grnet.status.api.endpoints;
 
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -13,17 +19,23 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.ParamRef;
+import org.grnet.endpoint.scanner.runtime.ParamType;
+import org.grnet.endpoint.scanner.runtime.SecuredEndpoint;
 import org.grnet.status.api.resolvers.CheckDateFormat;
+import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.setting.SettingResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.webapi.*;
-import org.grnet.status.services.ReportService;
-import org.grnet.status.services.SettingService;
-import org.grnet.status.services.StatusService;
-import org.grnet.status.services.TenantService;
+import org.grnet.status.enums.resources.DowntimeResource;
+import org.grnet.status.enums.resources.TenantResource;
+import org.grnet.status.repositories.DowntimeRepository;
+import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.services.*;
 import org.grnet.status.services.clients.WebApiService;
 
 import static org.eclipse.microprofile.openapi.annotations.enums.ParameterIn.QUERY;
@@ -45,6 +57,8 @@ public class PublicEndpoint {
     SettingService settingService;
     @Inject
     WebApiService webApiService;
+    @Inject
+    DowntimeService downtimeService;
 
     @Operation(
             summary = "Get status page configuration by slug",
@@ -1051,4 +1065,197 @@ public class PublicEndpoint {
 
         return Response.ok(tenant).build();
     }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch downtimes for a tenant.",
+            description = "Returns the tenant's downtimes"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = TenantEndpoint.PageableDowntimes.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/downtimes")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+
+    public Response getDowntimes(
+            @Parameter(
+                    name = "page",
+                    in = ParameterIn.QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1")
+            @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+
+            @Parameter(
+                    name = "size",
+                    in = ParameterIn.QUERY,
+                    description = "The page size.")
+            @DefaultValue("10")
+            @Min(value = 1, message = "Page size must be between 1 and 100.")
+            @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+
+            @Parameter(
+                    name = "date",
+                    in = ParameterIn.QUERY,
+                    required = false,
+                    description = "Filter downtimes active on this date (UTC).",
+                    example = "2026-07-06")
+            @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("date")
+            String date,
+
+            @Parameter(
+                    name = "start_date",
+                    in = ParameterIn.QUERY,
+                    required = false,
+                    description = "Start date of the filtering period (UTC).",
+                    example = "2026-07-01")
+            @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start_date")
+            String startDate,
+
+            @Parameter(
+                    name = "end_date",
+                    in = ParameterIn.QUERY,
+                    required = false,
+                    description = "End date of the filtering period (UTC).",
+                    example = "2026-07-10")
+            @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end_date")
+            String endDate,
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Context UriInfo uriInfo) {
+
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        if (!Boolean.TRUE.equals(tenant.publicDowntime)) {
+            throw new ForbiddenException(
+                    "Public downtime information is disabled for tenant '" + tenantName + "'."
+            );
+        }
+        var response = downtimeService.fetchDowntimesByPageAndSize(
+                page - 1,
+                size,
+                tenant.id,
+                date,
+                startDate,
+                endDate,
+                uriInfo
+        );
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch a specific downtime for a tenant.",
+            description = "Returns the tenant's specific downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/downtimes/{downtime-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+
+    public Response getDowntime(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    description = "The ID of the downtime.",
+                    required = true,
+                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("downtime-id")
+            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ")
+            String downtimeId,
+            @Context UriInfo uriInfo) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        if (!Boolean.TRUE.equals(tenant.publicDowntime)) {
+            throw new ForbiddenException(
+                    "Public downtime information is disabled for tenant '" + tenantName + "'."
+            );
+        }
+        var response = downtimeService.fetchDowntimes(tenant.id, downtimeId);
+        return Response.ok(response).build();
+    }
+
 }

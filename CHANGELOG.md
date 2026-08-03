@@ -60,6 +60,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#226](https://github.com/ARGOeu/argo-mon-api/pull/226) ARGO-5758 Add public endpoint for tenant basic info
 - [#228](https://github.com/ARGOeu/argo-mon-api/pull/228) ARGO-5839 [API] Run Local Keycloak as a Quarkus Dev Service
 - [#229](https://github.com/ARGOeu/argo-mon-api/pull/229)  ARGO-5847 Expose performance field in GET /v1/public/tenants/{tenant-name}/info
+- [#230](https://github.com/ARGOeu/argo-mon-api/pull/230) ARGO-5843 argo-mon-api get tenant downtimes for public tenants
 - [#232](https://github.com/ARGOeu/argo-mon-api/pull/232)  ARGO-5850 Add endpoint to expose whether a tenant uses an external feed topology
 
 ### Fix 
