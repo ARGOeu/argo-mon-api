@@ -27,6 +27,7 @@ import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.downtime.DailyDowntimeResponse;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
+import org.grnet.status.dtos.topology.IsExternalFeedTopologyResponse;
 import org.grnet.status.entities.Downtime;
 import org.grnet.status.enums.resources.InvitationResource;
 import org.grnet.status.enums.resources.TenantResource;
@@ -213,24 +214,17 @@ public class AutomationEndpoint {
     )
 
     @GET
-    @Path("/tenants/{id}/downtimes/daily")
+    @Path("/tenants/{tenant-name}/downtimes/daily")
     @Produces(MediaType.APPLICATION_JSON)
-    @SecuredEndpoint(
-            params = {
-                    @ParamRef(
-                            param = "id",
-                            type = ParamType.PATH,
-                            referTo = TenantResource.class
-                    )
-            }
-    )
+    @SecuredEndpoint
     public Response getDailyDowntimes(
             @Parameter(
-                    description = "The ID of the tenant to fetch downtimes.",
+                    description = "The name of the tenant.",
                     required = true,
-                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
-                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
-            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
             @Parameter(
                     name = "date",
                     description = "UTC date in yyyy-MM-dd format",
@@ -245,9 +239,68 @@ public class AutomationEndpoint {
             @NotNull
             String date
     ) {
+        var tenant = tenantService.getTenantByName(tenantName);
 
         return Response.ok(
-                downtimeService.fetchDailyDowntimes(id, date)
+                downtimeService.fetchDailyDowntimes(tenant.id, date)
         ).build();
     }
+
+    @Tag(name = "Automation")
+    @Operation(
+            summary = "Check if tenant feed topology is external.",
+            description = "Returns true if the tenant uses an external feed topology, otherwise false."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Returns whether the tenant feed topology is external.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IsExternalFeedTopologyResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Entity Not Found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @GET
+    @Path("/tenants/{tenant-name}/feed/topology/is-external")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
+    public Response getIsExternalFeedTopology(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        var isExternal = tenantService.isExternalFeedTopology(tenant.id);
+
+        return Response.ok(isExternal).build();
+    }
+
+
 }
+
+
