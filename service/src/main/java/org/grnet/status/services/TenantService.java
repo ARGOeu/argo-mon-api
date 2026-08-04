@@ -166,6 +166,7 @@ public class TenantService {
         tenant.setStatus(status);
         tenant.setNode(Boolean.TRUE.equals(request.node) ? true : null);
         tenant.setPerformance(Boolean.TRUE.equals(request.performance) ? true : false);
+        tenant.setPublicDowntime(Boolean.TRUE.equals(request.publicDowntime) ? true : false);
         try {
             TenantMapper.INSTANCE.mapMetadata(request, tenant);
             writeInDB(request, tenant, remoteTenantId, userId);
@@ -1735,7 +1736,7 @@ public class TenantService {
             tenant.setStatus(TenantMapper.INSTANCE.mapStatusToString(setDefaultStatus()));
             tenant.setNode(Boolean.TRUE.equals(remoteTenant.getNode()) ? Boolean.TRUE : null);
             tenant.setPerformance(false);
-
+            tenant.setPublicDowntime(false);
             tenantRepository.persist(tenant);
 
             Log.infof("Tenant inserted locally: %s (%s)", tenant.getName(), tenant.getId());

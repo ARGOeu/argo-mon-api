@@ -282,7 +282,7 @@ public class AutomationEndpoint {
                     type = SchemaType.OBJECT,
                     implementation = InformativeResponse.class)))
     @GET
-    @Path("/tenants/{tenant-name}/feed/topology/is-external")
+    @Path("/tenants/{tenant-name}/feeds/topology/is-external")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint
     public Response getIsExternalFeedTopology(
