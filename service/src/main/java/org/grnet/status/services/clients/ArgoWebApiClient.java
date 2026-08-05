@@ -397,6 +397,25 @@ public interface ArgoWebApiClient {
             @QueryParam("end_time") String endTime,
             @QueryParam("history") Boolean history
     );
+    @GET
+    @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics")
+    WebApiNodeMonitoringMetricResponse getNodeMonitoringMetrics(
+            @HeaderParam("x-api-key") String accessToken,
+            @PathParam("nodeName") String nodeName,
+            @QueryParam("start_time") String startTime,
+            @QueryParam("end_time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+    @GET
+    @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics/{item}")
+    WebApiNodeMonitoringMetricResponse getNodeMonitoringMetricsByMetric(
+            @HeaderParam("x-api-key") String accessToken,
+            @PathParam("nodeName") String nodeName,
+            @PathParam("item") String item,
+            @QueryParam("start_time") String startTime,
+            @QueryParam("end_time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
 
     @GET
     @Path("/api/v4/nodes/{nodeName}/capabilities/status/{item}")

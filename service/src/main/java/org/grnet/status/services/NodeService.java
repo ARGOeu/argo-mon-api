@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import org.grnet.status.dtos.tenant.node.WebApiNodeAvailabilityResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
 import org.grnet.status.dtos.tenant.node.WebApiNodeSummaryResponse;
 import org.grnet.status.repositories.TenantRepository;
@@ -34,6 +35,12 @@ public class NodeService {
         return webApiService.retrieveNodeStatus(nodeName, item, startTime, endTime, history);
     }
 
+    public WebApiNodeMonitoringMetricResponse getMonitoringMetricNodeName(String nodeName, String startTime, String endTime, String granularity) {
+
+        checkIfNodeExist(nodeName);
+
+        return webApiService.retrieveNodeMonitoringMetrics(nodeName,"",  startTime, endTime, granularity);
+    }
     /**
      * Retrieves the summary capability for the specified tenant and service.
      *

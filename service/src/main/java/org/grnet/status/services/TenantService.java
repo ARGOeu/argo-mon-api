@@ -26,12 +26,9 @@ import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
-import org.grnet.status.dtos.tenant.node.WebApiNodeAvailabilityResponse;
-import org.grnet.status.dtos.tenant.node.WebApiNodeResponse;
+import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.metadata.InstanceDto;
 import org.grnet.status.dtos.tenant.metadata.TenantMetadata;
-import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
-import org.grnet.status.dtos.tenant.node.WebApiNodeSummaryResponse;
 import org.grnet.status.dtos.tenant.status.EventStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
@@ -2087,5 +2084,12 @@ public class TenantService {
 
             throw e;
         }
+    }
+
+    public WebApiNodeMonitoringMetricResponse getMonitoring(String id, String item, String startTime, String endTime, String granularity) {
+
+        var tenant = tenantRepository.findById(id);
+
+        return webApiService.retrieveNodeMonitoringMetrics(tenant.name, item, startTime, endTime,granularity);
     }
 }
