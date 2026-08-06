@@ -70,4 +70,8 @@ public class DowntimeResponse {
     @JsonProperty("updated_at")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public Instant updatedAt;
+
+    @JsonProperty("warning")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String warning;
 }
