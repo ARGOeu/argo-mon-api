@@ -402,8 +402,8 @@ public interface ArgoWebApiClient {
     WebApiNodeMonitoringMetricResponse getNodeMonitoringMetrics(
             @HeaderParam("x-api-key") String accessToken,
             @PathParam("nodeName") String nodeName,
-            @QueryParam("start_time") String startTime,
-            @QueryParam("end_time") String endTime,
+            @QueryParam("start-date") String startDate,
+            @QueryParam("end-date") String endDate,
             @QueryParam("granularity") String granularity
     );
     @GET
@@ -412,8 +412,8 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-api-key") String accessToken,
             @PathParam("nodeName") String nodeName,
             @PathParam("item") String item,
-            @QueryParam("start_time") String startTime,
-            @QueryParam("end_time") String endTime,
+            @QueryParam("start-date") String startDate,
+            @QueryParam("end-date") String endDate,
             @QueryParam("granularity") String granularity
     );
 

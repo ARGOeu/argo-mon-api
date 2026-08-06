@@ -3,6 +3,7 @@ package org.grnet.status.api.endpoints;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -223,22 +224,22 @@ public class NodeEndpoint {
     public Response getMonitoringMetric(
             @Parameter(description = "The name of the Node.",
                     required = true,
-                    example = "GRNET",
-                    schema = @Schema(type = SchemaType.STRING))
-            @PathParam("name")
-            String nodeName,
-            @Parameter(name = "start_date", in = QUERY,
+                    example = "TENANT-TEST")
+            @PathParam("name") String nodeName,
+            @Parameter(name = "start-date", in = QUERY,
                     description = "Start date in W3C format.")
+            @NotBlank(message = "start-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
-            @QueryParam("start_date")
+            @QueryParam("start-date")
             String startDate,
 
-            @Parameter(name = "end_date", in = QUERY,
+            @Parameter(name = "end-date", in = QUERY,
                     description = "End date in W3C format.")
+            @NotBlank(message = "end-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
-            @QueryParam("end_date")
+            @QueryParam("end-date")
             String endDate,
             @Parameter(name = "granularity", in = QUERY,
                     description = "Granularity of results (daily, monthly).",

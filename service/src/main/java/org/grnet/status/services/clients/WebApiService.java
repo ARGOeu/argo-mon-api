@@ -411,14 +411,14 @@ public class WebApiService {
         }
     }
 
-    public WebApiNodeMonitoringMetricResponse retrieveNodeMonitoringMetrics(String nodeName,String item, String startTime, String endTime, String granularity) {
+    public WebApiNodeMonitoringMetricResponse retrieveNodeMonitoringMetrics(String nodeName,String item, String startDate, String endDate, String granularity) {
         try {
 
             if (StringUtils.isBlank(item)) {
-                return argoWebApiClient.getNodeMonitoringMetrics(accessToken, nodeName, startTime, endTime, granularity);
+                return argoWebApiClient.getNodeMonitoringMetrics(accessToken, nodeName, startDate, endDate, granularity);
             }
 
-            return argoWebApiClient.getNodeMonitoringMetricsByMetric(accessToken, nodeName, item, startTime, endTime, granularity);
+            return argoWebApiClient.getNodeMonitoringMetricsByMetric(accessToken, nodeName, item, startDate, endDate, granularity);
 
            } catch (WebApplicationException e) {
 

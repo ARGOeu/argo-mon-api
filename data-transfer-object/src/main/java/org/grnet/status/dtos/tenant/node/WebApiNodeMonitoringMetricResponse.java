@@ -1,5 +1,6 @@
 package org.grnet.status.dtos.tenant.node;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class WebApiNodeMonitoringMetricResponse {
@@ -13,9 +14,8 @@ public class WebApiNodeMonitoringMetricResponse {
 
     public static class Result {
         public String date;
-        public String availability;
-        public String reliability;
-        public String uptime;
+        public BigDecimal availability;
+        public BigDecimal reliability;
+        public BigDecimal uptime;
     }
 }
-

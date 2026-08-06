@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
@@ -3144,20 +3145,22 @@ public class TenantEndpoint {
                     example = "ARCHIVE")
             @QueryParam("item")
             String item,
-            @Parameter(name = "start_date", in = QUERY,
+            @Parameter(name = "start-date", in = QUERY,
                     description = "Start date in W3C format.",
                       example = "2026-08-05"
              )
+            @NotBlank(message = "start-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
-            @QueryParam("start_date")
+            @QueryParam("start-date")
             String startDate,
-            @Parameter(name = "end_date", in = QUERY,
+            @Parameter(name = "end-date", in = QUERY,
                     description = "End date in W3C format.",
                     example = "2026-08-05")
+            @NotBlank(message = "end-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
-            @QueryParam("end_date")
+            @QueryParam("end-date")
             String endDate,
             @Parameter(name = "granularity", in = QUERY,
                     description = "Granularity of results (daily, monthly).",
