@@ -1039,7 +1039,9 @@ public class TenantService {
 
         send(tenant.id, buildAlert(EventName.INIT_AMS, tenant, createdAt), "");
         send(tenant.id, buildAlert(EventName.INIT_MONGO, tenant, createdAt), "");
-        send(tenant.id, buildAlert(EventName.INIT_COMPUTE_ENGINE, tenant, createdAt), "");
+        var computeEngineAlert=buildAlert(EventName.INIT_COMPUTE_ENGINE, tenant, createdAt);
+        computeEngineAlert.getProperties().put("performance",String.valueOf(tenant.getPerformance()));
+        send(tenant.id,computeEngineAlert , "");
     }
 
     /**
@@ -1060,6 +1062,7 @@ public class TenantService {
                 "tenant_name", tenant.name
 
         )));
+
         return alert;
     }
 
