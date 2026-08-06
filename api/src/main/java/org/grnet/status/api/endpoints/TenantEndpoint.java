@@ -3091,6 +3091,86 @@ public class TenantEndpoint {
 
     @Tag(name = "Capabilities")
     @Operation(
+            summary = "Get monitoring metrics results for node services.",
+            description = "Retrieve monitoring  metrics for a node’s services from Argo Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Monitoring metrics retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = WebApiNodeAvailabilityResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/capabilities/monitoring/metrics")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getMonitoring(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "item", in = QUERY,
+                    description = "Metric name to target under the node.",
+                    example = "ARCHIVE")
+            @QueryParam("item")
+            String item,
+            @Parameter(name = "start_date", in = QUERY,
+                    description = "Start date in W3C format.",
+                      example = "2026-08-05"
+             )
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start_date")
+            String startDate,
+            @Parameter(name = "end_date", in = QUERY,
+                    description = "End date in W3C format.",
+                    example = "2026-08-05")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end_date")
+            String endDate,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "Granularity of results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var availability = tenantService.getMonitoring(id, item,startDate, endDate, granularity);
+
+        return Response.ok().entity(availability).build();
+    }
+    @Tag(name = "Capabilities")
+    @Operation(
             summary = "Get availability results for node services.",
             description = "Retrieve availability metrics for a node’s services from Argo Web API.")
     @APIResponse(

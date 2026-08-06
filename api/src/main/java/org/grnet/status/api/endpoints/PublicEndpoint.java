@@ -30,6 +30,7 @@ import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.setting.SettingResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
+import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.enums.resources.DowntimeResource;
 import org.grnet.status.enums.resources.TenantResource;
@@ -59,6 +60,9 @@ public class PublicEndpoint {
     WebApiService webApiService;
     @Inject
     DowntimeService downtimeService;
+
+    @Inject
+    NodeService nodeService;
 
     @Operation(
             summary = "Get status page configuration by slug",
@@ -1256,6 +1260,70 @@ public class PublicEndpoint {
         }
         var response = downtimeService.fetchDowntimes(tenant.id, downtimeId);
         return Response.ok(response).build();
+    }
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Get monitoring metric results for node services.",
+            description = "Retrieve monitoring metric results for a node’s services from Argo Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Monitoring metrics results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = WebApiNodeStatusResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @GET
+    @Path("/nodes/{name}/capabilities/monitoring/metrics")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getMonitoringMetric(
+            @Parameter(description = "The name of the Node.",
+                    required = true,
+                    example = "GRNET",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("name")
+            String nodeName,
+            @Parameter(name = "start_date", in = QUERY,
+                    description = "Start date in W3C format.")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start_date")
+            String startDate,
+
+            @Parameter(name = "end_date", in = QUERY,
+                    description = "End date in W3C format.")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end_date")
+            String endDate,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "Granularity of results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var status = nodeService.getMonitoringMetricNodeName(nodeName,  startDate, endDate,granularity);
+
+        return Response.ok().entity(status).build();
     }
 
 }
