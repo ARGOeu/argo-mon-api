@@ -2,6 +2,7 @@ package org.grnet.status.services;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
 import org.grnet.status.dtos.tenant.node.WebApiNodeAvailabilityResponse;
 import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
@@ -36,7 +37,14 @@ public class NodeService {
     }
 
     public WebApiNodeMonitoringMetricResponse getMonitoringMetricNodeName(String nodeName, String startDate, String endDate, String granularity) {
+        boolean startIsBlank = startDate == null || startDate.isBlank();
+        boolean endIsBlank = endDate == null || endDate.isBlank();
 
+        if (startIsBlank != endIsBlank) {
+            throw new BadRequestException(
+                    "start-date and end-date should be either both defined or both blank"
+            );
+        }
         checkIfNodeExist(nodeName);
 
         return webApiService.retrieveNodeMonitoringMetrics(nodeName,"",  startDate, endDate, granularity);
