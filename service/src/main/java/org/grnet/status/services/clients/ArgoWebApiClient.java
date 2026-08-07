@@ -748,4 +748,26 @@ public interface ArgoWebApiClient {
             @QueryParam("end-time") String endTime
     );
 
+    @GET
+    @Path("/api/v5/status/{report-name}/endpoints")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByEndpointNameByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+
 }

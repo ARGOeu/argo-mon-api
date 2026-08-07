@@ -239,4 +239,15 @@ public class StatusService {
 
 
 
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointsByReport(String tenantId, String reportName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineEndpointByReport(tenantId, reportName, startTime, endTime);
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointByNameByReport(String tenantId, String reportName, String endpointName, String startTime, String endTime) {
+
+        return webApiService.retrieveStatusTimelineEndpointByNameByReport(tenantId, reportName, endpointName, startTime, endTime);
+    }
+
+
 }
