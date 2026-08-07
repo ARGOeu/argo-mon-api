@@ -35,11 +35,11 @@ public class NodeService {
         return webApiService.retrieveNodeStatus(nodeName, item, startTime, endTime, history);
     }
 
-    public WebApiNodeMonitoringMetricResponse getMonitoringMetricNodeName(String nodeName, String startTime, String endTime, String granularity) {
+    public WebApiNodeMonitoringMetricResponse getMonitoringMetricNodeName(String nodeName, String startDate, String endDate, String granularity) {
 
         checkIfNodeExist(nodeName);
 
-        return webApiService.retrieveNodeMonitoringMetrics(nodeName,"",  startTime, endTime, granularity);
+        return webApiService.retrieveNodeMonitoringMetrics(nodeName,"",  startDate, endDate, granularity);
     }
     /**
      * Retrieves the summary capability for the specified tenant and service.

@@ -5,6 +5,8 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -28,6 +30,10 @@ import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.setting.SettingResponseDto;
+import org.grnet.status.dtos.status.TenantWebApiEndpointStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiMetricStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
@@ -1298,22 +1304,25 @@ public class PublicEndpoint {
     public Response getMonitoringMetric(
             @Parameter(description = "The name of the Node.",
                     required = true,
-                    example = "GRNET",
+                    example = "TENANT-TEST",
                     schema = @Schema(type = SchemaType.STRING))
             @PathParam("name")
             String nodeName,
-            @Parameter(name = "start_date", in = QUERY,
+            @Parameter(name = "start-date", in = QUERY,
                     description = "Start date in W3C format.")
+
+            @NotBlank(message = "start-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
-            @QueryParam("start_date")
+            @QueryParam("start-date")
             String startDate,
 
-            @Parameter(name = "end_date", in = QUERY,
+            @Parameter(name = "end-date", in = QUERY,
                     description = "End date in W3C format.")
+            @NotBlank(message = "end-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
-            @QueryParam("end_date")
+            @QueryParam("end-date")
             String endDate,
             @Parameter(name = "granularity", in = QUERY,
                     description = "Granularity of results (daily, monthly).",
@@ -1326,4 +1335,1313 @@ public class PublicEndpoint {
         return Response.ok().entity(status).build();
     }
 
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch status timelines for all groups.",
+            description = "Returns the status timelines for all groups of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Group status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiGroupStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status groups not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusGroupsByReport(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+
+        var groupTimelines = statusService.retrieveStatusTimelineGroupsByReport(tenant.id, reportName, startTime, endTime);
+
+        return Response.ok(groupTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timeline for a group.",
+            description = "Returns the status timeline for a specific group of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Group status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiGroupStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status group not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusGroupByNameByReport(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        var groupTimelines = statusService.retrieveStatusTimelineGroupByNameByReport(tenant.id, reportName, groupName, startTime, endTime);
+
+        return Response.ok(groupTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timelines for service types.",
+            description = "Returns the status timelines for all service types of a specific group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Service type status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiServiceTypeStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Service types not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/service-types")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusServiceTypesByGroup(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+        var serviceTypeTimelines = statusService.retrieveStatusTimelineServiceTypesByGroup(tenant.id, reportName, groupName, startTime, endTime);
+
+        return Response.ok(serviceTypeTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timeline for a service type.",
+            description = "Returns the status timeline for a specific service type of the specified group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Service type status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiServiceTypeStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Service type not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusServiceTypeByName(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+        var serviceTypeTimeline = statusService.retrieveStatusTimelineServiceTypeByName(tenant.id, reportName, groupName, serviceTypeName, startTime, endTime);
+
+        return Response.ok(serviceTypeTimeline).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timelines for endpoints.",
+            description = "Returns the status timelines for all endpoints of a specific group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoints not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusEndpointsByGroup(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+
+        var endpointTimelines = statusService.retrieveStatusTimelineEndpointsByGroup(
+                tenant.id, reportName, groupName, startTime, endTime);
+
+        return Response.ok(endpointTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timeline for an endpoint.",
+            description = "Returns the status timeline for a specific endpoint of the specified group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoint not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusEndpointByGroupAndName(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "host1.example_ID1")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+
+        var endpointTimeline = statusService.retrieveStatusTimelineEndpointByGroupAndName(tenant.id, reportName, groupName, endpointName, startTime, endTime);
+
+        return Response.ok(endpointTimeline).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timelines for endpoints under a service type.",
+            description = "Returns the status timelines for all endpoints of a specific service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoints not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusEndpointsByServiceType(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+        var endpointTimelines = statusService.retrieveStatusTimelineEndpointsByServiceType(tenant.id, reportName, groupName, serviceTypeName, startTime, endTime);
+
+        return Response.ok(endpointTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timeline for an endpoint under a service type.",
+            description = "Returns the status timeline for a specific endpoint of the specified service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoint not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusEndpointByServiceTypeAndName(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+        var endpointTimeline = statusService.retrieveStatusTimelineEndpointByServiceTypeAndName(
+                tenant.id, reportName, groupName, serviceTypeName, endpointName, startTime, endTime);
+
+        return Response.ok(endpointTimeline).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timelines for metrics.",
+            description = "Returns the status timelines for all metrics of a specific endpoint, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metrics not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}/metrics")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusMetricsByEndpoint(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        var metricTimelines = statusService.retrieveStatusTimelineMetricsByEndpoint(tenant.id, reportName, groupName, endpointName, startTime, endTime);
+
+        return Response.ok(metricTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timeline for a metric.",
+            description = "Returns the status timeline for a specific metric of the specified endpoint, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metric not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}/metrics/{metric-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusMetricByEndpointAndName(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "metric-name",
+                    description = "The name of the metric.",
+                    required = true,
+                    example = "generic.http.connect")
+            @PathParam("metric-name")
+            String metricName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        var metricTimeline = statusService.retrieveStatusTimelineMetricByEndpointAndName(tenant.id, reportName, groupName, endpointName, metricName, startTime, endTime);
+
+        return Response.ok(metricTimeline).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timelines for metrics under a service type.",
+            description = "Returns the status timelines for all metrics of a specific endpoint, service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metrics not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusMetricsByServiceTypeAndEndpoint(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+
+        var metricTimelines = statusService.retrieveStatusTimelineMetricsByServiceTypeAndEndpoint(tenant.id, reportName, groupName, serviceTypeName, endpointName, startTime, endTime);
+
+        return Response.ok(metricTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timeline for a metric under a service type.",
+            description = "Returns the status timeline for a specific metric of the specified endpoint, service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metric not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics/{metric-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusMetricByServiceTypeEndpointAndName(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "metric-name",
+                    description = "The name of the metric.",
+                    required = true,
+                    example = "generic.http.connect")
+            @PathParam("metric-name")
+            String metricName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        var metricTimeline = statusService.retrieveStatusTimelineMetricByServiceTypeEndpointAndName(tenant.id, reportName, groupName, serviceTypeName, endpointName, metricName, startTime, endTime);
+
+        return Response.ok(metricTimeline).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch status timelines for all endpoints.",
+            description = "Returns the status timelines for all endpoints of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status groups not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getStatusEndpointsByReport(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        var endpointTimelines = statusService.retrieveStatusTimelineEndpointsByReport(tenant.id, reportName, startTime, endTime);
+
+        return Response.ok(endpointTimelines).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the status timeline for an endpoint.",
+            description = "Returns the status timeline for a specific endpoint of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status group not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/status/{report-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getStatusEndpointByNameByReport(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "archive.example.foo_service-6wzv3n7")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        var groupTimelines = statusService.retrieveStatusTimelineEndpointByNameByReport(tenant.id, reportName, endpointName, startTime, endTime);
+
+        return Response.ok(groupTimelines).build();
+    }
 }
