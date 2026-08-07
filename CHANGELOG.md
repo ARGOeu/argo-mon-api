@@ -74,6 +74,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#212](https://github.com/ARGOeu/argo-mon-api/pull/212) ARGO-5797 Update public REST endpoint paths to use tenant name instead of tenant ID
 - [#221](https://github.com/ARGOeu/argo-mon-api/pull/221) ARGO-5820 [API] Use Configured Super Admin Role in AGM Initialization
 - [#227](https://github.com/ARGOeu/argo-mon-api/pull/227) ARGO-5831 Update the downtime management validation to allow downtime operations for all feed topologies except External.
+- [#237](https://github.com/ARGOeu/argo-mon-api/pull/237) ARGO-5864 start-date, end-date for monitoring capability should be optional- #237
 
 
 ## 1.0.0 - 2026-06-26

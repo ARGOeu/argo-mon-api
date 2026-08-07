@@ -3149,7 +3149,6 @@ public class TenantEndpoint {
                     description = "Start date in W3C format.",
                       example = "2026-08-05"
              )
-            @NotBlank(message = "start-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
             @QueryParam("start-date")
@@ -3157,7 +3156,6 @@ public class TenantEndpoint {
             @Parameter(name = "end-date", in = QUERY,
                     description = "End date in W3C format.",
                     example = "2026-08-05")
-            @NotBlank(message = "end-date is required.")
             @Valid
             @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
             @QueryParam("end-date")
