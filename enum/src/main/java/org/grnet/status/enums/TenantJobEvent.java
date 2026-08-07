@@ -12,7 +12,7 @@ public enum TenantJobEvent {
     // Automatic jobs (updated by automation)
     INIT_AMS("init_ams", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
     INIT_MONGO("init_mongo", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
-    INIT_COMPUTE_ENGINE("init_compute_engine", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_COMPUTE_ENGINE("init_compute_engine", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME,TenantJobProperty.PERFORMANCE)),
 
     CHECK_READINESS("check_readiness", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
 

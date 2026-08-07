@@ -7,7 +7,8 @@ public enum TenantJobProperty {
 
     TENANT_ID("tenant_id"),
     TENANT_NAME("tenant_name"),
-    FEED_TYPE("feed_type");
+    FEED_TYPE("feed_type"),
+    PERFORMANCE("performance");
 
     private final String key;
 

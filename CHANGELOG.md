@@ -64,9 +64,9 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 <<<<<<< HEAD
 - [#231](https://github.com/ARGOeu/argo-mon-api/pull/231)  ARGO-5845 Conflict when declaring new downtime
 - [#232](https://github.com/ARGOeu/argo-mon-api/pull/232)  ARGO-5850 Add endpoint to expose whether a tenant uses an external feed topology
-- [#232](https://github.com/ARGOeu/argo-mon-api/pull/232) ARGO-5850 Add endpoint to expose whether a tenant uses an external feed topology
 - [#233](https://github.com/ARGOeu/argo-mon-api/pull/233) ARGO-5883 Add Endpoints to support Monitoring Capability for Metrics to Argo Monitoring Status API
 - [#234](https://github.com/ARGOeu/argo-mon-api/pull/234) ARGO-5859 Implement Endpoint Status Timeline API Endpoints
+- [#235](https://github.com/ARGOeu/argo-mon-api/pull/235) ARGO-5888 argo-mon-api: when a new tenant is created please in INIT_COMPUTE_ENGINE event specify if performance:true/false (according to what the user has defined in the tenant)- #235
 
 ### Fix 
 
