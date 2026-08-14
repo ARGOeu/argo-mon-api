@@ -66,7 +66,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#233](https://github.com/ARGOeu/argo-mon-api/pull/233) ARGO-5883 Add Endpoints to support Monitoring Capability for Metrics to Argo Monitoring Status API
 - [#234](https://github.com/ARGOeu/argo-mon-api/pull/234) ARGO-5859 Implement Endpoint Status Timeline API Endpoints
 - [#235](https://github.com/ARGOeu/argo-mon-api/pull/235) ARGO-5888 argo-mon-api: when a new tenant is created please in INIT_COMPUTE_ENGINE event specify if performance:true/false (according to what the user has defined in the tenant)- #235
-- [#236](https://github.com/ARGOeu/argo-mon-api/pull/236) ARGO-5862 Publicly Expose Status Timelines endpoints for tenant's reports- #236
+- [#236](https://github.com/ARGOeu/argo-mon-api/pull/236) ARGO-5862 Publicly Expose Status Timelines endpoints for tenant's reports
+- [#238](https://github.com/ARGOeu/argo-mon-api/pull/238) ARGO-5870 Add Service-Specific Monitoring Metrics Endpoints
 
 ### Fix 
 

@@ -36,6 +36,7 @@ import org.grnet.status.dtos.status.TenantWebApiMetricStatusTimelineResponse;
 import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.statuspage.StatusPageConfigDto;
 import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
+import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.enums.resources.DowntimeResource;
@@ -1331,6 +1332,74 @@ public class PublicEndpoint {
         var status = nodeService.getMonitoringMetricNodeName(nodeName,  startDate, endDate,granularity);
 
         return Response.ok().entity(status).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Get monitoring metric results for a node service.",
+            description = "Retrieve monitoring metric results for a single node service from Argo Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Monitoring metric results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = WebApiNodeMonitoringMetricResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node or service not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @GET
+    @Path("/nodes/{name}/capabilities/monitoring/metrics/{service-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getMonitoringMetricByService(
+            @Parameter(
+                    description = "The name of the Node.",
+                    required = true,
+                    example = "TENANTB",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("name")
+            String nodeName,
+            @Parameter(
+                    description = "The ID of the service.",
+                    required = true,
+                    example = "CLOUD-B",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("service-id")
+            String serviceId,
+            @Parameter(
+                    name = "start-date",
+                    in = QUERY,
+                    description = "Start date in W3C format.")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start-date")
+            String startDate,
+            @Parameter(
+                    name = "end-date",
+                    in = QUERY,
+                    description = "End date in W3C format.")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end-date")
+            String endDate,
+            @Parameter(
+                    name = "granularity",
+                    in = QUERY,
+                    description = "Granularity of results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var metrics = nodeService.getMonitoringMetricByService(nodeName, serviceId, startDate, endDate, granularity);
+
+        return Response.ok().entity(metrics).build();
     }
 
     @Tag(name = "Public")

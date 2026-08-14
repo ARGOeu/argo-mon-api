@@ -26,6 +26,7 @@ import org.grnet.status.dtos.tenant.ContactDto;
 import org.grnet.status.dtos.tenant.TenantInfoDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
+import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -82,6 +84,9 @@ public class TenantEndpointTest extends KeycloakTest {
     public void mockArgoClient() throws Exception {
         when(argoWebApiClient.createTenant(any(), any())).thenAnswer(invocation -> loadMockTenantResponse(currentMockId));
         when(argoWebApiClient.getTenant(any(), any())).thenAnswer(invocation -> loadMockTenantGetResponse(currentMockId));
+        when(argoWebApiClient.getNodeMonitoringMetricsByService(
+                anyString(), anyString(), anyString(), any(), any(), anyString()))
+                .thenReturn(monitoringMetricResponse());
     }
 
     @BeforeEach
@@ -801,6 +806,41 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals(DowntimeSeverity.Warning.name(), updated.getSeverity());
     }
 
+    @Test
+    public void getMonitoringMetricByService() {
+
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        currentMockId = tenant.id;
+        mockTenantAdmin();
+
+        mockRoleEndpoints(
+                "tenant_admin",
+                "GET_/v1/tenants/{id}/capabilities/monitoring/metrics/{service-id}"
+        );
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .queryParam("granularity", "daily")
+                .get("/v1/tenants/{id}/capabilities/monitoring/metrics/{service-id}", tenant.id, "CLOUD-B")
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(WebApiNodeMonitoringMetricResponse.class);
+
+        assertNotNull(response);
+        assertEquals(1, response.data.size());
+        assertEquals("CLOUD-B", response.data.get(0).name);
+        assertEquals(BigDecimal.valueOf(100), response.data.get(0).results.get(0).availability);
+        assertEquals(BigDecimal.valueOf(100), response.data.get(0).results.get(0).reliability);
+        assertEquals(BigDecimal.ONE, response.data.get(0).results.get(0).uptime);
+    }
+
     private TenantResponseDto createTenant() {
         var request = new TenantRequestDto();
         var tenantInfo = new TenantInfoDto();
@@ -991,5 +1031,24 @@ public class TenantEndpointTest extends KeycloakTest {
         dto.setService(service);
         dto.setHostname(hostname);
         return dto;
+    }
+
+    private WebApiNodeMonitoringMetricResponse monitoringMetricResponse() {
+
+        var response = new WebApiNodeMonitoringMetricResponse();
+
+        var data = new WebApiNodeMonitoringMetricResponse.Data();
+        data.name = "CLOUD-B";
+
+        var result = new WebApiNodeMonitoringMetricResponse.Result();
+        result.date = "2026-08-14";
+        result.availability = BigDecimal.valueOf(100);
+        result.reliability = BigDecimal.valueOf(100);
+        result.uptime = BigDecimal.ONE;
+
+        data.results = List.of(result);
+        response.data = List.of(data);
+
+        return response;
     }
 }

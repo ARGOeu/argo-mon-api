@@ -418,6 +418,17 @@ public interface ArgoWebApiClient {
     );
 
     @GET
+    @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics/{service-id}")
+    WebApiNodeMonitoringMetricResponse getNodeMonitoringMetricsByService(
+            @HeaderParam("x-api-key") String accessToken,
+            @PathParam("nodeName") String nodeName,
+            @PathParam("service-id") String serviceId,
+            @QueryParam("start-date") String startDate,
+            @QueryParam("end-date") String endDate,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
     @Path("/api/v4/nodes/{nodeName}/capabilities/status/{item}")
     WebApiNodeStatusResponse getNodeStatusByService(
             @HeaderParam("x-api-key") String accessToken,

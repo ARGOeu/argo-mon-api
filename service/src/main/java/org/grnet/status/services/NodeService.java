@@ -49,6 +49,23 @@ public class NodeService {
 
         return webApiService.retrieveNodeMonitoringMetrics(nodeName,"",  startDate, endDate, granularity);
     }
+
+
+    public WebApiNodeMonitoringMetricResponse getMonitoringMetricByService(String nodeName, String serviceId, String startDate, String endDate, String granularity) {
+
+        var startIsBlank = startDate == null || startDate.isBlank();
+        var endIsBlank = endDate == null || endDate.isBlank();
+
+        if (startIsBlank != endIsBlank) {
+            throw new BadRequestException("start-date and end-date should be either both defined or both blank");
+        }
+
+        checkIfNodeExist(nodeName);
+
+        return webApiService.retrieveNodeMonitoringMetricByService(nodeName, serviceId, startDate, endDate, granularity);
+    }
+
+
     /**
      * Retrieves the summary capability for the specified tenant and service.
      *

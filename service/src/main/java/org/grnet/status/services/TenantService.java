@@ -2095,4 +2095,11 @@ public class TenantService {
 
         return webApiService.retrieveNodeMonitoringMetrics(tenant.name, item, startDate, endDate,granularity);
     }
+
+    public WebApiNodeMonitoringMetricResponse getMonitoringByService(String id, String serviceId, String startDate, String endDate, String granularity) {
+
+        var tenant = tenantRepository.findById(id);
+
+        return webApiService.retrieveNodeMonitoringMetricByService(tenant.name, serviceId, startDate, endDate, granularity);
+    }
 }

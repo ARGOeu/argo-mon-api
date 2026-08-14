@@ -445,6 +445,40 @@ public class WebApiService {
         }
     }
 
+    public WebApiNodeMonitoringMetricResponse retrieveNodeMonitoringMetricByService(String nodeName, String serviceId, String startDate, String endDate, String granularity) {
+
+        try {
+
+            return argoWebApiClient.getNodeMonitoringMetricsByService(accessToken, nodeName, serviceId, startDate, endDate, granularity);
+
+        } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Node Monitoring Metrics", nodeName);
+
+            throw new WebApplicationException(
+                    "Retrieving Node Monitoring Metrics for service " + serviceId
+                            + " on node " + nodeName + " failed in Argo Web Api", status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Node Monitoring Metrics failed in Argo Web Api. nodeName=%s, serviceId=%s",
+                    nodeName,
+                    serviceId
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Node Monitoring Metrics for service "
+                            + serviceId + " on node " + nodeName + " failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
     public WebApiFeedsTopologyResponse retrieveFeedTopologyWebApi(String tenantId) {
         try {
 
