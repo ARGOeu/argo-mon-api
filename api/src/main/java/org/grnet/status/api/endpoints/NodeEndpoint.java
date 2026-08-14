@@ -251,6 +251,79 @@ public class NodeEndpoint {
     }
 
     @Operation(
+            summary = "Get monitoring metric results for a node service.",
+            description = "Retrieve monitoring metric results for a single node service from Argo Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Monitoring metric results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = WebApiNodeMonitoringMetricResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node or service not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{name}/capabilities/monitoring/metrics/{service-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getMonitoringMetricByService(
+            @Parameter(
+                    description = "The name of the Node.",
+                    required = true,
+                    example = "TENANTB")
+            @PathParam("name") String nodeName,
+            @Parameter(
+                    description = "The ID of the service.",
+                    required = true,
+                    example = "CLOUD-B")
+            @PathParam("service-id") String serviceId,
+            @Parameter(
+                    name = "start-date",
+                    in = QUERY,
+                    description = "Start date in W3C format.")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start-date")
+            String startDate,
+            @Parameter(
+                    name = "end-date",
+                    in = QUERY,
+                    description = "End date in W3C format.")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end-date")
+            String endDate,
+            @Parameter(
+                    name = "granularity",
+                    in = QUERY,
+                    description = "Granularity of results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var metrics = nodeService.getMonitoringMetricByService(nodeName, serviceId, startDate, endDate, granularity);
+
+        return Response.ok().entity(metrics).build();
+    }
+
+    @Operation(
             summary = "Retrieve tenant node summary capability.",
             description = "Retrieves the daily availability and uptime summary for a specific service under the tenant node."
     )

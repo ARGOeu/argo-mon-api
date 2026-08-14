@@ -19,14 +19,18 @@ import org.grnet.status.dtos.tenant.ContactDto;
 import org.grnet.status.dtos.tenant.TenantInfoDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
+import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
+import org.grnet.status.services.NodeService;
 import org.grnet.status.services.clients.AmsClient;
 import org.grnet.status.services.clients.AmsClientFactory;
 import org.grnet.status.services.clients.ArgoWebApiClient;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +56,9 @@ public class PublicEndpointTest extends KeycloakTest {
 
     @Inject
     RoleEndpointRepository roleEndpointRepository;
+
+    @InjectMock
+    NodeService nodeService;
 
     @BeforeEach
     public void mockArgoClient() throws Exception {
@@ -373,5 +380,49 @@ public class PublicEndpointTest extends KeycloakTest {
                 .get("/v1/public/tenants/{tenant-name}/info", "UNKNOWN-TENANT")
                 .then()
                 .statusCode(404);
+    }
+
+    @Test
+    public void getMonitoringMetricByServiceWithoutAuthentication() {
+
+        when(nodeService.getMonitoringMetricByService(
+                anyString(), anyString(), any(), any(), anyString()))
+                .thenReturn(monitoringMetricResponse());
+
+        var response = given()
+                .header("Origin", "https://frontend.com")
+                .queryParam("granularity", "daily")
+                .when()
+                .get("/v1/public/nodes/{name}/capabilities/monitoring/metrics/{service-id}", "TENANTB", "CLOUD-B")
+                .then()
+                .statusCode(200)
+                .header("Access-Control-Allow-Origin", "*")
+                .extract()
+                .as(WebApiNodeMonitoringMetricResponse.class);
+
+        assertNotNull(response);
+        assertEquals(1, response.data.size());
+        assertEquals("CLOUD-B", response.data.get(0).name);
+        assertEquals(BigDecimal.valueOf(100), response.data.get(0).results.get(0).availability);
+    }
+
+
+    private WebApiNodeMonitoringMetricResponse monitoringMetricResponse() {
+
+        var response = new WebApiNodeMonitoringMetricResponse();
+
+        var data = new WebApiNodeMonitoringMetricResponse.Data();
+        data.name = "CLOUD-B";
+
+        var result = new WebApiNodeMonitoringMetricResponse.Result();
+        result.date = "2026-08-14";
+        result.availability = BigDecimal.valueOf(100);
+        result.reliability = BigDecimal.valueOf(100);
+        result.uptime = BigDecimal.ONE;
+
+        data.results = List.of(result);
+        response.data = List.of(data);
+
+        return response;
     }
 }

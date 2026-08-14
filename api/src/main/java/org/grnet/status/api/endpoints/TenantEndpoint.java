@@ -3170,6 +3170,89 @@ public class TenantEndpoint {
 
         return Response.ok().entity(availability).build();
     }
+
+    @Tag(name = "Capabilities")
+    @Operation(
+            summary = "Get monitoring metrics results for a tenant service.",
+            description = "Retrieve monitoring metrics for a single service from Argo Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Monitoring metrics retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = WebApiNodeMonitoringMetricResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or service not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/capabilities/monitoring/metrics/{service-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getMonitoringByService(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "6b36d6d3-56a3-48a5-93af-aecf3e16a7c6",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(
+                    description = "The ID of the service.",
+                    required = true,
+                    example = "CLOUD-B",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("service-id") String serviceId,
+            @Parameter(
+                    name = "start-date",
+                    in = QUERY,
+                    description = "Start date in UTC.",
+                    example = "2026-08-05")
+            @Valid @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start-date") String startDate,
+            @Parameter(
+                    name = "end-date",
+                    in = QUERY,
+                    description = "End date in UTC.",
+                    example = "2026-08-05")
+            @Valid @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end-date") String endDate,
+            @Parameter(
+                    name = "granularity",
+                    in = QUERY,
+                    description = "Granularity of results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity") String granularity) {
+
+        var metrics = tenantService.getMonitoringByService(id, serviceId, startDate, endDate, granularity);
+
+        return Response.ok().entity(metrics).build();
+    }
+
     @Tag(name = "Capabilities")
     @Operation(
             summary = "Get availability results for node services.",
