@@ -840,10 +840,53 @@ public class WebApiService {
         }
     }
 
+    public WebApiReportResponse retrieveReportByIdWebApi(String reportId, String tenantId) {
+
+        try {
+
+            return argoWebApiClient.fetchReportByIdSuperAdmin(reportId, accessToken, tenantId);
+
+        } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Report", reportId);
+
+            throw new WebApplicationException(
+                    "Retrieving Report... failed to retrieve report with id: "
+                            + reportId + " from Argo Web Api",
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e,
+                    "Retrieving Report failed in Argo Web Api. reportId=%s",
+                    reportId
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Report... failed to retrieve report with id: "
+                            + reportId + " from Argo Web Api",
+                    500
+            );
+        }
+    }
+
 
     public WebApiNodeReportResponse setReportPublicWebApi(String reportId, String tenantId) {
 
+        var report = retrieveReportByIdWebApi(reportId, tenantId);
+
+        if (report.data.get(0).disabled) {
+            throw new WebApplicationException(
+                    "Report '" + report.data.get(0).info.name  + "' is inactive and cannot be made public.",
+                    409
+            );
+        }
+
         try {
+
             return argoWebApiClient.setReportPublicSuperAdmin(reportId, accessToken, tenantId);
 
         } catch (WebApplicationException e) {
