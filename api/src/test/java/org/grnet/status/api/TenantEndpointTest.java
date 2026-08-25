@@ -22,6 +22,8 @@ import org.grnet.status.dtos.incident.*;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
+import org.grnet.status.dtos.report.FullReportResponseDto;
+import org.grnet.status.dtos.report.WebApiReportResponse;
 import org.grnet.status.dtos.tenant.ContactDto;
 import org.grnet.status.dtos.tenant.TenantInfoDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
@@ -839,6 +841,47 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals(BigDecimal.valueOf(100), response.data.get(0).results.get(0).availability);
         assertEquals(BigDecimal.valueOf(100), response.data.get(0).results.get(0).reliability);
         assertEquals(BigDecimal.ONE, response.data.get(0).results.get(0).uptime);
+    }
+
+    @Test
+    public void setInactiveReportPublic() {
+
+        currentMockId = UUID.randomUUID().toString();
+        var reportId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        var report = new FullReportResponseDto();
+        report.id = reportId;
+        report.disabled = true;
+        report.info = new FullReportResponseDto.Info();
+        report.info.name = "CORE";
+
+        var webApiResponse = new WebApiReportResponse();
+        webApiResponse.data = List.of(report);
+
+        when(argoWebApiClient.fetchReportByIdSuperAdmin(
+                Mockito.eq(reportId),
+                anyString(),
+                Mockito.eq(tenant.id)
+        )).thenReturn(webApiResponse);
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .post("/v1/tenants/{id}/reports/{report-id}/set-public", tenant.id, reportId)
+                .then()
+                .statusCode(409)
+                .extract()
+                .as(InformativeResponse.class);
+
+        assertEquals(
+                "Report 'CORE' is inactive and cannot be made public.",
+                response.message
+        );
+
     }
 
     private TenantResponseDto createTenant() {
