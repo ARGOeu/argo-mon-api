@@ -443,11 +443,51 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals("Users cannot access the ESHOP service.", response.description);
         assertEquals(IncidentStatus.NEW, response.status);
         assertNotNull(response.createdBy);
-        assertNotNull(response.service);
-        assertEquals("6a6e8037-1e23-4b65-a75a-37d9e8d5bc44", response.service.id);
-        assertEquals("ESHOP", response.service.name);
+        assertNotNull(response.services);
+        assertEquals(1, response.services.size());
+        assertEquals("6a6e8037-1e23-4b65-a75a-37d9e8d5bc44", response.services.get(0).id);
+        assertEquals("ESHOP", response.services.get(0).name);
         assertNotNull(response.createdAt);
         assertNotNull(response.updatedAt);
+    }
+
+    @Test
+    public void createIncidentWithMultipleServices() {
+        var tenant = setupTenantAdmin();
+
+        mockRoleEndpoints(
+                "tenant_admin",
+                "POST_/v1/tenants/{id}/incidents"
+        );
+
+        var request = new IncidentRequestDto();
+        request.title = "Multiple services unavailable";
+        request.description = "Multiple services are affected.";
+
+        var eshop = new ServiceDto();
+        eshop.id = "6a6e8037-1e23-4b65-a75a-37d9e8d5bc44";
+        eshop.name = "ESHOP";
+
+        var forum = new ServiceDto();
+        forum.id = "4e4f96be-a7a4-41b7-b765-d003e421ab44";
+        forum.name = "FORUM";
+
+        request.services = List.of(eshop, forum);
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/v1/tenants/{id}/incidents", tenant.id)
+                .then()
+                .statusCode(201)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        assertNotNull(response.services);
+        assertEquals(2, response.services.size());
+        assertEquals("ESHOP", response.services.get(0).name);
+        assertEquals("FORUM", response.services.get(1).name);
     }
 
     @Test
@@ -595,9 +635,10 @@ public class TenantEndpointTest extends KeycloakTest {
         assertEquals("Users cannot access the ESHOP service.", response.description);
         assertEquals(IncidentStatus.NEW, response.status);
         assertNotNull(response.createdBy);
-        assertNotNull(response.service);
-        assertEquals("6a6e8037-1e23-4b65-a75a-37d9e8d5bc44", response.service.id);
-        assertEquals("ESHOP", response.service.name);
+        assertNotNull(response.services);
+        assertEquals(1, response.services.size());
+        assertEquals("6a6e8037-1e23-4b65-a75a-37d9e8d5bc44", response.services.get(0).id);
+        assertEquals("ESHOP", response.services.get(0).name);
         assertNotNull(response.createdAt);
         assertNotNull(response.updatedAt);
     }
@@ -945,9 +986,12 @@ public class TenantEndpointTest extends KeycloakTest {
 
         request.title = title;
         request.description = description;
-        request.service = new ServiceDto();
-        request.service.id = serviceId;
-        request.service.name = serviceName;
+
+        var service = new ServiceDto();
+        service.id = serviceId;
+        service.name = serviceName;
+
+        request.services = List.of(service);
 
         return request;
     }
