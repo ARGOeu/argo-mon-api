@@ -445,7 +445,10 @@ public class TenantService {
         // 3. Local DB update
         // ------------------------------
         var tenant = tenantRepository.findById(id);
-
+         boolean editedPerformance=false;
+         if(request.performance!=tenant.getPerformance()){
+             editedPerformance=true;
+         }
         // Keep copy of old contacts for orphan check
         Set<Contact> oldContacts = new HashSet<>(tenant.getContacts());
 
@@ -469,6 +472,16 @@ public class TenantService {
             }
             throw new RuntimeException("Updating Tenant... DB update failed: " + dbException.getMessage());
         }
+
+        if(editedPerformance && tenant.getPerformance()){
+                String createdAt = String.valueOf(Instant.now());
+
+                var performanceDataAlert=buildAlert(EventName.INIT_PERFORMANCE_DATA, tenant, createdAt);
+                performanceDataAlert.getProperties().put("performance_data",String.valueOf(tenant.getPerformance()));
+                send(tenant.id,performanceDataAlert , "");
+
+            }
+
 
         return TenantMapper.INSTANCE.tenantToDto(tenant);
     }
@@ -1042,6 +1055,12 @@ public class TenantService {
         var computeEngineAlert=buildAlert(EventName.INIT_COMPUTE_ENGINE, tenant, createdAt);
         computeEngineAlert.getProperties().put("performance",String.valueOf(tenant.getPerformance()));
         send(tenant.id,computeEngineAlert , "");
+        if(tenant.getPerformance()){
+            var performanceDataAlert=buildAlert(EventName.INIT_PERFORMANCE_DATA, tenant, createdAt);
+            performanceDataAlert.getProperties().put("performance_data",String.valueOf(tenant.getPerformance()));
+            send(tenant.id,performanceDataAlert , "");
+
+        }
     }
 
     /**

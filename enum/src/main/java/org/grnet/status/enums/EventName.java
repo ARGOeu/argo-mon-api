@@ -10,5 +10,6 @@ public enum EventName {
         INIT_MONITORING_BOX,
         INIT_INTEGRATION_TOPO,
         DELETE_TENANT,
-        INIT_ARCHIVER
+        INIT_ARCHIVER,
+        INIT_PERFORMANCE_DATA
 }
