@@ -48,12 +48,12 @@ public class IncidentResponseDto {
     public String description;
 
     @Schema(
-            type = SchemaType.OBJECT,
+            type = SchemaType.ARRAY,
             implementation = ServiceDto.class,
-            description = "Affected service"
+            description = "Affected services"
     )
-    @JsonProperty("service")
-    public ServiceDto service;
+    @JsonProperty("services")
+    public List<ServiceDto> services;
 
     @Schema(
             implementation = IncidentStatus.class,

@@ -180,7 +180,7 @@ public class MailerService {
      * @param incidentNumber human-readable incident number
      * @param incidentTitle incident title
      * @param description incident description
-     * @param serviceName affected service name
+     * @param serviceNames affected service names
      * @param status incident status
      * @param createdBy user who reported the incident
      * @param createdAt incident creation timestamp
@@ -190,7 +190,7 @@ public class MailerService {
                                           String incidentNumber,
                                           String incidentTitle,
                                           String description,
-                                          String serviceName,
+                                          List<String> serviceNames,
                                           String status,
                                           String createdBy,
                                           String createdAt,
@@ -207,7 +207,7 @@ public class MailerService {
         params.put("incidentNumber", incidentNumber);
         params.put("incidentTitle", incidentTitle);
         params.put("description", description);
-        params.put("serviceName", serviceName);
+        params.put("serviceNames", serviceNames);
         params.put("status", status);
         params.put("createdBy", createdBy);
         params.put("createdAt", createdAt);

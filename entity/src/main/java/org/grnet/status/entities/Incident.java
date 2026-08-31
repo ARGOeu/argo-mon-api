@@ -35,13 +35,12 @@ public class Incident {
     @Column(name = "description")
     private String description;
 
-    @NotBlank
-    @Column(name = "service_id")
-    private String serviceId;
-
-    @NotBlank
-    @Column(name = "service_name")
-    private String serviceName;
+    @OneToMany(
+            mappedBy = "incident",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<IncidentAffectedService> services = new ArrayList<>();
 
     @NotBlank
     @Column(name = "incident_number")
@@ -96,4 +95,5 @@ public class Incident {
     private void preUpdate() {
         updatedAt = Instant.now();
     }
+
 }

@@ -69,6 +69,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#236](https://github.com/ARGOeu/argo-mon-api/pull/236) ARGO-5862 Publicly Expose Status Timelines endpoints for tenant's reports
 - [#238](https://github.com/ARGOeu/argo-mon-api/pull/238) ARGO-5870 Add Service-Specific Monitoring Metrics Endpoints
 - [#241](https://github.com/ARGOeu/argo-mon-api/pull/241) ARGO-5880 create a INIT_PERFORMANCE_DATA event
+- [#242](https://github.com/ARGOeu/argo-mon-api/pull/242) ARGO-5883 [API] Support multiple affected services per incident
 
 ### Fix 
 
@@ -77,7 +78,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#221](https://github.com/ARGOeu/argo-mon-api/pull/221) ARGO-5820 [API] Use Configured Super Admin Role in AGM Initialization
 - [#227](https://github.com/ARGOeu/argo-mon-api/pull/227) ARGO-5831 Update the downtime management validation to allow downtime operations for all feed topologies except External.
 - [#237](https://github.com/ARGOeu/argo-mon-api/pull/237) ARGO-5864 start-date, end-date for monitoring capability should be optional- #237
-- [#239](https://github.com/ARGOeu/argo-mon-api/pull/239) ARGO-5876: [API] Prevent inactive reports from being made public
+- [#239](https://github.com/ARGOeu/argo-mon-api/pull/239) ARGO-5876 [API] Prevent inactive reports from being made public
+- [#240](https://github.com/ARGOeu/argo-mon-api/pull/240) ARGO-5881 Retrieve metric status result details- #240
 
 
 ## 1.0.0 - 2026-06-26

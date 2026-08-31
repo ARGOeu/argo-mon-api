@@ -3,9 +3,12 @@ package org.grnet.status.dtos.incident;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+import java.util.List;
 
 public class IncidentRequestDto {
 
@@ -30,11 +33,12 @@ public class IncidentRequestDto {
     public String description;
 
     @Schema(
-            type = SchemaType.OBJECT,
+            type = SchemaType.ARRAY,
             implementation = ServiceDto.class,
-            description = "Affected service"
+            description = "Affected services"
     )
-    @JsonProperty("service")
-    @NotNull(message = "service cannot be null")
-    public ServiceDto service;
+    @JsonProperty("services")
+    @NotEmpty(message = "services cannot be empty")
+    @Valid
+    public List<ServiceDto> services;
 }

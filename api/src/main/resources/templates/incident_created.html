@@ -176,15 +176,29 @@
 
                             <p>
                                 Dear user,<br><br>
-                                A new incident has been reported for the
-                                <b>{serviceName}</b> service on <b>{title}</b>.
+                                A new incident has been reported for the following services on <b>{title}</b>:
                             </p>
+
+                            <ul>
+                                {#for serviceName in serviceNames}
+                                <li><b>{serviceName}</b></li>
+                                {/for}
+                            </ul>
 
                             <div class="pillbox">
                                 <p style="margin:0;">
                                     Incident number: <b>{incidentNumber}</b><br>
                                     Title: <b>{incidentTitle}</b><br>
-                                    Service: <b>{serviceName}</b><br>
+                                    Services:
+                                </p>
+
+                                <ul style="margin:4px 0 4px 20px; padding:0;">
+                                    {#for serviceName in serviceNames}
+                                    <li><b>{serviceName}</b></li>
+                                    {/for}
+                                </ul>
+
+                                <p style="margin:0;">
                                     Status: <b>{status}</b><br>
                                     Reported by: <b>{createdBy}</b><br>
                                     Reported at: <b>{createdAt}</b>

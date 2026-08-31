@@ -105,7 +105,7 @@ public enum MailType {
                     .data("incidentNumber", templateParams.get("incidentNumber"))
                     .data("incidentTitle", templateParams.get("incidentTitle"))
                     .data("description", templateParams.get("description"))
-                    .data("serviceName", templateParams.get("serviceName"))
+                    .data("serviceNames", templateParams.get("serviceNames"))
                     .data("status", templateParams.get("status"))
                     .data("createdBy", templateParams.get("createdBy"))
                     .data("createdAt", templateParams.get("createdAt"))

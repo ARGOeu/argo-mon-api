@@ -24,6 +24,7 @@ import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.dtos.incident.*;
 import org.grnet.status.entities.IncidentComment;
 import org.grnet.status.repositories.IncidentCommentRepository;
+import org.grnet.status.entities.IncidentAffectedService;
 
 
 import java.time.Instant;
@@ -86,6 +87,9 @@ public class IncidentService {
         incident.setIncidentNumber(generateIncidentNumber());
         incident.setCreatedBy(createdBy);
 
+        incident.getServices()
+                .forEach(service -> service.setIncident(incident));
+
         incidentRepository.persist(incident);
 
         var recipientEmails = incident.getTenant()
@@ -102,16 +106,28 @@ public class IncidentService {
 
                 var incidentUrl = uiBaseUrl + "/tenants/" + tenantId + "/incidents/" + incident.getId();
 
+                var serviceNames = incident.getServices()
+                        .stream()
+                        .map(IncidentAffectedService::getServiceName)
+                        .toList();
+
                 mailerService.sendIncidentCreatedEmail(
                         recipientEmails,
                         incident.getIncidentNumber(),
                         incident.getTitle(),
                         incident.getDescription(),
-                        incident.getServiceName(),
+                        serviceNames,
                         incident.getStatus().name(),
                         incident.getCreatedBy(),
                         incident.getCreatedAt().toString(),
                         incidentUrl
+                );
+
+                Log.infof(
+                        "Sending incident %s email to %d recipient(s) for services: %s",
+                        incident.getIncidentNumber(),
+                        recipientEmails.size(),
+                        serviceNames
                 );
             }
 
