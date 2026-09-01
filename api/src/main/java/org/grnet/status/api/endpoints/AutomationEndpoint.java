@@ -229,14 +229,13 @@ public class AutomationEndpoint {
                     name = "date",
                     description = "UTC date in yyyy-MM-dd format",
                     example = "2026-07-22",
-                    required = true
+                    required = false
             )
             @CheckDateFormat(
                     pattern = "yyyy-MM-dd",
                     message = "Valid date format is yyyy-MM-dd."
             )
             @QueryParam("date")
-            @NotNull
             String date
     ) {
         var tenant = tenantService.getTenantByName(tenantName);
