@@ -66,6 +66,15 @@ public class IncidentResponseDto {
     @Schema(
             type = SchemaType.STRING,
             implementation = String.class,
+            description = "Description associated with the current incident status",
+            example = "The issue is currently under investigation."
+    )
+    @JsonProperty("status_description")
+    public String statusDescription;
+
+    @Schema(
+            type = SchemaType.STRING,
+            implementation = String.class,
             description = "Name of the user who reported the incident",
             example = "John Doe"
     )

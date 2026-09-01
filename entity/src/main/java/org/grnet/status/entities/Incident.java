@@ -51,6 +51,9 @@ public class Incident {
     @Column(name = "status")
     private IncidentStatus status = IncidentStatus.NEW;
 
+    @Column(name = "status_description")
+    private String statusDescription;
+
     @NotBlank
     @Column(name = "created_by")
     private String createdBy;

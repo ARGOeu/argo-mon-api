@@ -24,6 +24,7 @@ public interface IncidentMapper {
     @Mapping(target = "tenant", ignore = true)
     @Mapping(target = "incidentNumber", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "statusDescription", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

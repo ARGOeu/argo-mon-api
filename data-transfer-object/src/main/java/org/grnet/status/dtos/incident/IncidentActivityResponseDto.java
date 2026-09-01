@@ -34,6 +34,15 @@ public class IncidentActivityResponseDto {
 
     @Schema(
             type = SchemaType.STRING,
+            implementation = String.class,
+            description = "Description associated with this incident status change",
+            example = "The issue is currently under investigation."
+    )
+    @JsonProperty("status_description")
+    public String statusDescription;
+
+    @Schema(
+            type = SchemaType.STRING,
             description = "The user who performed the status change.",
             example = "admin"
     )

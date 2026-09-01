@@ -18,4 +18,13 @@ public class IncidentUpdateRequestDto {
     @NotNull
     @JsonProperty("status")
     public IncidentStatus status;
+
+    @Schema(
+            type = SchemaType.STRING,
+            implementation = String.class,
+            description = "Description associated with the new incident status",
+            example = "The issue is currently under investigation."
+    )
+    @JsonProperty("status_description")
+    public String statusDescription;
 }

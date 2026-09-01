@@ -145,17 +145,33 @@ public class IncidentService {
 
         var previousStatus = incident.getStatus();
 
-        if (request.status != null && request.status != previousStatus) {
+        if (request.status != null) {
 
-            incident.setStatus(request.status);
+            if (request.status != previousStatus) {
 
-            var activity = new IncidentActivity();
-            activity.setIncident(incident);
-            activity.setPreviousStatus(previousStatus);
-            activity.setNewStatus(request.status);
-            activity.setChangedBy(updatedBy);
+                incident.setStatus(request.status);
+                incident.setStatusDescription(request.statusDescription);
 
-            incidentActivityRepository.persist(activity);
+                var activity = new IncidentActivity();
+                activity.setIncident(incident);
+                activity.setPreviousStatus(previousStatus);
+                activity.setNewStatus(request.status);
+                activity.setStatusDescription(request.statusDescription);
+                activity.setChangedBy(updatedBy);
+
+                incidentActivityRepository.persist(activity);
+
+            } else if (!Objects.equals(request.statusDescription, incident.getStatusDescription())) {
+
+                incident.setStatusDescription(request.statusDescription);
+
+                var latestActivity = incidentActivityRepository.findLatestByIncidentId(incidentId);
+
+                if (latestActivity != null && latestActivity.getNewStatus() == request.status) {
+                    latestActivity.setStatusDescription(request.statusDescription);
+                    latestActivity.setChangedBy(updatedBy);
+                }
+            }
         }
 
         incident.setUpdatedAt(Instant.now());

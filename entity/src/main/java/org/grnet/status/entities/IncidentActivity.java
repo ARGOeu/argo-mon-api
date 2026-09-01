@@ -34,6 +34,9 @@ public class IncidentActivity {
     @Column(name = "new_status")
     private IncidentStatus newStatus;
 
+    @Column(name = "status_description")
+    private String statusDescription;
+
     @NotNull
     @Column(name = "changed_by")
     private String changedBy;
@@ -47,5 +50,10 @@ public class IncidentActivity {
         if (createdAt == null) {
             createdAt = Instant.now();
         }
+
+        if (statusDescription == null || statusDescription.isBlank()) {
+            statusDescription = "Status changed to " + newStatus;
+        }
+
     }
 }

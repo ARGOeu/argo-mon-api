@@ -68,14 +68,21 @@ public class IncidentRepository implements Repository<Incident, String> {
     public PageQuery<Incident> fetchIncidentsByTenantIdByPageAndSize(String tenantId, int page, int size, String search, String date) {
 
         var joiner = new StringJoiner(StringUtils.SPACE);
+
+        joiner.add("select distinct i");
         joiner.add("from Incident i");
+        joiner.add("left join i.services s");
         joiner.add("where i.tenant.id = :tenantId");
 
         var map = new HashMap<String, Object>();
         map.put("tenantId", tenantId);
 
         if (StringUtils.isNotBlank(search)) {
-            joiner.add("and (i.title ilike :search or i.serviceName ilike :search or i.incidentNumber ilike :search)");
+
+            joiner.add("and (i.title ilike :search ");
+            joiner.add("or s.serviceName ilike :search ");
+            joiner.add("or i.incidentNumber ilike :search)");
+
             map.put("search", "%" + search.trim() + "%");
         }
 
