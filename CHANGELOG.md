@@ -80,7 +80,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#237](https://github.com/ARGOeu/argo-mon-api/pull/237) ARGO-5864 start-date, end-date for monitoring capability should be optional- #237
 - [#239](https://github.com/ARGOeu/argo-mon-api/pull/239) ARGO-5876 [API] Prevent inactive reports from being made public
 - [#240](https://github.com/ARGOeu/argo-mon-api/pull/240) ARGO-5881 Retrieve metric status result details- #240
-
+- [#243](https://github.com/ARGOeu/argo-mon-api/pull/243) ARGO-5906 Make date in automation daily downtimes optional- #243
+  #243
 
 ## 1.0.0 - 2026-06-26
 ---

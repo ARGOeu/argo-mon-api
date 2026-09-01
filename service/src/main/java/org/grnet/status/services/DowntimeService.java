@@ -479,7 +479,9 @@ public class DowntimeService {
             String date
     ) {
 
-        LocalDate requestedDate = LocalDate.parse(date);
+        LocalDate requestedDate = date == null
+                ? LocalDate.now(ZoneOffset.UTC)
+                : LocalDate.parse(date);
 
         Instant dayStart = requestedDate
                 .atStartOfDay()
@@ -490,14 +492,12 @@ public class DowntimeService {
                 .atStartOfDay()
                 .toInstant(ZoneOffset.UTC);
 
-
         List<Downtime> downtimes =
                 downtimeRepository.findOverlappingDowntimes(
                         tenantId,
                         dayStart,
                         dayEnd
                 );
-
 
         List<DailyDowntimeEndpointResponse> endpoints =
                 downtimes.stream()
@@ -520,7 +520,6 @@ public class DowntimeService {
                                                             ? downtime.getCompletedAt()
                                                             : dayEnd.minusSeconds(1);
 
-
                                             return DowntimeMapper.INSTANCE
                                                     .toDailyDowntimeEndpoint(
                                                             service,
@@ -531,13 +530,14 @@ public class DowntimeService {
                         )
                         .toList();
 
-
         List<DailyDowntimeEndpointResponse> mergedEndpoints =
                 mergeOverlappingDowntimes(endpoints);
 
-
         DailyDowntimeResponse response = new DailyDowntimeResponse();
-        response.setDate(date);
+
+        // Return the actual requested/default date, not null
+        response.setDate(requestedDate.toString());
+
         response.setEndpoints(mergedEndpoints);
 
         return response;
