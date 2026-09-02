@@ -139,7 +139,7 @@ public class IncidentService {
     }
 
     @Transactional
-    public IncidentResponseDto updateIncident(List<RoleEndpoint> roles, String tenantId, String incidentId, IncidentUpdateRequestDto request, String updatedBy) {
+    public IncidentResponseDto updateIncidentStatus(List<RoleEndpoint> roles, String tenantId, String incidentId, IncidentUpdateRequestDto request, String updatedBy) {
 
         var incident = getIncidentForModification(roles, tenantId, incidentId, updatedBy);
 

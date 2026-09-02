@@ -122,8 +122,8 @@
     {
       "id" : "af134cab-f41c-4675-b141-205f975db679",
       "username" : "admin",
-      "firstName" : "admin",
-      "lastName" : "admin",
+      "firstName" : "Admin",
+      "lastName" : "Administrator",
       "email" : "admin@example.gr",
       "emailVerified" : false,
       "attributes" : {
