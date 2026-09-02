@@ -21,4 +21,9 @@ public class IncidentActivityRepository implements Repository<IncidentActivity, 
 
         return find("incident.id = ?1 order by createdAt asc", incidentId).list();
     }
+
+    public IncidentActivity findLatestByIncidentId(String incidentId) {
+
+        return find("incident.id = ?1 order by createdAt desc", incidentId).firstResult();
+    }
 }
