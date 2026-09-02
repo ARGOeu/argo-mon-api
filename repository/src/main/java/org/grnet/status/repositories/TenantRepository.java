@@ -181,54 +181,81 @@ public class TenantRepository implements Repository<Tenant, String> {
     }
 
     @Transactional
-    public int updateTenantJobStatus(String tenantId, String jobName, String jobJson) {
+    public int upsertTenantJobStatus(
+            String tenantId,
+            String jobName,
+            String jobJson) {
 
-        return getEntityManager()
-                .createNativeQuery("""
-                UPDATE t_tenant
-                SET status = jsonb_set(
-                    status,
-                    ARRAY[
-                        'jobs',
-                        (
-                            SELECT (idx - 1)::text
-                            FROM jsonb_array_elements(status -> 'jobs')
-                                 WITH ORDINALITY arr(job, idx)
-                            WHERE UPPER(job ->> 'name') = UPPER(:jobName)
-                        )
-                    ],
-                    CAST(:jobJson AS jsonb),
-                    false
-                )
-                WHERE id = :tenantId
-                  AND EXISTS (
+        return entityManager.createNativeQuery("""
+            UPDATE t_tenant
+            SET status =
+                CASE
+                    WHEN EXISTS (
                         SELECT 1
-                        FROM jsonb_array_elements(status -> 'jobs') arr(job)
+                        FROM jsonb_array_elements(status -> 'jobs') job
                         WHERE UPPER(job ->> 'name') = UPPER(:jobName)
-                  )
-                """)
+                    )
+                    THEN jsonb_set(
+                        status,
+                        ARRAY[
+                            'jobs',
+                            (
+                                SELECT (idx - 1)::text
+                                FROM jsonb_array_elements(status -> 'jobs')
+                                     WITH ORDINALITY arr(job, idx)
+                                WHERE UPPER(job ->> 'name') = UPPER(:jobName)
+                                LIMIT 1
+                            )
+                        ],
+                        CAST(:jobJson AS jsonb),
+                        false
+                    )
+                    ELSE jsonb_set(
+                        status,
+                        '{jobs}',
+                        COALESCE(status -> 'jobs', '[]'::jsonb)
+                            || CAST(:jobJson AS jsonb),
+                        true
+                    )
+                END
+            WHERE id = :tenantId
+            """)
                 .setParameter("tenantId", tenantId)
                 .setParameter("jobName", jobName)
                 .setParameter("jobJson", jobJson)
                 .executeUpdate();
     }
 
+    /**
+     * Removes a job from the tenant status by its name.
+     *
+     * @param tenantId tenant identifier
+     * @param jobName name of the job to remove
+     * @return number of updated tenant records
+     */
     @Transactional
-    public int insertTenantJobStatus(String tenantId, String jobJson) {
-
-        return getEntityManager()
-                .createNativeQuery("""
-            UPDATE t_tenant
-            SET status = jsonb_set(
-                status,
-                '{jobs}',
-                COALESCE(status->'jobs', '[]'::jsonb) || CAST(:jobJson AS jsonb),
-                true
-            )
-            WHERE id = :tenantId
-            """)
+    public int removeTenantJobStatus(String tenantId, String jobName) {
+        return entityManager.createNativeQuery("""
+                        UPDATE t_tenant
+                        SET status = status #- ARRAY[
+                            'jobs',
+                            (
+                                SELECT (idx - 1)::text
+                                FROM jsonb_array_elements(status -> 'jobs')
+                                     WITH ORDINALITY arr(job, idx)
+                                WHERE UPPER(job ->> 'name') = UPPER(:jobName)
+                                LIMIT 1
+                            )
+                        ]
+                        WHERE id = :tenantId
+                          AND EXISTS (
+                                SELECT 1
+                                FROM jsonb_array_elements(status -> 'jobs') arr(job)
+                                WHERE UPPER(job ->> 'name') = UPPER(:jobName)
+                          )
+                        """)
                 .setParameter("tenantId", tenantId)
-                .setParameter("jobJson", jobJson)
+                .setParameter("jobName", jobName)
                 .executeUpdate();
     }
 
