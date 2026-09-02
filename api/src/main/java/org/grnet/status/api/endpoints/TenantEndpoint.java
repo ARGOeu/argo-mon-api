@@ -4847,7 +4847,7 @@ public class TenantEndpoint {
             @Parameter(description = "The incident creation request.")
             @Valid IncidentRequestDto request) {
 
-        var response = incidentService.createIncident(id, request, utility.getUsername());
+        var response = incidentService.createIncident(id, request, utility.getUid());
 
         return Response.status(Response.Status.CREATED).entity(response).build();
     }
@@ -4855,7 +4855,7 @@ public class TenantEndpoint {
     @Tag(name = "Incident")
     @Operation(
             summary = "Update an incident status.",
-            description = "Updates the status of an incident, adds a comment, or performs both operations."
+            description = "Updates the status of an incident and, optionally, its status description."
     )
     @APIResponse(
             responseCode = "200",
@@ -4954,7 +4954,7 @@ public class TenantEndpoint {
 
         var roles = RoleEndpointHolder.get();
 
-        var response = incidentService.updateIncident(roles, id, incidentId, request, utility.getUserUniqueIdentifier());
+        var response = incidentService.updateIncidentStatus(roles, id, incidentId, request, utility.getUid());
 
         return Response.ok(response).build();
     }
@@ -5069,7 +5069,7 @@ public class TenantEndpoint {
             @Valid
             IncidentCommentRequestDto request) {
 
-        var response = incidentService.addComment(id, incidentId, request, utility.getUserUniqueIdentifier());
+        var response = incidentService.addComment(id, incidentId, request, utility.getUid());
 
         return Response.status(Response.Status.CREATED).entity(response).build();
     }
