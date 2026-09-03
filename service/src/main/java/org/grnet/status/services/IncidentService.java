@@ -147,7 +147,10 @@ public class IncidentService {
 
         if (request.status != null) {
 
-            if (request.status != previousStatus) {
+            var statusChanged = request.status != previousStatus;
+            var descriptionChanged = !Objects.equals(request.statusDescription, incident.getStatusDescription());
+
+            if (statusChanged || descriptionChanged) {
 
                 incident.setStatus(request.status);
                 incident.setStatusDescription(request.statusDescription);
@@ -160,17 +163,6 @@ public class IncidentService {
                 activity.setChangedBy(updatedBy);
 
                 incidentActivityRepository.persist(activity);
-
-            } else if (!Objects.equals(request.statusDescription, incident.getStatusDescription())) {
-
-                incident.setStatusDescription(request.statusDescription);
-
-                var latestActivity = incidentActivityRepository.findLatestByIncidentId(incidentId);
-
-                if (latestActivity != null && latestActivity.getNewStatus() == request.status) {
-                    latestActivity.setStatusDescription(request.statusDescription);
-                    latestActivity.setChangedBy(updatedBy);
-                }
             }
         }
 
