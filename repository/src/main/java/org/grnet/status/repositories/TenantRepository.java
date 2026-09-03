@@ -180,6 +180,7 @@ public class TenantRepository implements Repository<Tenant, String> {
 
     }
 
+    @Transactional
     public int updateTenantJobStatus(String tenantId, String jobName, String jobJson) {
 
         return getEntityManager()
