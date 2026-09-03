@@ -512,7 +512,7 @@ public class TenantEndpointTest extends KeycloakTest {
 
         var incident = createIncident(tenant.id);
 
-        var response = updateIncidentStatus(tenant.id, incident.id, IncidentStatus.ASSIGNED);
+        var response = updateIncidentStatus(tenant.id, incident.id, IncidentStatus.ASSIGNED, "The incident is assigned");
 
         assertEquals(incident.id, response.id);
         assertEquals(incident.incidentNumber, response.incidentNumber);
@@ -657,8 +657,8 @@ public class TenantEndpointTest extends KeycloakTest {
 
         var incident = createIncident(tenant.id);
 
-        updateIncidentStatus(tenant.id, incident.id, IncidentStatus.ASSIGNED);
-        updateIncidentStatus(tenant.id, incident.id, IncidentStatus.IN_PROGRESS);
+        updateIncidentStatus(tenant.id, incident.id, IncidentStatus.ASSIGNED, "The incident is assigned");
+        updateIncidentStatus(tenant.id, incident.id, IncidentStatus.IN_PROGRESS, "The incident is in progress");
 
         var response = given()
                 .auth().oauth2(adminToken)
@@ -1011,10 +1011,12 @@ public class TenantEndpointTest extends KeycloakTest {
     private IncidentResponseDto updateIncidentStatus(
             String tenantId,
             String incidentId,
-            IncidentStatus status
+            IncidentStatus status,
+            String statusDescription
     ) {
         var request = new IncidentUpdateRequestDto();
         request.status = status;
+        request.statusDescription = statusDescription;
 
         return given()
                 .auth().oauth2(adminToken)
