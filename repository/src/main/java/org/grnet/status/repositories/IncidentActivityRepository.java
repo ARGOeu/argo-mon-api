@@ -26,4 +26,16 @@ public class IncidentActivityRepository implements Repository<IncidentActivity, 
 
         return find("incident.id = ?1 order by createdAt desc", incidentId).firstResult();
     }
+
+    /**
+     * Retrieves an incident activity by its identifier and incident identifier.
+     *
+     * @param activityId incident activity identifier
+     * @param incidentId incident identifier
+     * @return incident activity
+     */
+    public IncidentActivity fetchByIdAndIncidentId(String activityId, String incidentId) {
+
+        return find("id = ?1 and incident.id = ?2", activityId, incidentId).firstResult();
+    }
 }

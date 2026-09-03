@@ -5,7 +5,6 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
@@ -36,8 +35,6 @@ import org.grnet.status.api.resolvers.CheckDateFormat;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.Status;
-import org.grnet.status.dtos.downtime.DailyDowntimeEndpointResponse;
-import org.grnet.status.dtos.downtime.DailyDowntimeResponse;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
@@ -73,11 +70,7 @@ import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.GroupTopologyDto;
 import org.grnet.status.dtos.topology.ServiceTypeDto;
 import org.grnet.status.enums.resources.*;
-import org.grnet.status.repositories.IncidentRepository;
-import org.grnet.status.repositories.DowntimeRepository;
-import org.grnet.status.repositories.StatusPageRepository;
-import org.grnet.status.repositories.TenantInvitationRepository;
-import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.repositories.*;
 import org.grnet.status.services.*;
 import org.grnet.status.util.Utility;
 
@@ -4851,6 +4844,107 @@ public class TenantEndpoint {
 
         return Response.status(Response.Status.CREATED).entity(response).build();
     }
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Update an incident description.",
+            description = "Updates the description of an existing incident."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid incident update request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @PATCH
+    @Path("/{id}/incidents/{incident-id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            },
+            scope = {Scope.ALL, Scope.MINE}
+    )
+    public Response updateIncidentDescription(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the incident.",
+                    required = true,
+                    example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
+            String incidentId,
+            @Valid IncidentDescriptionUpdateRequestDto request) {
+
+        var roles = RoleEndpointHolder.get();
+
+        var response = incidentService.updateIncidentDescriptionById(roles, id, incidentId, request, utility.getUid());
+
+        return Response.ok(response).build();
+    }
 
     @Tag(name = "Incident")
     @Operation(
@@ -4950,7 +5044,7 @@ public class TenantEndpoint {
                     required = true
             )
             @NotNull(message = "Incident update request cannot be null.")
-            @Valid IncidentUpdateRequestDto request) {
+            @Valid IncidentStatusUpdateRequestDto request) {
 
         var roles = RoleEndpointHolder.get();
 
@@ -5261,6 +5355,122 @@ public class TenantEndpoint {
             String incidentId) {
 
         var response = incidentService.getIncidentActivity(id, incidentId);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Update an incident status description.",
+            description = "Updates the description associated with a specific incident status activity."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid incident update request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @PATCH
+    @Path("/{id}/incidents/{incident-id}/activity/{activity-id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            },
+            scope = {Scope.ALL, Scope.MINE}
+    )
+    public Response updateIncidentStatusDescription(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the incident.",
+                    required = true,
+                    example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
+            String incidentId,
+            @Parameter(description = "The ID of the incident status.",
+                    required = true,
+                    example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("activity-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentActivityRepository.class, message = "There is no Incident Status with the following incident-id: ")
+            String activityId,
+            @Parameter(
+                    description = "The incident update request.",
+                    required = true
+            )
+            @NotNull(message = "Incident update request cannot be null.")
+            @Valid IncidentStatusDescriptionUpdateRequestDto request) {
+
+        var roles = RoleEndpointHolder.get();
+
+        var response = incidentService.updateIncidentStatusDescriptionById(roles, id, incidentId, activityId, request, utility.getUid());
 
         return Response.ok(response).build();
     }

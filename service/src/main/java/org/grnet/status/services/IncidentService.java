@@ -139,7 +139,7 @@ public class IncidentService {
     }
 
     @Transactional
-    public IncidentResponseDto updateIncidentStatus(List<RoleEndpoint> roles, String tenantId, String incidentId, IncidentUpdateRequestDto request, String updatedBy) {
+    public IncidentResponseDto updateIncidentStatus(List<RoleEndpoint> roles, String tenantId, String incidentId, IncidentStatusUpdateRequestDto request, String updatedBy) {
 
         var incident = getIncidentForModification(roles, tenantId, incidentId, updatedBy);
 
@@ -173,6 +173,20 @@ public class IncidentService {
     }
 
     @Transactional
+    public IncidentResponseDto updateIncidentDescriptionById(List<RoleEndpoint> roles, String tenantId, String incidentId, IncidentDescriptionUpdateRequestDto request, String updatedBy) {
+
+        var incident = getIncidentForModification(roles, tenantId, incidentId, updatedBy);
+
+        if (!Objects.equals(incident.getDescription(), request.description)) {
+            incident.setDescription(request.description);
+            incident.setUpdatedAt(Instant.now());
+            incident.setUpdatedBy(updatedBy);
+        }
+
+        return IncidentMapper.INSTANCE.incidentToResponseDto(incident);
+    }
+
+    @Transactional
     public IncidentResponseDto addComment(String tenantId, String incidentId, IncidentCommentRequestDto request, String userId) {
 
         var incident = incidentRepository.fetchByIdAndTenantId(incidentId, tenantId);
@@ -189,6 +203,30 @@ public class IncidentService {
         incident.setUpdatedAt(Instant.now());
 
         return IncidentMapper.INSTANCE.incidentToResponseDto(incident);
+    }
+
+    @Transactional
+    public IncidentActivityResponseDto updateIncidentStatusDescriptionById(List<RoleEndpoint> roles, String tenantId, String incidentId, String activityId, IncidentStatusDescriptionUpdateRequestDto request, String updatedBy) {
+
+        var incident = getIncidentForModification(roles, tenantId, incidentId, updatedBy);
+        var activity = incidentActivityRepository.fetchByIdAndIncidentId(activityId, incidentId);
+
+        if (!Objects.equals(activity.getStatusDescription(), request.statusDescription)) {
+
+            activity.setStatusDescription(request.statusDescription);
+
+            var latestActivity = incidentActivityRepository.findLatestByIncidentId(incidentId);
+
+            if (latestActivity != null && Objects.equals(latestActivity.getId(), activity.getId())) {
+
+                incident.setStatusDescription(request.statusDescription);
+            }
+
+            incident.setUpdatedAt(Instant.now());
+            incident.setUpdatedBy(updatedBy);
+        }
+
+        return IncidentActivityMapper.INSTANCE.incidentActivityToDto(activity);
     }
 
 
