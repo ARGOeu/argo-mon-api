@@ -31,7 +31,6 @@ public class CheckDateValidator implements ConstraintValidator<CheckDateFormat, 
     @Override
     public boolean isValid(String object, ConstraintValidatorContext constraintContext) {
 
-        System.out.println("DATE VALIDATOR VALUE = [" + object + "]");
 
         if (object == null || object.isBlank()) {
             return true;

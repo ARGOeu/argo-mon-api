@@ -1175,7 +1175,7 @@ public class TenantService {
             publishData.setMessages(List.of(message));
 
             // 1. INITIALISING
-            updateTenantAlerts(
+            self.updateTenantAlerts(
                     id,
                     setAlert(
                             alert.name,
@@ -1257,7 +1257,6 @@ public class TenantService {
             );
         }
     }
-
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public TenantStatusDto updateTenantAlerts(
             String id,
@@ -1658,6 +1657,8 @@ public class TenantService {
         switch (request.type) {
             case DESY_MARKETPLACE:
             case NODE_REGISTRY:
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_TOPOLOGY_CONNECTOR.name());
+
                 try {
                     notifyAmsInitTopologyIntegrator(tenantId, request.type);
                 } catch (Exception e) {
@@ -1667,6 +1668,8 @@ public class TenantService {
 
             case CSV:
             case EOSC_SERVICE_CATALOG:
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_INTEGRATION_TOPO.name());
+
                 try {
                     notifyAmsInitTopologyConnector(tenantId);
                 } catch (Exception e) {
@@ -1675,9 +1678,22 @@ public class TenantService {
                 break;
 
             default:
+                // INTERNAL or any topology type that needs neither job
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_TOPOLOGY_CONNECTOR.name());
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_INTEGRATION_TOPO.name());
                 break;
         }
+
         return response;
+
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void removeTenantJobStatusInNewTransaction(
+            String tenantId,
+            String jobName) {
+
+        tenantRepository.removeTenantJobStatus(tenantId, jobName);
     }
 
 
@@ -1961,24 +1977,11 @@ public class TenantService {
 
             var jobJson = objectMapper.writeValueAsString(job);
 
-            var updated = tenantRepository.updateTenantJobStatus(
+            tenantRepository.upsertTenantJobStatus(
                     tenantId,
                     job.getName(),
                     jobJson
             );
-
-            if (updated == 0) {
-
-                tenantRepository.insertTenantJobStatus(
-                        tenantId,
-                        jobJson
-                );
-
-                Log.warnf(
-                        "Job '%s' was not found in tenant status JSON. Added dynamically.",
-                        job.getName()
-                );
-            }
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException(

@@ -82,8 +82,9 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#239](https://github.com/ARGOeu/argo-mon-api/pull/239) ARGO-5876 [API] Prevent inactive reports from being made public
 - [#242](https://github.com/ARGOeu/argo-mon-api/pull/242) ARGO-5881 Retrieve metric status result details
 - [#243](https://github.com/ARGOeu/argo-mon-api/pull/243) ARGO-5906 Make date in automation daily downtimes optional
-- [#247](https://github.com/ARGOeu/argo-mon-api/pull/247) ARGO-5910 [API] Use a human-readable username for incident actions
 - [#245](https://github.com/ARGOeu/argo-mon-api/pull/245) ARGO-5909 EOSC-BEYOND-FEDERATION duplicate INIT_TOPOLOGY_INTEGRATOR job in status job list
+- [#246](https://github.com/ARGOeu/argo-mon-api/pull/246) ARGO-5907 When topology feed changes clean up INIT_TOPO_CONNECTOR or INIT_TOPO_INTEGRATION jobs if not relevant
+- [#247](https://github.com/ARGOeu/argo-mon-api/pull/247) ARGO-5910 [API] Use a human-readable username for incident actions
 - [#248](https://github.com/ARGOeu/argo-mon-api/pull/248) ARGO-5913 [API] Preserve incident activity when updating status description
 - [#249](https://github.com/ARGOeu/argo-mon-api/pull/249) ARGO-5914 [API] Support editing incident and status descriptions 
  
