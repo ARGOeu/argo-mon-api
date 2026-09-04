@@ -520,6 +520,118 @@ public class TenantEndpointTest extends KeycloakTest {
     }
 
     @Test
+    public void updateIncidentDescription() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        currentMockId = tenant.id;
+
+        entitlementProvider.setSuperAdmin(false);
+        entitlementProvider.setEntitlements(List.of(entitlement(currentMockId, "incident_admin")));
+
+        mockRoleEndpointsWithScope(
+                "incident_admin",
+                "ALL",
+                "POST_/v1/tenants/{id}/incidents",
+                "PATCH_/v1/tenants/{id}/incidents/{incident-id}"
+        );
+
+        var incident = createIncident(tenant.id);
+
+        var request = new IncidentDescriptionUpdateRequestDto();
+        request.description = "Updated incident description.";
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .patch("/v1/tenants/{id}/incidents/{incident-id}", tenant.id, incident.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(IncidentResponseDto.class);
+
+        assertEquals(incident.id, response.id);
+        assertEquals("Updated incident description.", response.description);
+    }
+
+    @Test
+    public void updateIncidentStatusDescription() {
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        currentMockId = tenant.id;
+
+        entitlementProvider.setSuperAdmin(false);
+        entitlementProvider.setEntitlements(
+                List.of(entitlement(currentMockId, "incident_admin"))
+        );
+
+        mockRoleEndpointsWithScope(
+                "incident_admin",
+                "ALL",
+                "POST_/v1/tenants/{id}/incidents",
+                "PATCH_/v1/tenants/{id}/incidents/{incident-id}/status",
+                "GET_/v1/tenants/{id}/incidents/{incident-id}/activity",
+                "PATCH_/v1/tenants/{id}/incidents/{incident-id}/activity/{activity-id}"
+        );
+
+        var incident = createIncident(tenant.id);
+
+        updateIncidentStatus(
+                tenant.id,
+                incident.id,
+                IncidentStatus.ASSIGNED,
+                "The incident has been assigned."
+        );
+
+        var activities = getIncidentActivity(tenant.id, incident.id);
+        var activity = activities[0];
+
+        var request = new IncidentStatusDescriptionUpdateRequestDto();
+        request.statusDescription = "Updated assigned status description.";
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .patch(
+                        "/v1/tenants/{id}/incidents/{incident-id}/activity/{activity-id}",
+                        tenant.id,
+                        incident.id,
+                        activity.id
+                )
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(IncidentActivityResponseDto.class);
+
+        assertEquals(activity.id, response.id);
+        assertEquals(IncidentStatus.NEW, response.previousStatus);
+        assertEquals(IncidentStatus.ASSIGNED, response.newStatus);
+        assertEquals(
+                "Updated assigned status description.",
+                response.statusDescription
+        );
+
+        var updatedActivities = getIncidentActivity(
+                tenant.id,
+                incident.id
+        );
+
+        assertEquals(
+                "Updated assigned status description.",
+                updatedActivities[0].statusDescription
+        );
+    }
+
+    @Test
     public void createIncidentComment() {
         var tenant = setupTenantAdmin();
 
@@ -1014,7 +1126,7 @@ public class TenantEndpointTest extends KeycloakTest {
             IncidentStatus status,
             String statusDescription
     ) {
-        var request = new IncidentUpdateRequestDto();
+        var request = new IncidentStatusUpdateRequestDto();
         request.status = status;
         request.statusDescription = statusDescription;
 
@@ -1027,6 +1139,20 @@ public class TenantEndpointTest extends KeycloakTest {
                 .statusCode(200)
                 .extract()
                 .as(IncidentResponseDto.class);
+    }
+
+    private IncidentActivityResponseDto[] getIncidentActivity(
+            String tenantId,
+            String incidentId
+    ) {
+        return given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .get("/v1/tenants/{id}/incidents/{incident-id}/activity", tenantId, incidentId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(IncidentActivityResponseDto[].class);
     }
 
     private ProjectRequestDto buildProject() {

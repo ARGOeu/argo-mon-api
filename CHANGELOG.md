@@ -85,6 +85,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#247](https://github.com/ARGOeu/argo-mon-api/pull/247) ARGO-5910 [API] Use a human-readable username for incident actions
 - [#245](https://github.com/ARGOeu/argo-mon-api/pull/245) ARGO-5909 EOSC-BEYOND-FEDERATION duplicate INIT_TOPOLOGY_INTEGRATOR job in status job list
 - [#248](https://github.com/ARGOeu/argo-mon-api/pull/248) ARGO-5913 [API] Preserve incident activity when updating status description
+- [#249](https://github.com/ARGOeu/argo-mon-api/pull/249) ARGO-5914 [API] Support editing incident and status descriptions 
  
 
 
