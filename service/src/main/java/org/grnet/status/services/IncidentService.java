@@ -225,7 +225,6 @@ public class IncidentService {
             incident.setUpdatedAt(Instant.now());
             incident.setUpdatedBy(updatedBy);
         }
-
         return IncidentActivityMapper.INSTANCE.incidentActivityToDto(activity);
     }
 

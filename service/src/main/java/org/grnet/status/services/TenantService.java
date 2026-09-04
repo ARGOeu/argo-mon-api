@@ -26,9 +26,9 @@ import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
-import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.metadata.InstanceDto;
 import org.grnet.status.dtos.tenant.metadata.TenantMetadata;
+import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.status.EventStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
@@ -111,7 +111,8 @@ public class TenantService {
     TenantService self;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2); // Adjust as needed
-
+    @Inject
+    TransactionHelper transactionHelper;
     /**
      * Creates a tenant and initializes its group.
      *
@@ -145,46 +146,109 @@ public class TenantService {
      * @throws IOException when image handling fails
      */
     @Transactional
-    public TenantResponseDto createTenant(TenantRequestDto request, String userId) throws IOException {
+    public TenantResponseDto createTenant(
+            TenantRequestDto request,
+            String userId) throws IOException {
 
-        var existTenantOpt = tenantRepository.fetchTenantByName(request.info.name);
+        var existTenantOpt =
+                tenantRepository.fetchTenantByName(request.info.name);
+
         if (existTenantOpt.isPresent()) {
-            var message = "Creating Tenant... " + "Tenant: " + existTenantOpt.get().name + " already exists in ARGO Status Pages with id: " + existTenantOpt.get().id;
-            throw new CustomRuntimeException(409, message, new HashSet<>());
+            var message =
+                    "Creating Tenant... Tenant: "
+                            + existTenantOpt.get().name
+                            + " already exists in ARGO Status Pages with id: "
+                            + existTenantOpt.get().id;
+
+            throw new CustomRuntimeException(
+                    409,
+                    message,
+                    new HashSet<>()
+            );
         }
+
         handleImage(request);
 
-        var tenant = TenantMapper.INSTANCE.dtoToTenant(request.info);
+        var tenant =
+                TenantMapper.INSTANCE.dtoToTenant(request.info);
+
         boolean tenantCreatedRemotely = false;
         String remoteTenantId = null;
 
-        var webApiRequest = TenantMapper.INSTANCE.toWebApiRequest(request);
-        var webApiCreateResponse = webApiService.createTenantInWebApi(webApiRequest);
-        remoteTenantId = webApiCreateResponse.getData().getId();
+        var webApiRequest =
+                TenantMapper.INSTANCE.toWebApiRequest(request);
+
+        var webApiCreateResponse =
+                webApiService.createTenantInWebApi(webApiRequest);
+
+        remoteTenantId =
+                webApiCreateResponse.getData().getId();
+
         tenantCreatedRemotely = true;
-        var status = TenantMapper.INSTANCE.mapStatusToString(setDefaultStatus());
+
+        var status =
+                TenantMapper.INSTANCE.mapStatusToString(
+                        setDefaultStatus()
+                );
+
         tenant.setStatus(status);
         tenant.setNode(Boolean.TRUE.equals(request.node) ? true : null);
-        tenant.setPerformance(Boolean.TRUE.equals(request.performance) ? true : false);
-        tenant.setPublicDowntime(Boolean.TRUE.equals(request.publicDowntime) ? true : false);
+        tenant.setPerformance(
+                Boolean.TRUE.equals(request.performance)
+        );
+        tenant.setPublicDowntime(
+                Boolean.TRUE.equals(request.publicDowntime)
+        );
+
         try {
             TenantMapper.INSTANCE.mapMetadata(request, tenant);
-            writeInDB(request, tenant, remoteTenantId, userId);
-            sendNotifications(tenant);
-            //   var  tenantWithStatus=tenantRepository.findById(tenant.id);
+
+            writeInDB(
+                    request,
+                    tenant,
+                    remoteTenantId,
+                    userId
+            );
+
+            // Register notifications to be sent only after
+            // the DB transaction successfully commits.
+            transactionHelper.sendAfterCommit(() ->
+                    sendNotifications(tenant)
+            );
+
             return TenantMapper.INSTANCE.tenantToDto(tenant);
+
         } catch (Exception e) {
-            // If tenant was created remotely, but something failed locally, rollback remote creation
+
+            // If tenant was created remotely, but something failed locally,
+            // rollback remote creation.
             if (tenantCreatedRemotely && remoteTenantId != null) {
-                webApiService.deleteTenant(remoteTenantId);
+                try {
+                    webApiService.deleteTenant(remoteTenantId);
+                } catch (Exception rollbackEx) {
+                    Log.errorf(
+                            rollbackEx,
+                            "Failed to rollback remote tenant creation: %s",
+                            remoteTenantId
+                    );
+                }
             }
 
             Log.error(e.getMessage(), e);
+
             if (e instanceof WebApplicationException) {
-                throw new WebApplicationException("Creating Tenant... Failed to create tenant in Argo Web Api", ((WebApplicationException) e).getResponse().getStatus());
+                throw new WebApplicationException(
+                        "Creating Tenant... Failed to create tenant in Argo Web Api",
+                        ((WebApplicationException) e)
+                                .getResponse()
+                                .getStatus()
+                );
             }
 
-            throw new RuntimeException("Creating Tenant... Failed to create tenant");
+            throw new RuntimeException(
+                    "Creating Tenant... Failed to create tenant",
+                    e
+            );
         }
     }
 
@@ -291,65 +355,106 @@ public class TenantService {
     public void deleteTenant(String id) {
 
         var tenant = tenantRepository.findById(id);
-        var name = tenant.name;
+
         if (tenant == null) {
-            throw new WebApplicationException("Deleting Tenant... Tenant not found", 404);
+            throw new WebApplicationException(
+                    "Deleting Tenant... Tenant not found",
+                    404
+            );
         }
+
+        var name = tenant.name;
 
         try {
             var oldContacts = new HashSet<>(tenant.getContacts());
 
-            // 1. Remove relation from both sides
+            // Remove relation from both sides
             for (Contact c : oldContacts) {
                 c.getTenants().remove(tenant);
             }
+
             tenant.getContacts().clear();
             tenantRepository.persist(tenant);
 
-            // 2. Delete tenant
+            // Delete tenant from local DB
             tenantRepository.delete(tenant);
 
-            // 3. External cleanups
-            imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir, tenant.name);
-            webApiService.deleteTenant(id);
+            /*
+             * Prepare everything needed by the asynchronous operation
+             * before the transaction is committed.
+             */
+            var alert = buildAlert(
+                    EventName.DELETE_TENANT,
+                    tenant,
+                    String.valueOf(Instant.now())
+            );
 
-            // 4. Delete orphan contacts
+            /*
+             * Execute external operations only AFTER the DB transaction
+             * has successfully committed.
+             */
+            transactionHelper.sendAfterCommit(() -> {
+
+                CompletableFuture.runAsync(() -> {
+
+                    try {
+                        // External cleanup
+                        imageUploadUtil.deleteImageIfExists(
+                                baseUploadTenantsImagesDir,
+                                name
+                        );
+
+                        webApiService.deleteTenant(id);
+
+                        deleteTenantResourceGroups(id);
+
+                        // Notify AMS
+                        notifyAmsDeleteTenant(
+                                id,
+                                name,
+                                alert
+                        );
+
+                    } catch (Exception e) {
+                        Log.errorf(
+                                e,
+                                "Failed to complete external cleanup/AMS notification for tenant %s",
+                                id
+                        );
+                    }
+
+                }, executorService);
+            });
+
+            // Delete orphan contacts from the DB
             deleteOrphanContacts(oldContacts);
 
         } catch (WebApplicationException e) {
 
-            Log.error("Argo Web Api error while deleting tenant {}", id, e);
+            Log.errorf(
+                    e,
+                    "Argo Web API error while deleting tenant %s",
+                    id
+            );
 
             throw new WebApplicationException(
-                    "Deleting Tenant... Failed to delete tenant from Argo Web Api",
+                    "Deleting Tenant... Failed to delete tenant from Argo Web API",
                     e.getResponse().getStatus()
             );
+
         } catch (Exception e) {
 
-            Log.error("Unexpected error while deleting tenant {}", id, e);
+            Log.errorf(
+                    e,
+                    "Unexpected error while deleting tenant %s",
+                    id
+            );
 
             throw new WebApplicationException(
                     "Deleting Tenant... Unexpected error occurred while deleting tenant.",
                     500
             );
         }
-        try {
-            deleteTenantResourceGroups(id);
-        } catch (Exception ex) {
-            Log.error("Deleting Tenant... Failed to delete AGM resource groups for tenant " + id + ": " + ex.getMessage());
-        }
-
-        var alert = buildAlert(EventName.DELETE_TENANT, tenant, String.valueOf(Instant.now()));
-
-        CompletableFuture.runAsync(() -> {
-            try {
-                notifyAmsDeleteTenant(id, name, alert);
-            } catch (Exception e) {
-                Log.errorf(e,
-                        "Failed to send AMS delete tenant notification for tenant %s",
-                        id);
-            }
-        });
     }
 
     private void deleteTenantResourceGroups(String tenantId) {
@@ -477,14 +582,29 @@ public class TenantService {
         }
 
         if (editedPerformance && tenant.getPerformance()) {
+
             String createdAt = String.valueOf(Instant.now());
 
-            var performanceDataAlert = buildAlert(EventName.INIT_PERFORMANCE_DATA, tenant, createdAt);
-            performanceDataAlert.getProperties().put("performance_data", String.valueOf(tenant.getPerformance()));
-            send(tenant.id, performanceDataAlert, "");
+            var performanceDataAlert =
+                    buildAlert(
+                            EventName.INIT_PERFORMANCE_DATA,
+                            tenant,
+                            createdAt
+                    );
 
+            performanceDataAlert.getProperties().put(
+                    "performance_data",
+                    String.valueOf(tenant.getPerformance())
+            );
+
+            transactionHelper.sendAfterCommit(() ->
+                    send(
+                            tenant.id,
+                            performanceDataAlert,
+                            ""
+                    )
+            );
         }
-
 
         return TenantMapper.INSTANCE.tenantToDto(tenant);
     }
@@ -2118,7 +2238,7 @@ public class TenantService {
      *
      * @return tenant status response
      */
-    @Transactional
+
     public void notifyAmsDeleteTenant(String tenantId, String tenantName, AlertDefinitionRequest alert) {
         var now = Instant.now();
 
@@ -2163,4 +2283,47 @@ public class TenantService {
 
         return webApiService.retrieveNodeMonitoringMetricByService(tenant.name, serviceId, startDate, endDate, granularity);
     }
+
+//    private void sendAfterCommit(
+//            String tenantId,
+//            AlertDefinitionRequest alert,
+//            String eventMsg) {
+//
+//        TransactionSynchronizationRegistry tsr =
+//                CDI.current()
+//                        .select(TransactionSynchronizationRegistry.class)
+//                        .get();
+//
+//        tsr.registerInterposedSynchronization(new Synchronization() {
+//
+//            @Override
+//            public void beforeCompletion() {
+//                // Nothing to do
+//            }
+//
+//            @Override
+//            public void afterCompletion(int status) {
+//
+//                if (status == Status.STATUS_COMMITTED) {
+//                    try {
+//                        send(tenantId, alert, eventMsg);
+//                    } catch (Exception e) {
+//                        Log.errorf(
+//                                e,
+//                                "Failed to send alert after tenant transaction committed | tenantId=%s | event=%s",
+//                                tenantId,
+//                                alert.name
+//                        );
+//                    }
+//                } else {
+//                    Log.warnf(
+//                            "Tenant transaction did not commit. Alert will not be sent | tenantId=%s | event=%s | status=%s",
+//                            tenantId,
+//                            alert.name,
+//                            status
+//                    );
+//                }
+//            }
+//        });
+//    }
 }

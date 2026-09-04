@@ -86,8 +86,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#246](https://github.com/ARGOeu/argo-mon-api/pull/246) ARGO-5907 When topology feed changes clean up INIT_TOPO_CONNECTOR or INIT_TOPO_INTEGRATION jobs if not relevant
 - [#247](https://github.com/ARGOeu/argo-mon-api/pull/247) ARGO-5910 [API] Use a human-readable username for incident actions
 - [#248](https://github.com/ARGOeu/argo-mon-api/pull/248) ARGO-5913 [API] Preserve incident activity when updating status description
-- [#249](https://github.com/ARGOeu/argo-mon-api/pull/249) ARGO-5914 [API] Support editing incident and status descriptions 
- 
+- [#249](https://github.com/ARGOeu/argo-mon-api/pull/249) ARGO-5914 [API] Support editing incident and status descriptions
+- [#250](https://github.com/ARGOeu/argo-mon-api/pull/250) ARGO-5919 Fix transaction locking when enabling/disabling Performance Data for a tenant- #250
 
 
 ## 1.0.0 - 2026-06-26
