@@ -7438,7 +7438,7 @@ public class TenantEndpoint {
     )
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("/{id}/report/{report-id}/groups-type/{group-type}/latest-data")
+    @Path("/{id}/report/{report-id}/groups/latest-data")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -7467,14 +7467,6 @@ public class TenantEndpoint {
             @PathParam("report-id")
             @Valid
             String reportId,
-            @Parameter(
-                    description = "The group type ",
-                    required = true,
-                    example = "SERVICEGROUPS",
-                    schema = @Schema(type = SchemaType.STRING))
-            @PathParam("group-type")
-            @Valid
-            String groupType,
             @Parameter(name = "filter", in = QUERY,
                     description = "Filter errors by status.")
             @ValidLatestDataStatusFilter
@@ -7496,7 +7488,7 @@ public class TenantEndpoint {
             Integer limit) {
 
         var metricDetails = reportService.retrieveLatestData(
-                id, reportId, groupType, filter, strict, limit);
+                id, reportId, filter, strict, limit);
 
         return Response.ok(metricDetails).build();
     }
@@ -7545,7 +7537,7 @@ public class TenantEndpoint {
     )
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("/{id}/report/{report-id}/groups-type/{group-type}/{group-name}/latest-data")
+    @Path("/{id}/report/{report-id}/groups/{group-name}/latest-data")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -7575,14 +7567,6 @@ public class TenantEndpoint {
             @Valid
             String reportId,
             @Parameter(
-                    description = "The group type ",
-                    required = true,
-                    example = "SERVICEGROUPS",
-                    schema = @Schema(type = SchemaType.STRING))
-            @PathParam("group-type")
-            @Valid
-            String groupType,
-            @Parameter(
                     description = "The group name ",
                     required = true,
                     example = "HELPDESK",
@@ -7611,7 +7595,7 @@ public class TenantEndpoint {
             Integer limit) {
 
         var metricDetails = reportService.retrieveLatestDataByGroupName(
-                id, reportId, groupType, groupName, filter, strict, limit);
+                id, reportId, groupName, filter, strict, limit);
 
         return Response.ok(metricDetails).build();
     }

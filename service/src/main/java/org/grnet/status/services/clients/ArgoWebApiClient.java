@@ -792,10 +792,9 @@ public interface ArgoWebApiClient {
     );
 
     @GET
-    @Path("/api/v2/latest/{report-name}/{group-type}")
+    @Path("/api/v2/latest/{report-name}/groups")
     LatestDataResponse listLatestData(
             @PathParam("report-name") String reportName,
-            @PathParam("group-type") String groupType,
             @QueryParam("filter") String filter,
             @QueryParam("limit") Integer limit,
             @QueryParam("strict") Boolean strict,
@@ -805,10 +804,9 @@ public interface ArgoWebApiClient {
 
 
     @GET
-    @Path("/api/v2/latest/{report-name}/{group-type}/{group-name}")
+    @Path("/api/v2/latest/{report-name}/groups/{group-name}")
     LatestDataResponse listLatestDataByGroupName(
             @PathParam("report-name") String reportName,
-            @PathParam("group-type") String groupType,
             @PathParam("group-name") String groupName,
             @QueryParam("filter") String filter,
             @QueryParam("limit") Integer limit,

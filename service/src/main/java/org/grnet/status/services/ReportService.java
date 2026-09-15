@@ -240,15 +240,15 @@ public class ReportService {
 
     /**
      * Returns the latest -limit- errors based on the status as received from filter  (ok, non-ok, critical, warning, ok, unknown, missing, all)
+     *
      * @param id
      * @param reportId
-     * @param groupType
      * @param filter
      * @param strict
      * @param limit
      * @return
      */
-    public LatestDataResponse retrieveLatestData(String id, String reportId, String groupType, String filter, boolean strict, int limit) {
+    public LatestDataResponse retrieveLatestData(String id, String reportId, String filter, boolean strict, int limit) {
 
         // Latest data can only be retrieved for tenants whose Reports component
         // has been successfully initialized.
@@ -265,20 +265,21 @@ public class ReportService {
                 .filter(r -> reportId.equals(r.id))
                 .findFirst()
                 .orElseThrow(() ->
-                        new NotFoundException( "Fetching Report... Not found report with id: " + reportId + " for tenant with id: " + id));
+                        new NotFoundException("Fetching Report... Not found report with id: " + reportId + " for tenant with id: " + id));
 
         try {
             // Retrieve the latest data for the specified report and endpoint
             // group type. The report name is used because this is what the
             // Argo Web API expects.
-            return argoWebApiClient.listLatestData(report.info.name, groupType, filter, limit, strict, accessToken, id);
+            return argoWebApiClient.listLatestData(report.info.name, filter, limit, strict, accessToken, id);
 
         } catch (ClientWebApplicationException e) {
 
             // A 404 from the Argo Web API indicates that the requested endpoint
             // group type could not be found for the specified report.
             if (e.getResponse().getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
-                throw new NotFoundException("Fetching Latest Metric Data... No endpoint group of type '" + groupType + "' was found for report '" + reportId + "' in tenant with id: " + id);}
+                throw new NotFoundException("Fetching Latest Metric Data... No endpoint group was found for report '" + report.info.name + "' with report id: '" + reportId + "' in tenant with id: " + id);
+            }
 
             // Propagate other data returned by the Argo Web API while adding
             // context about the operation that failed.
@@ -287,7 +288,7 @@ public class ReportService {
     }
 
 
-    public LatestDataResponse retrieveLatestDataByGroupName(String id, String reportId, String groupType, String groupName, String filter, boolean strict, int limit) {
+    public LatestDataResponse retrieveLatestDataByGroupName(String id, String reportId, String groupName, String filter, boolean strict, int limit) {
 
         // Latest data can only be retrieved for tenants whose Reports component
         // has been successfully initialized.
@@ -310,14 +311,15 @@ public class ReportService {
             // Retrieve the latest data for the specified endpoint group type
             // and group name. The report name is used because this is what the
             // Argo Web API expects.
-            return argoWebApiClient.listLatestDataByGroupName(report.info.name, groupType, groupName, filter, limit, strict, accessToken, id);
+            return argoWebApiClient.listLatestDataByGroupName(report.info.name, groupName, filter, limit, strict, accessToken, id);
 
         } catch (ClientWebApplicationException e) {
 
             // A 404 from the Argo Web API indicates that the requested endpoint
             // group could not be found for the specified report.
             if (e.getResponse().getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
-                throw new NotFoundException("Fetching Latest Metric Data... No endpoint group of type '" + groupType + "' was found for report '" + reportId + "' in tenant with id: " + id);
+                throw new NotFoundException("Fetching Latest Metric Data... No endpoint group was found for report '" + report.info.name + "' with report id: '" + reportId + "' in tenant with id: " + id);
+
             }
 
             // Propagate other data returned by the Argo Web API while adding
@@ -326,3 +328,4 @@ public class ReportService {
         }
     }
 }
+
