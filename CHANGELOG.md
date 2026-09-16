@@ -72,7 +72,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#242](https://github.com/ARGOeu/argo-mon-api/pull/242) ARGO-5883 [API] Support multiple affected services per incident
 - [#244](https://github.com/ARGOeu/argo-mon-api/pull/244) ARGO-5905: Support a description field for incident status changes
 - [#254](https://github.com/ARGOeu/argo-mon-api/pull/254) Add a public API endpoint for the incidents list
- 
+- [#255](https://github.com/ARGOeu/argo-mon-api/pull/255) ARGO-5935 Update Latest Data Proxy Endpoints to Use Groups
+
 ### Fix 
 
 - [#210](https://github.com/ARGOeu/argo-mon-api/pull/210) ARGO-5792 Enforce Non-Null completed_at and Request Validation for Downtime Dates
