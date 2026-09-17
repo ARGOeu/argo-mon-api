@@ -7497,11 +7497,11 @@ public class TenantEndpoint {
     @Tag(name = "Reports")
     @Operation(
             summary = "Fetch the N latest data for the specified report, group type, group name of the tenant",
-            description = "Returns the N latest data for the specified report, group type, group name of the tenant"
+            description = "Returns the N latest data for the specified report, group name of the tenant"
     )
     @APIResponse(
             responseCode = "200",
-            description = "Latest data etched successfully.",
+            description = "Latest data fetched successfully.",
             content = @Content(schema = @Schema(
                     implementation = LatestDataResponse.class))
     )

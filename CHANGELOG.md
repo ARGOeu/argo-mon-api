@@ -73,6 +73,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#244](https://github.com/ARGOeu/argo-mon-api/pull/244) ARGO-5905: Support a description field for incident status changes
 - [#254](https://github.com/ARGOeu/argo-mon-api/pull/254) Add a public API endpoint for the incidents list
 - [#255](https://github.com/ARGOeu/argo-mon-api/pull/255) ARGO-5935 Update Latest Data Proxy Endpoints to Use Groups
+- [#256](https://github.com/ARGOeu/argo-mon-api/pull/256) ARGO-5941: Expose Latest-Data Endpoints as Public Endpoints
 
 ### Fix 
 
