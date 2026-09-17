@@ -20,10 +20,15 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.grnet.endpoint.scanner.runtime.ParamRef;
+import org.grnet.endpoint.scanner.runtime.ParamType;
 import org.grnet.status.api.resolvers.CheckDateFormat;
 import org.grnet.status.constraints.NotFoundEntity;
+import org.grnet.status.constraints.ValidLatestDataStatusFilter;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.LatestDataResponse;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
+import org.grnet.status.dtos.report.FullReportResponseDto;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.setting.SettingResponseDto;
 import org.grnet.status.dtos.status.*;
@@ -32,6 +37,7 @@ import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
 import org.grnet.status.dtos.tenant.webapi.*;
+import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.repositories.DowntimeRepository;
 import org.grnet.status.services.*;
 import org.grnet.status.services.clients.WebApiService;
@@ -848,13 +854,13 @@ public class PublicEndpoint {
         return Response.ok(response).build();
     }
 
-    private void checkPublicReport(String id, String reportName) {
+    private FullReportResponseDto checkPublicReport(String id, String reportName) {
         var reports = webApiService.retrieveReportsWebApi(id, Boolean.TRUE, Boolean.FALSE, Boolean.FALSE);
         if (reports.data.isEmpty()) {
 
             throw new NotFoundException("At least one public report should exist to be able to fetch results");
         }
-        reports.data.stream()
+       return reports.data.stream()
                 .filter(r -> r.info.name.equals(reportName))
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException(
@@ -2902,5 +2908,189 @@ public class PublicEndpoint {
         var response = incidentService.getIncidentsByPageAndSize(tenant.id, page - 1, size, search, date, uriInfo);
 
         return Response.ok(response).build();
+    }
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the N latest data for the specified report, group type of the tenant",
+            description = "Returns the the N latest data for the specified report, group type, group name of the tenant"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Latest data fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = LatestDataResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Latest data not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/report/{report-name}/groups/latest-data")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getLatestData(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(
+                    description = "The id of the tenant's report.",
+                    required = true,
+                    example = "CORE",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("report-name")
+            @Valid
+            String reportName,
+            @Parameter(name = "filter", in = QUERY,
+                    description = "Filter errors by status.")
+            @ValidLatestDataStatusFilter
+            @DefaultValue("all")
+            @QueryParam("filter") String filter,
+            @Parameter(name = "strict", in = QUERY,
+                    description = "the servce will return only the latest entry grouped by endpoint_group/host/service/metric",
+                    example = "false")
+            @QueryParam("strict")
+            @DefaultValue("false")
+            Boolean strict,
+            @Parameter(name = "limit", in = QUERY,
+                    description = "the limit",
+                    example = "500",
+                    required = true)
+            @QueryParam("limit")
+            @DefaultValue("100")
+            Integer limit) {
+
+        var tenant = tenantService.getTenantByName(tenantName);
+        var report = checkPublicReport(tenant.id, reportName);
+
+        var metricDetails = reportService.retrieveLatestData(tenant.id, report.id, filter, strict, limit);
+
+        return Response.ok(metricDetails).build();
+    }
+
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch the N latest data for the specified report, group type, group name of the tenant",
+            description = "Returns the N latest data for the specified report, group name of the tenant"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Latest data fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = LatestDataResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Latest data not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/report/{report-name}/groups/{group-name}/latest-data")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response getLatestDataByGroupName(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    description = "The group name ",
+                    required = true,
+                    example = "HELPDESK",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("group-name")
+            @Valid
+            String groupName,
+            @Parameter(name = "filter", in = QUERY,
+                    description = "Filter errors by status.")
+            @ValidLatestDataStatusFilter
+            @DefaultValue("all")
+            @QueryParam("filter") String filter,
+            @Parameter(name = "strict", in = QUERY,
+                    description = "The service will return only the latest entry grouped by endpoint_group/host/service/metric",
+                    example = "false")
+            @QueryParam("strict")
+            @DefaultValue("false")
+            Boolean strict,
+            @Parameter(name = "limit", in = QUERY,
+                    description = "the limit",
+                    example = "500",
+                    required = true)
+            @QueryParam("limit")
+
+            @DefaultValue("100")
+            Integer limit) {
+
+        var tenant = tenantService.getTenantByName(tenantName);
+        var report = checkPublicReport(tenant.id, reportName);
+
+        var metricDetails = reportService.retrieveLatestDataByGroupName(tenant.id, report.id, groupName, filter, strict, limit);
+
+        return Response.ok(metricDetails).build();
     }
 }
