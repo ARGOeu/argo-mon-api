@@ -3968,7 +3968,7 @@ public class TenantEndpoint {
                     implementation = InformativeResponse.class)))
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("{id}/results/{report-name}/groups/{group-name}")
+    @Path("/{id}/results/{report-name}/groups/{group-name}")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -4053,7 +4053,7 @@ public class TenantEndpoint {
                     implementation = InformativeResponse.class)))
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("{id}/results/{report-name}/endpoints")
+    @Path("/{id}/results/{report-name}/endpoints")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -4133,7 +4133,7 @@ public class TenantEndpoint {
                     implementation = InformativeResponse.class)))
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("{id}/results/{report-name}/endpoints/{endpoint-name}")
+    @Path("/{id}/results/{report-name}/endpoints/{endpoint-name}")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -5603,7 +5603,7 @@ public class TenantEndpoint {
                     implementation = InformativeResponse.class)))
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("{id}/results/{report-name}/groups/{group-name}/endpoints")
+    @Path("/{id}/results/{report-name}/groups/{group-name}/endpoints")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
@@ -5690,7 +5690,7 @@ public class TenantEndpoint {
                     implementation = InformativeResponse.class)))
     @SecurityRequirement(name = "Authentication")
     @GET
-    @Path("{id}/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    @Path("/{id}/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
     @Produces(MediaType.APPLICATION_JSON)
     @SecuredEndpoint(
             params = {
