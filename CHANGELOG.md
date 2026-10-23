@@ -22,6 +22,9 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 
 ## Unreleased
+---
+
+## 2.0.0- 2026-10-23
 
 ### Added
 - [#182](https://github.com/ARGOeu/argo-mon-api/pull/182) ARGO-5692 Trigger readiness validation on first feed configuration
@@ -74,6 +77,10 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 - [#254](https://github.com/ARGOeu/argo-mon-api/pull/254) Add a public API endpoint for the incidents list
 - [#255](https://github.com/ARGOeu/argo-mon-api/pull/255) ARGO-5935 Update Latest Data Proxy Endpoints to Use Groups
 - [#256](https://github.com/ARGOeu/argo-mon-api/pull/256) ARGO-5941: Expose Latest-Data Endpoints as Public Endpoints
+- [#215](https://github.com/ARGOeu/argo-mon-api/pull/215) ARGO-5800 We need to be able to get downtimes per period (start date - end date)
+- [#223](https://github.com/ARGOeu/argo-mon-api/pull/223) ARGO-5805: [API] Metric status timeline
+- [#251](https://github.com/ARGOeu/argo-mon-api/pull/251) ARGO-5986 script to check the migration of the db
+- [#253](https://github.com/ARGOeu/argo-mon-api/pull/253) ARGO-5987 latest data
 
 ### Fix 
 
