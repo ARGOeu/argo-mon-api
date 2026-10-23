@@ -24,7 +24,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 ## Unreleased
 ---
 
-## 2.0.0- 2026-10-23
+## 1.1.0- 2026-10-23
 
 ### Added
 - [#182](https://github.com/ARGOeu/argo-mon-api/pull/182) ARGO-5692 Trigger readiness validation on first feed configuration
