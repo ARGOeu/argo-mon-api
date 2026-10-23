@@ -29,12 +29,16 @@ import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.Parti
 import org.grnet.endpoint.scanner.runtime.services.RoleEndpointService;
 import org.grnet.status.constraints.NotFoundEntity;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.downtime.DowntimeRequest;
+import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.metadata.RoleAssignmentMetadataResponseDto;
 import org.grnet.status.dtos.metadata.RoleMetadataResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.project.ProjectUpdateDto;
+import org.grnet.status.dtos.setting.SettingResponseDto;
+import org.grnet.status.dtos.setting.SettingUpdateDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.tenant.ContactFullDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
@@ -46,7 +50,9 @@ import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectDto;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
 import org.grnet.status.enums.TenantGroupStatus;
+import org.grnet.status.repositories.DowntimeRepository;
 import org.grnet.status.repositories.ProjectRepository;
+import org.grnet.status.repositories.SettingRepository;
 import org.grnet.status.repositories.TenantRepository;
 import org.grnet.status.services.*;
 import org.grnet.status.util.Utility;
@@ -92,11 +98,13 @@ public class AdminEndpoint {
     GroupManagementService groupManagementService;
 
     @Inject
-    RoleEndpointService roleEndpointService;
-
-    @Inject
     RoleMetadataService roleMetadataService;
 
+    @Inject
+    SettingService settingService;
+
+    @Inject
+    DowntimeService downtimeService;
     // --------------------------------------------------------------------------------------------------------------------------
     // ADMIN TENANT ENDPOINT
     // --------------------------------------------------------------------------------------------------------------------------
@@ -151,7 +159,6 @@ public class AdminEndpoint {
         var response = tenantService.create(request, utility.getUserUniqueIdentifier());
         return Response.ok(response).build();
     }
-
 
 
     @Tag(name = "Admin")
@@ -1358,4 +1365,137 @@ public class AdminEndpoint {
 
         return Response.ok(response).build();
     }
+
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "List all setting.",
+            description = "Allows an admin to retrieve all dynamic runtime setting."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "List of all setting.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.ARRAY,
+                    implementation = SettingResponseDto.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/settings")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response listAllSettings() {
+        var settings = settingService.getAllSettings();
+        return Response.ok(settings).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Retrieve a specific setting.",
+            description = "Allows an admin to retrieve the full configuration of a specific setting by its ID."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "The requested setting was found and returned successfully.",
+            content = @Content(schema = @Schema(implementation = SettingResponseDto.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Setting not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/settings/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getSettingById(
+            @Parameter(
+                    description = "The ID of the setting to retrieve.",
+                    required = true,
+                    example = "1",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id") @Valid @NotFoundEntity(repository = SettingRepository.class, message = "There is no Setting with the following id:") String id
+    ) {
+        var setting = settingService.getSettingById(id);
+        return Response.ok().entity(setting).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Update a setting.",
+            description = "Allows an admin to update the value, label, or enabled status of a specific setting."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Setting updated successfully.",
+            content = @Content(schema = @Schema(implementation = SettingResponseDto.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Setting not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @PUT
+    @Path("/settings/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateSetting(
+            @PathParam("id") String id, SettingUpdateDto request) {
+        var updated = settingService.updateSetting(id, request, utility.getUserUniqueIdentifier());
+        return Response.ok(updated).build();
+    }
+
 }

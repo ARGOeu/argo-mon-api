@@ -53,6 +53,10 @@ public class MailerService {
     @Location("tenant_added_to_group.html")
     Template tenantAddedToGroupTemplate;
 
+    @Inject
+    @Location("incident_created.html")
+    Template incidentCreatedTemplate;
+
     /**
      * Sends a tenant invitation email to the specified recipients.
      *
@@ -170,6 +174,49 @@ public class MailerService {
     }
 
     /**
+     * Sends an email notification when a new incident is reported.
+     *
+     * @param recipientEmails list of recipient email addresses
+     * @param incidentNumber human-readable incident number
+     * @param incidentTitle incident title
+     * @param description incident description
+     * @param serviceNames affected service names
+     * @param status incident status
+     * @param createdBy user who reported the incident
+     * @param createdAt incident creation timestamp
+     * @param incidentUrl incident details URL
+     */
+    public void sendIncidentCreatedEmail(List<String> recipientEmails,
+                                          String incidentNumber,
+                                          String incidentTitle,
+                                          String description,
+                                          List<String> serviceNames,
+                                          String status,
+                                          String createdBy,
+                                          String createdAt,
+                                          String incidentUrl) {
+
+        HashMap<String, Object> params = new HashMap<>();
+
+        var resolvedLogo = serviceUrl + "/v1/images/logo.png";
+
+        params.put("logoUrl", resolvedLogo);
+        params.put("replyTo", replyTo);
+        params.put("title", title);
+
+        params.put("incidentNumber", incidentNumber);
+        params.put("incidentTitle", incidentTitle);
+        params.put("description", description);
+        params.put("serviceNames", serviceNames);
+        params.put("status", status);
+        params.put("createdBy", createdBy);
+        params.put("createdAt", createdAt);
+        params.put("incidentUrl", incidentUrl);
+
+        sendBcc(incidentCreatedTemplate, params, MailType.INCIDENT_CREATED, recipientEmails);
+    }
+
+    /**
      * Sends an email using the provided template and parameters to the specified recipients.
      *
      * @param template email template
@@ -192,9 +239,8 @@ public class MailerService {
 
         try {
             mailer.send(mail);
-            LOG.infof("Invitation email sent to %s (subject=%s)", recipients, mail.getSubject());
+            LOG.infof("Email sent to %s (subject=%s)", recipients, mail.getSubject());
         } catch (Exception e) {
-            LOG.errorf(e, "Failed to send invitation email to %s", recipients);
-        }
+            LOG.errorf(e, "Failed to send email to %s (subject=%s)", recipients, mail.getSubject());       }
     }
 }

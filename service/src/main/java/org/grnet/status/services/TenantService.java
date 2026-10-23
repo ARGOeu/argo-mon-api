@@ -9,6 +9,7 @@ import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.UriInfo;
@@ -21,23 +22,19 @@ import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.tenant.ContactDto;
+import org.grnet.status.dtos.tenant.PublicTenantInformationResponseDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
-import org.grnet.status.dtos.tenant.node.WebApiNodeAvailabilityResponse;
-import org.grnet.status.dtos.tenant.node.WebApiNodeResponse;
 import org.grnet.status.dtos.tenant.metadata.InstanceDto;
 import org.grnet.status.dtos.tenant.metadata.TenantMetadata;
-import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
-import org.grnet.status.dtos.tenant.node.WebApiNodeSummaryResponse;
+import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.status.EventStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
+import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
+import org.grnet.status.dtos.topology.IsExternalFeedTopologyResponse;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
 import org.grnet.status.entities.Contact;
 import org.grnet.status.entities.Page;
@@ -63,8 +60,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import static io.vertx.core.http.impl.HttpUtils.normalizePath;
-
 /**
  * Service responsible for managing tenants and tenant status workflows.
  */
@@ -75,8 +70,6 @@ public class TenantService {
     TenantRepository tenantRepository;
     @Inject
     ContactRepository contactRepository;
-    @Inject
-    AuthGroupSetupService authGroupSetupService;
 
     @Inject
     AccessControlService accessControlService;
@@ -111,8 +104,15 @@ public class TenantService {
     @Inject
     ObjectMapper objectMapper;
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(2); // Adjust as needed
+    @Inject
+    AuthGroupManagement authGroupManagement;
 
+    @Inject
+    TenantService self;
+
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2); // Adjust as needed
+    @Inject
+    TransactionHelper transactionHelper;
     /**
      * Creates a tenant and initializes its group.
      *
@@ -130,10 +130,6 @@ public class TenantService {
             attributes.put("tenantId", List.of(response.id));
             attributes.put("description", List.of(request.info.description));
 
-            var parentPath = "/" + namespace + "/tenants";
-
-            authGroupSetupService.createGroup(parentPath, response.info.name, List.of("admin", "viewer"), attributes);
-
         } catch (Exception ex) {
             Log.error("Failed to create AGM group for tenant " + response.id + ": " + ex.getMessage());
         }
@@ -150,45 +146,109 @@ public class TenantService {
      * @throws IOException when image handling fails
      */
     @Transactional
-    public TenantResponseDto createTenant(TenantRequestDto request, String userId) throws IOException {
+    public TenantResponseDto createTenant(
+            TenantRequestDto request,
+            String userId) throws IOException {
 
-        var existTenantOpt = tenantRepository.fetchTenantByName(request.info.name);
+        var existTenantOpt =
+                tenantRepository.fetchTenantByName(request.info.name);
+
         if (existTenantOpt.isPresent()) {
-            var message = "Creating Tenant... " + "Tenant: " + existTenantOpt.get().name + " already exists in ARGO Status Pages with id: " + existTenantOpt.get().id;
-            throw new CustomRuntimeException(409, message, new HashSet<>());
+            var message =
+                    "Creating Tenant... Tenant: "
+                            + existTenantOpt.get().name
+                            + " already exists in ARGO Status Pages with id: "
+                            + existTenantOpt.get().id;
+
+            throw new CustomRuntimeException(
+                    409,
+                    message,
+                    new HashSet<>()
+            );
         }
+
         handleImage(request);
 
-        var tenant = TenantMapper.INSTANCE.dtoToTenant(request.info);
+        var tenant =
+                TenantMapper.INSTANCE.dtoToTenant(request.info);
+
         boolean tenantCreatedRemotely = false;
         String remoteTenantId = null;
 
-        var webApiRequest = TenantMapper.INSTANCE.toWebApiRequest(request);
-        var webApiCreateResponse = webApiService.createTenantInWebApi(webApiRequest);
-        remoteTenantId = webApiCreateResponse.getData().getId();
+        var webApiRequest =
+                TenantMapper.INSTANCE.toWebApiRequest(request);
+
+        var webApiCreateResponse =
+                webApiService.createTenantInWebApi(webApiRequest);
+
+        remoteTenantId =
+                webApiCreateResponse.getData().getId();
+
         tenantCreatedRemotely = true;
-        var status = TenantMapper.INSTANCE.mapStatusToString(setDefaultStatus());
+
+        var status =
+                TenantMapper.INSTANCE.mapStatusToString(
+                        setDefaultStatus()
+                );
+
         tenant.setStatus(status);
         tenant.setNode(Boolean.TRUE.equals(request.node) ? true : null);
+        tenant.setPerformance(
+                Boolean.TRUE.equals(request.performance)
+        );
+        tenant.setPublicDowntime(
+                Boolean.TRUE.equals(request.publicDowntime)
+        );
 
         try {
             TenantMapper.INSTANCE.mapMetadata(request, tenant);
-            writeInDB(request, tenant, remoteTenantId, userId);
-            sendNotifications(tenant);
-            //   var  tenantWithStatus=tenantRepository.findById(tenant.id);
+
+            writeInDB(
+                    request,
+                    tenant,
+                    remoteTenantId,
+                    userId
+            );
+
+            // Register notifications to be sent only after
+            // the DB transaction successfully commits.
+            transactionHelper.sendAfterCommit(() ->
+                    sendNotifications(tenant)
+            );
+
             return TenantMapper.INSTANCE.tenantToDto(tenant);
+
         } catch (Exception e) {
-            // If tenant was created remotely, but something failed locally, rollback remote creation
+
+            // If tenant was created remotely, but something failed locally,
+            // rollback remote creation.
             if (tenantCreatedRemotely && remoteTenantId != null) {
-                webApiService.deleteTenant(remoteTenantId);
+                try {
+                    webApiService.deleteTenant(remoteTenantId);
+                } catch (Exception rollbackEx) {
+                    Log.errorf(
+                            rollbackEx,
+                            "Failed to rollback remote tenant creation: %s",
+                            remoteTenantId
+                    );
+                }
             }
 
             Log.error(e.getMessage(), e);
+
             if (e instanceof WebApplicationException) {
-                throw new WebApplicationException("Creating Tenant... Failed to create tenant in Argo Web Api", ((WebApplicationException) e).getResponse().getStatus());
+                throw new WebApplicationException(
+                        "Creating Tenant... Failed to create tenant in Argo Web Api",
+                        ((WebApplicationException) e)
+                                .getResponse()
+                                .getStatus()
+                );
             }
 
-            throw new RuntimeException("Creating Tenant... Failed to create tenant");
+            throw new RuntimeException(
+                    "Creating Tenant... Failed to create tenant",
+                    e
+            );
         }
     }
 
@@ -262,6 +322,14 @@ public class TenantService {
         }
     }
 
+    public PublicTenantInformationResponseDto getTenantPublicInformation(String tenantName) {
+
+        var tenant = tenantRepository.fetchTenantByName(tenantName)
+                .orElseThrow(() -> new WebApplicationException("Tenant with name: " + tenantName + " not found", 404));
+
+        return TenantMapper.INSTANCE.tenantToPublicInformationDto(tenant);
+    }
+
     /**
      * Deletes a tenant by its identifier and queues group deletion.
      *
@@ -274,18 +342,8 @@ public class TenantService {
             throw new WebApplicationException("Deleting Tenant.. Tenant not found: " + id, 404);
         }
 
-        var tenantName = tenant.name;
         deleteTenant(tenant.getId());
 
-        try {
-            var parentPath = "/" + namespace + "/tenants/";
-            var groupPath = parentPath + tenantName;
-
-            authGroupSetupService.deleteGroup(groupPath);
-
-        } catch (Exception ex) {
-            Log.error("Deleting Tenant... Failed to queue async AGM group deletion for tenant " + id + ": " + ex.getMessage());
-        }
     }
 
     /**
@@ -297,59 +355,122 @@ public class TenantService {
     public void deleteTenant(String id) {
 
         var tenant = tenantRepository.findById(id);
-        var name = tenant.name;
+
         if (tenant == null) {
-            throw new WebApplicationException("Deleting Tenant... Tenant not found", 404);
+            throw new WebApplicationException(
+                    "Deleting Tenant... Tenant not found",
+                    404
+            );
         }
 
-        try {
-            Set<Contact> oldContacts = new HashSet<>(tenant.getContacts());
+        var name = tenant.name;
 
-            // 1. Remove relation from both sides
+        try {
+            var oldContacts = new HashSet<>(tenant.getContacts());
+
+            // Remove relation from both sides
             for (Contact c : oldContacts) {
                 c.getTenants().remove(tenant);
             }
+
             tenant.getContacts().clear();
             tenantRepository.persist(tenant);
 
-            // 2. Delete tenant
+            // Delete tenant from local DB
             tenantRepository.delete(tenant);
 
-            // 3. External cleanups
-            imageUploadUtil.deleteImageIfExists(baseUploadTenantsImagesDir, tenant.name);
-            webApiService.deleteTenant(id);
+            /*
+             * Prepare everything needed by the asynchronous operation
+             * before the transaction is committed.
+             */
+            var alert = buildAlert(
+                    EventName.DELETE_TENANT,
+                    tenant,
+                    String.valueOf(Instant.now())
+            );
 
-            // 4. Delete orphan contacts
+            /*
+             * Execute external operations only AFTER the DB transaction
+             * has successfully committed.
+             */
+            transactionHelper.sendAfterCommit(() -> {
+
+                CompletableFuture.runAsync(() -> {
+
+                    try {
+                        // External cleanup
+                        imageUploadUtil.deleteImageIfExists(
+                                baseUploadTenantsImagesDir,
+                                name
+                        );
+
+                        webApiService.deleteTenant(id);
+
+                        deleteTenantResourceGroups(id);
+
+                        // Notify AMS
+                        notifyAmsDeleteTenant(
+                                id,
+                                name,
+                                alert
+                        );
+
+                    } catch (Exception e) {
+                        Log.errorf(
+                                e,
+                                "Failed to complete external cleanup/AMS notification for tenant %s",
+                                id
+                        );
+                    }
+
+                }, executorService);
+            });
+
+            // Delete orphan contacts from the DB
             deleteOrphanContacts(oldContacts);
 
         } catch (WebApplicationException e) {
 
-            Log.error("Argo Web Api error while deleting tenant {}", id, e);
+            Log.errorf(
+                    e,
+                    "Argo Web API error while deleting tenant %s",
+                    id
+            );
 
             throw new WebApplicationException(
-                    "Deleting Tenant... Failed to delete tenant from Argo Web Api",
+                    "Deleting Tenant... Failed to delete tenant from Argo Web API",
                     e.getResponse().getStatus()
             );
+
         } catch (Exception e) {
 
-            Log.error("Unexpected error while deleting tenant {}", id, e);
+            Log.errorf(
+                    e,
+                    "Unexpected error while deleting tenant %s",
+                    id
+            );
 
             throw new WebApplicationException(
                     "Deleting Tenant... Unexpected error occurred while deleting tenant.",
                     500
             );
         }
-        var alert = buildAlert(EventName.DELETE_TENANT, tenant, String.valueOf(Instant.now()));
+    }
 
-        CompletableFuture.runAsync(() -> {
+    private void deleteTenantResourceGroups(String tenantId) {
+
+        var roles = authGroupManagement.getAllRoles();
+
+        for (var role : roles) {
+            var resource = TenantResource.TENANT.resourceName();
+            var groupPath = "/" + namespace + "/" + role.name + "/" + resource + "/" + tenantId;
+
             try {
-                notifyAmsDeleteTenant(id, name, alert);
-            } catch (Exception e) {
-                Log.errorf(e,
-                        "Failed to send AMS delete tenant notification for tenant %s",
-                        id);
+                authGroupManagement.deleteGroup(groupPath);
+            } catch (Exception ex) {
+                Log.warn("Deleting Tenant... AGM resource group not found or could not be deleted: " + groupPath);
             }
-        });
+        }
     }
 
     /**
@@ -432,7 +553,10 @@ public class TenantService {
         // 3. Local DB update
         // ------------------------------
         var tenant = tenantRepository.findById(id);
-
+        boolean editedPerformance = false;
+        if (request.performance != tenant.getPerformance()) {
+            editedPerformance = true;
+        }
         // Keep copy of old contacts for orphan check
         Set<Contact> oldContacts = new HashSet<>(tenant.getContacts());
 
@@ -455,6 +579,31 @@ public class TenantService {
                 );
             }
             throw new RuntimeException("Updating Tenant... DB update failed: " + dbException.getMessage());
+        }
+
+        if (editedPerformance && tenant.getPerformance()) {
+
+            String createdAt = String.valueOf(Instant.now());
+
+            var performanceDataAlert =
+                    buildAlert(
+                            EventName.INIT_PERFORMANCE_DATA,
+                            tenant,
+                            createdAt
+                    );
+
+            performanceDataAlert.getProperties().put(
+                    "performance_data",
+                    String.valueOf(tenant.getPerformance())
+            );
+
+            transactionHelper.sendAfterCommit(() ->
+                    send(
+                            tenant.id,
+                            performanceDataAlert,
+                            ""
+                    )
+            );
         }
 
         return TenantMapper.INSTANCE.tenantToDto(tenant);
@@ -692,16 +841,65 @@ public class TenantService {
      * @param request tenant status request
      * @return tenant status response
      */
-    @Transactional
-    public TenantStatusFullResponse updateTenantAutoJobs(String id, @Valid TenantStatusDto request) {
+    public TenantStatusFullResponse updateTenantAutoJobs(
+            String id,
+            @Valid TenantStatusDto request) {
+
         validateJobsMode(request.jobs, EventMode.AUTO);
+
         if (request.jobs != null) {
             request.jobs.forEach(this::applyJobDefinition);
         }
 
-        return updateTenantJobsInternal(id, request);
-    }
+        var shouldTriggerPoem = isComputeEngineCompleted(request);
+        var shouldTriggerMonBox = isPoemCompleted(request);
+        var shouldTriggerInitArchiver = isAmsCompleted(request);
 
+        var response = updateTenantJobsInternal(id, request);
+
+        /*
+         * updateTenantJobsInternal() has now completed its transaction.
+         * Trigger AMS only after the DB transaction has committed.
+         */
+
+        if (shouldTriggerPoem) {
+            var tenant = tenantRepository.findById(id);
+
+            var alert = buildAlert(
+                    EventName.INIT_POEM,
+                    tenant,
+                    String.valueOf(Instant.now())
+            );
+
+            notifyAmsInitConnector(id, alert);
+        }
+
+        if (shouldTriggerMonBox) {
+            var tenant = tenantRepository.findById(id);
+
+            var alert = buildAlert(
+                    EventName.INIT_MONITORING_BOX,
+                    tenant,
+                    String.valueOf(Instant.now())
+            );
+
+            notifyAmsInitConnector(id, alert);
+        }
+
+        if (shouldTriggerInitArchiver) {
+            var tenant = tenantRepository.findById(id);
+
+            var alert = buildAlert(
+                    EventName.INIT_ARCHIVER,
+                    tenant,
+                    String.valueOf(Instant.now())
+            );
+
+            notifyAms(id, alert);
+        }
+
+        return response;
+    }
     /**
      * Updates tenant jobs for the specified tenant.
      *
@@ -710,17 +908,17 @@ public class TenantService {
      * @return tenant status response
      */
     @Transactional
-    public TenantStatusFullResponse updateTenantJobsInternal(String id, @Valid TenantStatusDto request) {
+    public TenantStatusFullResponse updateTenantJobsInternal(
+            String id,
+            @Valid TenantStatusDto request) {
 
         var tenant = tenantRepository.findById(id);
-
-        var shouldTriggerPoem = isComputeEngineCompleted(request);
-        var shouldTriggerMonBox = isPoemCompleted(request);
 
         var shouldResetAfterComputeEngine = isComputeEngineReset(request);
         var shouldResetAfterPoem = isPoemReset(request);
 
         try {
+
             if (request.jobs != null) {
                 for (var job : request.jobs) {
                     updateSingleJob(id, job);
@@ -728,12 +926,22 @@ public class TenantService {
             }
 
             if (shouldResetAfterComputeEngine) {
-                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_POEM));
-                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_MONITORING_BOX));
+                updateSingleJob(
+                        id,
+                        resetJobDto(TenantJobEvent.INIT_POEM)
+                );
+
+                updateSingleJob(
+                        id,
+                        resetJobDto(TenantJobEvent.INIT_MONITORING_BOX)
+                );
             }
 
             if (shouldResetAfterPoem) {
-                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_MONITORING_BOX));
+                updateSingleJob(
+                        id,
+                        resetJobDto(TenantJobEvent.INIT_MONITORING_BOX)
+                );
             }
 
             var statusDto = tenantRepository.fetchTenantStatus(id)
@@ -744,26 +952,16 @@ public class TenantService {
             response.name = tenant.name;
             response.status = statusDto;
 
-            if (shouldTriggerPoem) {
-                var alert = buildAlert(EventName.INIT_POEM, tenant, String.valueOf(Instant.now()));
-                notifyAmsInitConnector(id, alert);
-            }
-
-            if (shouldTriggerMonBox) {
-                var alert = buildAlert(EventName.INIT_MONITORING_BOX, tenant, String.valueOf(Instant.now()));
-                notifyAmsInitConnector(id, alert);
-            }
-
             return response;
 
         } catch (Exception dbException) {
             throw new RuntimeException(
-                    "Updating Tenant's Status.. DB update failed: " + dbException.getMessage(),
+                    "Updating Tenant's Status.. DB update failed: "
+                            + dbException.getMessage(),
                     dbException
             );
         }
     }
-
     /**
      * Updates tenant alert jobs for the specified tenant.
      *
@@ -772,25 +970,6 @@ public class TenantService {
      * @return tenant status response
      * @throws IOException when status serialization fails
      */
-    @Transactional
-    public TenantStatusDto updateTenantAlerts(String id, @Valid TenantStatusDto request) throws IOException {
-
-        var tenant = tenantRepository.findById(id);
-
-        if (tenant == null) {
-            return null;
-        }
-
-        if (request.jobs != null) {
-            for (var job : request.jobs) {
-                updateSingleJob(id, job);
-            }
-        }
-
-        return tenantRepository.fetchTenantStatus(id)
-                .map(TenantMapper.INSTANCE::mapStatusObject)
-                .orElse(null);
-    }
 
 
     /**
@@ -1020,7 +1199,15 @@ public class TenantService {
 
         send(tenant.id, buildAlert(EventName.INIT_AMS, tenant, createdAt), "");
         send(tenant.id, buildAlert(EventName.INIT_MONGO, tenant, createdAt), "");
-        send(tenant.id, buildAlert(EventName.INIT_COMPUTE_ENGINE, tenant, createdAt), "");
+        var computeEngineAlert = buildAlert(EventName.INIT_COMPUTE_ENGINE, tenant, createdAt);
+        computeEngineAlert.getProperties().put("performance", String.valueOf(tenant.getPerformance()));
+        send(tenant.id, computeEngineAlert, "");
+        if (tenant.getPerformance()) {
+            var performanceDataAlert = buildAlert(EventName.INIT_PERFORMANCE_DATA, tenant, createdAt);
+            performanceDataAlert.getProperties().put("performance_data", String.valueOf(tenant.getPerformance()));
+            send(tenant.id, performanceDataAlert, "");
+
+        }
     }
 
     /**
@@ -1039,7 +1226,9 @@ public class TenantService {
         alert.setProperties(new HashMap<>(Map.of(
                 "tenant_id", tenant.id,
                 "tenant_name", tenant.name
+
         )));
+
         return alert;
     }
 
@@ -1050,22 +1239,20 @@ public class TenantService {
      * @param alert    alert request
      * @param eventMsg custom publish message
      */
+
     private void send(String id, AlertDefinitionRequest alert, String eventMsg) {
 
         final var hasCustomMsg = eventMsg != null && !eventMsg.isEmpty();
-
 
         // INITIALISING message
         final var publishingMsg = hasCustomMsg
                 ? eventMsg
                 : "The event notification " + alert.name + " has been sent to the queue to start the required job.";
 
-
         // Your special INITIALISED message (only when eventMsg exists)
         final var customInitialisedMsg =
                 "The validation check has been scheduled for execution, and will ensure all data, " +
                         "variables, and configuration environments are properly aligned before any further action is taken.";
-
 
         // FINAL INITIALISED message
         final var initialisedMsg = hasCustomMsg
@@ -1083,6 +1270,7 @@ public class TenantService {
                         ? customFailedMsg
                         : "Failed: The initialization of job " +
                         alert.name + " failed.";
+
         try {
             final var now = Instant.now();
 
@@ -1097,19 +1285,17 @@ public class TenantService {
                     alert.name.toUpperCase()
             );
 
-
-            final var encodedData = Base64.getEncoder().encodeToString(json.getBytes());
+            final var encodedData =
+                    Base64.getEncoder().encodeToString(json.getBytes());
 
             final var message = new PublishRequest.Message();
-
             message.setData(encodedData);
 
             final var publishData = new PublishRequest();
             publishData.setMessages(List.of(message));
 
-
             // 1. INITIALISING
-            updateTenantAlerts(
+            self.updateTenantAlerts(
                     id,
                     setAlert(
                             alert.name,
@@ -1120,7 +1306,6 @@ public class TenantService {
                     )
             );
 
-
             // 2. Async publish
             CompletableFuture
                     .runAsync(
@@ -1128,33 +1313,18 @@ public class TenantService {
                             executorService
                     )
 
-
-                    // 3. INITIALISED
-                    .thenRun(() -> {
-                        try {
-                            updateTenantAlerts(
-                                    id,
-                                    setAlert(
-                                            alert.name,
-                                            EventStatus.INITIALISED,
-                                            initialisedMsg,
-                                            now,
-                                            alert.properties
-                                    )
-                            );
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-
-
-                    // 4. FINAL RESULT
+                    // 3. FINAL RESULT
                     .whenComplete((ignored, throwable) -> {
 
                         try {
                             if (throwable == null) {
-
-                                updateTenantAlerts(
+                                Log.infof(
+                                        "Updating tenant status | thread=%s | tenantId=%s | event=%s",
+                                        Thread.currentThread().getName(),
+                                        id,
+                                        alert.name
+                                );
+                                self.updateTenantAlerts(
                                         id,
                                         setAlert(
                                                 alert.name,
@@ -1180,7 +1350,7 @@ public class TenantService {
                                         alert.name
                                 );
 
-                                updateTenantAlerts(
+                                self.updateTenantAlerts(
                                         id,
                                         setAlert(
                                                 alert.name,
@@ -1207,7 +1377,31 @@ public class TenantService {
             );
         }
     }
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public TenantStatusDto updateTenantAlerts(
+            String id,
+            @Valid TenantStatusDto request) throws IOException {
+        Log.infof(
+                "updateTenantAlerts | thread=%s | tenantId=%s",
+                Thread.currentThread().getName(),
+                id
+        );
+        var tenant = tenantRepository.findById(id);
 
+        if (tenant == null) {
+            return null;
+        }
+
+        if (request.jobs != null) {
+            for (var job : request.jobs) {
+                updateSingleJob(id, job);
+            }
+        }
+
+        return tenantRepository.fetchTenantStatus(id)
+                .map(TenantMapper.INSTANCE::mapStatusObject)
+                .orElse(null);
+    }
 
     private void sendDeleteEvent(String id, AlertDefinitionRequest alert, String eventMsg) {
 
@@ -1241,7 +1435,7 @@ public class TenantService {
                 hasCustomMsg
                         ? customFailedMsg
                         : "Failed: The initialization of job " + alert.name +
-                          " has failed";
+                        " has failed";
         try {
             final var now = Instant.now();
 
@@ -1543,17 +1737,50 @@ public class TenantService {
         return webApiResponse.data.get(0);
     }
 
+    public IsExternalFeedTopologyResponse isExternalFeedTopology(String tenantId) {
+
+        var webApiResponse = webApiService.retrieveFeedTopologyWebApi(tenantId);
+
+        if (webApiResponse == null
+                || webApiResponse.data == null
+                || webApiResponse.data.isEmpty()) {
+            throw new NotFoundException("Not Found Feed Topology");
+        }
+        var response = new IsExternalFeedTopologyResponse();
+        response.external = FeedType.EXTERNAL.equals(webApiResponse.data.get(0).type);
+        return response;
+    }
+
     @Transactional
     public WebApiFeedsTopologyResponse updateFeedTopology(String tenantId, FeedTopologyDto request) {
 
         var tenant = tenantRepository.findById(tenantId);
 
+        var existingFeed = hasFeedTopology(tenantId);
+
         var response = webApiService.updateFeedTopologyWebApi(tenant.id, request);
+
+        if (!existingFeed) {
+            try {
+                var alert = buildAlert(EventName.CHECK_READINESS,
+                        tenant,
+                        String.valueOf(Instant.now())
+                );
+
+                notifyAmsCheckReadiness(tenantId, alert);
+
+            } catch (Exception e) {
+                Log.error("Failed to notify AMS for readiness after first feed topology setup", e);
+            }
+        }
 
         switch (request.type) {
             case DESY_MARKETPLACE:
+            case NODE_REGISTRY:
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_TOPOLOGY_CONNECTOR.name());
+
                 try {
-                    notifyAmsInitTopologyIntegrator(tenantId);
+                    notifyAmsInitTopologyIntegrator(tenantId, request.type);
                 } catch (Exception e) {
                     Log.error("Failed to notify AMS for topology integration initialization", e);
                 }
@@ -1561,6 +1788,8 @@ public class TenantService {
 
             case CSV:
             case EOSC_SERVICE_CATALOG:
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_INTEGRATION_TOPO.name());
+
                 try {
                     notifyAmsInitTopologyConnector(tenantId);
                 } catch (Exception e) {
@@ -1569,9 +1798,22 @@ public class TenantService {
                 break;
 
             default:
+                // INTERNAL or any topology type that needs neither job
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_TOPOLOGY_CONNECTOR.name());
+                removeTenantJobStatusInNewTransaction(tenantId, EventName.INIT_INTEGRATION_TOPO.name());
                 break;
         }
+
         return response;
+
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void removeTenantJobStatusInNewTransaction(
+            String tenantId,
+            String jobName) {
+
+        tenantRepository.removeTenantJobStatus(tenantId, jobName);
     }
 
 
@@ -1682,7 +1924,8 @@ public class TenantService {
             tenant.setMetadata(TenantMapper.INSTANCE.mapMetadataToString(metadata));
             tenant.setStatus(TenantMapper.INSTANCE.mapStatusToString(setDefaultStatus()));
             tenant.setNode(Boolean.TRUE.equals(remoteTenant.getNode()) ? Boolean.TRUE : null);
-
+            tenant.setPerformance(false);
+            tenant.setPublicDowntime(false);
             tenantRepository.persist(tenant);
 
             Log.infof("Tenant inserted locally: %s (%s)", tenant.getName(), tenant.getId());
@@ -1746,6 +1989,58 @@ public class TenantService {
     }
 
 
+    public TenantWebApiSupergroupsResponse getSupergroupsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsSupergroupsByReport(tenantId, reportName, startTime, endTime, granularity);
+
+    }
+
+    public TenantWebApiSupergroupsResponse getSupergroupByNameByReport(String tenantId, String reportName, String supergroupName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsSupergroupByNameByReport(tenantId, reportName, supergroupName, startTime, endTime, granularity);
+
+    }
+
+
+    public TenantWebApiGroupResultsByReportResponse retrieveGroupsResultsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsGroupsByReport(tenantId, reportName, startTime, endTime, granularity);
+
+    }
+
+    //get endpoints results by group
+    public TenantWebApiGroupEndpointResultsByReportResponse retrieveResultsEndpointByReportAndGroup(String tenantId, String reportName, String groupName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsEndpointsByReportAndGroup(tenantId, reportName, groupName, startTime, endTime, granularity);
+
+    }
+
+    public TenantWebApiGroupResultsByReportResponse retrieveGroupByNameByReport(String tenantId, String reportName, String groupName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsGroupByNameByReport(tenantId, reportName, groupName, startTime, endTime, granularity);
+
+    }
+
+    public TenantWebApiEndpointResultsByReportResponse retrieveEndpointsResultsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsEndpointsByReport(tenantId, reportName, startTime, endTime, granularity);
+
+    }
+
+    public TenantWebApiEndpointResultsByReportResponse retrieveEndpointByNameResultsByReport(String tenantId, String reportName, String endpointName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsEndpointByNameByReport(tenantId, reportName, endpointName, startTime, endTime, granularity);
+
+    }
+
+    //get endpoints results by group
+    public TenantWebApiGroupEndpointResultsByReportResponse retrieveResultsEndpointByReportGroupAndEndpoint(String tenantId, String reportName, String groupName, String endpointName, String startTime, String endTime, String granularity) {
+
+        return webApiService.retrieveResultsEndpointsByReportGroupAndEndpoint(tenantId, reportName, groupName, endpointName, startTime, endTime, granularity);
+
+    }
+
+
     private boolean isComputeEngineCompleted(TenantStatusDto request) {
         return request.jobs.stream()
                 .anyMatch(j -> EventName.INIT_COMPUTE_ENGINE.name().equals(j.name) &&
@@ -1770,6 +2065,12 @@ public class TenantService {
                         && !EventStatus.COMPLETED.name().equalsIgnoreCase(j.getStatus()));
     }
 
+    private boolean isAmsCompleted(TenantStatusDto request) {
+        return request.jobs.stream()
+                .anyMatch(j -> EventName.INIT_AMS.name().equals(j.name) &&
+                        EventStatus.COMPLETED.name().equals(j.getStatus()));
+    }
+
     private void resetJob(List<EventStatusDto> jobs, TenantJobEvent event) {
         if (jobs == null) {
             return;
@@ -1788,6 +2089,7 @@ public class TenantService {
                 });
     }
 
+
     private void updateSingleJob(String tenantId, EventStatusDto job) {
 
         try {
@@ -1795,24 +2097,11 @@ public class TenantService {
 
             var jobJson = objectMapper.writeValueAsString(job);
 
-            var updated = tenantRepository.updateTenantJobStatus(
+            tenantRepository.upsertTenantJobStatus(
                     tenantId,
                     job.getName(),
                     jobJson
             );
-
-            if (updated == 0) {
-
-                tenantRepository.insertTenantJobStatus(
-                        tenantId,
-                        jobJson
-                );
-
-                Log.warnf(
-                        "Job '%s' was not found in tenant status JSON. Added dynamically.",
-                        job.getName()
-                );
-            }
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException(
@@ -1923,7 +2212,7 @@ public class TenantService {
      * @return tenant status response
      */
     @Transactional
-    public TenantStatusDto notifyAmsInitTopologyIntegrator(String tenantId) {
+    public TenantStatusDto notifyAmsInitTopologyIntegrator(String tenantId, FeedType feedType) {
 
         var tenant = tenantRepository.findById(tenantId);
 
@@ -1940,6 +2229,7 @@ public class TenantService {
                 String.valueOf(Instant.now())
         );
 
+        alert.getProperties().put("feed_type", feedType.name());
         return notifyAmsInitIntegratorAlert(tenantId, alert);
     }
 
@@ -1948,7 +2238,7 @@ public class TenantService {
      *
      * @return tenant status response
      */
-    @Transactional
+
     public void notifyAmsDeleteTenant(String tenantId, String tenantName, AlertDefinitionRequest alert) {
         var now = Instant.now();
 
@@ -1964,4 +2254,76 @@ public class TenantService {
         sendDeleteEvent(tenantId, alert, "Notifying Messaging Service.. A notification is sent to notify ams that a tenant is deleted");
 
     }
+
+    private boolean hasFeedTopology(String tenantId) {
+
+        try {
+            return getFeedTopology(tenantId) != null;
+
+        } catch (WebApplicationException e) {
+
+            if (e.getResponse().getStatus() == 404) {
+                return false;
+            }
+
+            throw e;
+        }
+    }
+
+    public WebApiNodeMonitoringMetricResponse getMonitoring(String id, String item, String startDate, String endDate, String granularity) {
+
+        var tenant = tenantRepository.findById(id);
+
+        return webApiService.retrieveNodeMonitoringMetrics(tenant.name, item, startDate, endDate, granularity);
+    }
+
+    public WebApiNodeMonitoringMetricResponse getMonitoringByService(String id, String serviceId, String startDate, String endDate, String granularity) {
+
+        var tenant = tenantRepository.findById(id);
+
+        return webApiService.retrieveNodeMonitoringMetricByService(tenant.name, serviceId, startDate, endDate, granularity);
+    }
+
+//    private void sendAfterCommit(
+//            String tenantId,
+//            AlertDefinitionRequest alert,
+//            String eventMsg) {
+//
+//        TransactionSynchronizationRegistry tsr =
+//                CDI.current()
+//                        .select(TransactionSynchronizationRegistry.class)
+//                        .get();
+//
+//        tsr.registerInterposedSynchronization(new Synchronization() {
+//
+//            @Override
+//            public void beforeCompletion() {
+//                // Nothing to do
+//            }
+//
+//            @Override
+//            public void afterCompletion(int status) {
+//
+//                if (status == Status.STATUS_COMMITTED) {
+//                    try {
+//                        send(tenantId, alert, eventMsg);
+//                    } catch (Exception e) {
+//                        Log.errorf(
+//                                e,
+//                                "Failed to send alert after tenant transaction committed | tenantId=%s | event=%s",
+//                                tenantId,
+//                                alert.name
+//                        );
+//                    }
+//                } else {
+//                    Log.warnf(
+//                            "Tenant transaction did not commit. Alert will not be sent | tenantId=%s | event=%s | status=%s",
+//                            tenantId,
+//                            alert.name,
+//                            status
+//                    );
+//                }
+//            }
+//        });
+//    }
 }

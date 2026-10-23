@@ -4,6 +4,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import org.grnet.status.dtos.LatestDataResponse;
 import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
@@ -11,6 +12,7 @@ import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
 import org.grnet.status.dtos.profile.operation.OperationProfileResponse;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.WebApiReportResponse;
+import org.grnet.status.dtos.status.*;
 import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.*;
@@ -331,7 +333,7 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-tenant-id") String tenantId,
             @QueryParam("date") String date,
             @QueryParam("force") Boolean force,
-            List<ServiceTypeDto> request) throws WebApplicationException,ProcessingException;
+            List<ServiceTypeDto> request) throws WebApplicationException, ProcessingException;
 
     @POST
     @Path("/api/v2/admin/tenants/{id}/node-set")
@@ -392,6 +394,36 @@ public interface ArgoWebApiClient {
             @QueryParam("start_time") String startTime,
             @QueryParam("end_time") String endTime,
             @QueryParam("history") Boolean history
+    );
+    @GET
+    @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics")
+    WebApiNodeMonitoringMetricResponse getNodeMonitoringMetrics(
+            @HeaderParam("x-api-key") String accessToken,
+            @PathParam("nodeName") String nodeName,
+            @QueryParam("start-date") String startDate,
+            @QueryParam("end-date") String endDate,
+            @QueryParam("granularity") String granularity
+    );
+    @GET
+    @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics/{item}")
+    WebApiNodeMonitoringMetricResponse getNodeMonitoringMetricsByMetric(
+            @HeaderParam("x-api-key") String accessToken,
+            @PathParam("nodeName") String nodeName,
+            @PathParam("item") String item,
+            @QueryParam("start-date") String startDate,
+            @QueryParam("end-date") String endDate,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics/{service-id}")
+    WebApiNodeMonitoringMetricResponse getNodeMonitoringMetricsByService(
+            @HeaderParam("x-api-key") String accessToken,
+            @PathParam("nodeName") String nodeName,
+            @PathParam("service-id") String serviceId,
+            @QueryParam("start-date") String startDate,
+            @QueryParam("end-date") String endDate,
+            @QueryParam("granularity") String granularity
     );
 
     @GET
@@ -485,4 +517,301 @@ public interface ArgoWebApiClient {
             @QueryParam("report") String report
     );
 
+    @GET
+    @Path("/api/v5/results/{report-name}/supergroups")
+    TenantWebApiSupergroupsResponse getSupergroupsResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/supergroups/{supergroup-name}")
+    TenantWebApiSupergroupsResponse getSupergroupByNameResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("supergroup-name") String supergroupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+
+    @GET
+    @Path("/api/v5/results/{report-name}/groups")
+    TenantWebApiGroupResultsByReportResponse getGroupsResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/groups/{group-name}")
+    TenantWebApiGroupResultsByReportResponse getGroupByNameResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/endpoints")
+    TenantWebApiEndpointResultsByReportResponse getEndpointsResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/results/{report-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointResultsByReportResponse getEndpointByNameResultsByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("endpoint-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+
+    @GET
+    @Path("/api/v5/results/{report-name}/groups/{group-name}/endpoints")
+    TenantWebApiGroupEndpointResultsByReportResponse getResultsEndpointsByReportAndGroup(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+    @GET
+    @Path("/api/v5/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    TenantWebApiGroupEndpointResultsByReportResponse geResultsEndpointsByReportGroupAndEndpoint(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime,
+            @QueryParam("granularity") String granularity
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups")
+    TenantWebApiGroupStatusTimelineResponse getGroupsStatusTimelineByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}")
+    TenantWebApiGroupStatusTimelineResponse getGroupStatusTimelineByGroupNameByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/endpoints")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByGroup(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointStatusTimelineByGroupAndName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByServiceType(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointStatusTimelineByServiceTypeAndName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types")
+    TenantWebApiServiceTypeStatusTimelineResponse getServiceTypesStatusTimelineByGroup(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}")
+    TenantWebApiServiceTypeStatusTimelineResponse getServiceTypeStatusTimelineByName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}/metrics")
+    TenantWebApiMetricStatusTimelineResponse getMetricsStatusTimelineByEndpoint(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}/metrics/{metric-name}")
+    TenantWebApiMetricStatusTimelineResponse getMetricStatusTimelineByEndpointAndName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("endpoint-name") String endpointName,
+            @PathParam("metric-name") String metricName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics")
+    TenantWebApiMetricStatusTimelineResponse getMetricsStatusTimelineByServiceTypeAndEndpoint(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics/{metric-name}")
+    TenantWebApiMetricStatusTimelineResponse getMetricStatusTimelineByServiceTypeEndpointAndName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @PathParam("endpoint-name") String endpointName,
+            @PathParam("metric-name") String metricName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics/{metric-name}/details")
+    TenantWebApiMetricStatusDetailsResponse getMetricStatusDetailsByServiceTypeEndpointAndName(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @PathParam("service-type-name") String serviceTypeName,
+            @PathParam("endpoint-name") String endpointName,
+            @PathParam("metric-name") String metricName,
+            @QueryParam("timestamp") String timestamp
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/endpoints")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v5/status/{report-name}/endpoints/{endpoint-name}")
+    TenantWebApiEndpointStatusTimelineResponse getEndpointsStatusTimelineByEndpointNameByReport(
+            @HeaderParam("x-api-key") String accessToken,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @PathParam("endpoint-name") String endpointName,
+            @QueryParam("start-time") String startTime,
+            @QueryParam("end-time") String endTime
+    );
+
+    @GET
+    @Path("/api/v2/latest/{report-name}/groups")
+    LatestDataResponse listLatestData(
+            @PathParam("report-name") String reportName,
+            @QueryParam("filter") String filter,
+            @QueryParam("limit") Integer limit,
+            @QueryParam("strict") Boolean strict,
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId
+    ) throws WebApplicationException, ProcessingException;
+
+
+    @GET
+    @Path("/api/v2/latest/{report-name}/groups/{group-name}")
+    LatestDataResponse listLatestDataByGroupName(
+            @PathParam("report-name") String reportName,
+            @PathParam("group-name") String groupName,
+            @QueryParam("filter") String filter,
+            @QueryParam("limit") Integer limit,
+            @QueryParam("strict") Boolean strict,
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId
+    ) throws WebApplicationException, ProcessingException;
 }

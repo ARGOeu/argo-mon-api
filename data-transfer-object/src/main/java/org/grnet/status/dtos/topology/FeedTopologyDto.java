@@ -2,11 +2,10 @@ package org.grnet.status.dtos.topology;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.grnet.status.enums.resources.FeedType;
+import org.grnet.status.enums.FeedType;
 
 import java.util.List;
 

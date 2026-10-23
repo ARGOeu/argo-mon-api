@@ -2,8 +2,10 @@ package org.grnet.status.services;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
 import org.grnet.status.dtos.tenant.node.WebApiNodeAvailabilityResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
 import org.grnet.status.dtos.tenant.node.WebApiNodeSummaryResponse;
 import org.grnet.status.repositories.TenantRepository;
@@ -33,6 +35,36 @@ public class NodeService {
 
         return webApiService.retrieveNodeStatus(nodeName, item, startTime, endTime, history);
     }
+
+    public WebApiNodeMonitoringMetricResponse getMonitoringMetricNodeName(String nodeName, String startDate, String endDate, String granularity) {
+        boolean startIsBlank = startDate == null || startDate.isBlank();
+        boolean endIsBlank = endDate == null || endDate.isBlank();
+
+        if (startIsBlank != endIsBlank) {
+            throw new BadRequestException(
+                    "start-date and end-date should be either both defined or both blank"
+            );
+        }
+        checkIfNodeExist(nodeName);
+
+        return webApiService.retrieveNodeMonitoringMetrics(nodeName,"",  startDate, endDate, granularity);
+    }
+
+
+    public WebApiNodeMonitoringMetricResponse getMonitoringMetricByService(String nodeName, String serviceId, String startDate, String endDate, String granularity) {
+
+        var startIsBlank = startDate == null || startDate.isBlank();
+        var endIsBlank = endDate == null || endDate.isBlank();
+
+        if (startIsBlank != endIsBlank) {
+            throw new BadRequestException("start-date and end-date should be either both defined or both blank");
+        }
+
+        checkIfNodeExist(nodeName);
+
+        return webApiService.retrieveNodeMonitoringMetricByService(nodeName, serviceId, startDate, endDate, granularity);
+    }
+
 
     /**
      * Retrieves the summary capability for the specified tenant and service.

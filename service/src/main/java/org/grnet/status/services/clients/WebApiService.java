@@ -11,6 +11,7 @@ import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.argo.ArgoWebApiErrorResponse;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.WebApiReportResponse;
+import org.grnet.status.dtos.status.*;
 import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
@@ -300,8 +301,6 @@ public class WebApiService {
     }
 
 
-
-
     /**
      * Sets the default node report in Argo Web Api.
      *
@@ -340,7 +339,7 @@ public class WebApiService {
         }
     }
 
-    public WebApiNodeAvailabilityResponse retrieveNodeAvailability(String nodeName, String item,String date, String startTime, String endTime, String startDate, String endDate, String granularity) {
+    public WebApiNodeAvailabilityResponse retrieveNodeAvailability(String nodeName, String item, String date, String startTime, String endTime, String startDate, String endDate, String granularity) {
         try {
             if (StringUtils.isBlank(item)) {
                 return argoWebApiClient.getNodeAvailabilityCapability(accessToken, nodeName, date, startTime, endTime, startDate, endDate, granularity);
@@ -374,6 +373,7 @@ public class WebApiService {
             );
         }
     }
+
     public WebApiNodeStatusResponse retrieveNodeStatus(String nodeName, String item, String startTime, String endTime, Boolean history) {
         try {
             if (StringUtils.isBlank(item)) {
@@ -403,6 +403,74 @@ public class WebApiService {
 
             throw new WebApplicationException(
                     "Retrieving Node Status... node with name " + nodeName + " failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public WebApiNodeMonitoringMetricResponse retrieveNodeMonitoringMetrics(String nodeName,String item, String startDate, String endDate, String granularity) {
+        try {
+
+            if (StringUtils.isBlank(item)) {
+                return argoWebApiClient.getNodeMonitoringMetrics(accessToken, nodeName, startDate, endDate, granularity);
+            }
+
+            return argoWebApiClient.getNodeMonitoringMetricsByMetric(accessToken, nodeName, item, startDate, endDate, granularity);
+
+           } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Node Status", nodeName);
+
+            throw new WebApplicationException(
+                    "Retrieving Node Status... node with name " + nodeName + " failed in Argo Web Api",
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e,
+                    "Retrieving Node Status failed in Argo Web Api. nodeName=%s",
+                    nodeName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Node Status... node with name " + nodeName + " failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public WebApiNodeMonitoringMetricResponse retrieveNodeMonitoringMetricByService(String nodeName, String serviceId, String startDate, String endDate, String granularity) {
+
+        try {
+
+            return argoWebApiClient.getNodeMonitoringMetricsByService(accessToken, nodeName, serviceId, startDate, endDate, granularity);
+
+        } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Node Monitoring Metrics", nodeName);
+
+            throw new WebApplicationException(
+                    "Retrieving Node Monitoring Metrics for service " + serviceId
+                            + " on node " + nodeName + " failed in Argo Web Api", status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Node Monitoring Metrics failed in Argo Web Api. nodeName=%s, serviceId=%s",
+                    nodeName,
+                    serviceId
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Node Monitoring Metrics for service "
+                            + serviceId + " on node " + nodeName + " failed in Argo Web Api",
                     500
             );
         }
@@ -555,7 +623,7 @@ public class WebApiService {
             return argoWebApiClient.getGroupStatusByGroupSuperAdmin(accessToken, id, groupName, startTime, endTime, history, report);
 
         } catch (WebApplicationException e) {
-            int status = e.getResponse().getStatus();
+            var status = e.getResponse().getStatus();
 
             var errorMessage = logArgoError(e, "Retrieving Group Status", StringUtils.defaultIfBlank(groupName, "all"));
 
@@ -574,9 +642,248 @@ public class WebApiService {
         }
     }
 
-    public WebApiNodeReportResponse setReportPublicWebApi(String reportId, String tenantId) {
+    public TenantWebApiSupergroupsResponse retrieveResultsSupergroupsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
 
         try {
+            return argoWebApiClient.getSupergroupsResultsByReport(accessToken, tenantId, reportName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Supergroups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Supergroups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Supergroups by Report failed in Argo Web Api. reportName=%s, groupType=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Supergroups by Report... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiSupergroupsResponse retrieveResultsSupergroupByNameByReport(String tenantId, String reportName, String supergroupName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getSupergroupByNameResultsByReport(accessToken, tenantId, reportName, supergroupName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Supergroups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Supergroups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Supergroups by Report failed in Argo Web Api. reportName=%s, groupType=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Supergroups by Report... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiGroupResultsByReportResponse retrieveResultsGroupsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getGroupsResultsByReport(accessToken, tenantId, reportName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Groups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Groups services by Report failed in Argo Web Api. reportName=%s, groupType=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Services... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    //get endpoint results by group
+    public TenantWebApiGroupEndpointResultsByReportResponse retrieveResultsEndpointsByReportAndGroup(String tenantId, String reportName, String groupName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getResultsEndpointsByReportAndGroup(accessToken, tenantId, reportName, groupName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Groups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Groups services by Report failed in Argo Web Api. reportName=%s, groupType=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Services... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    //get endpoint results by group and endpoint
+    public TenantWebApiGroupEndpointResultsByReportResponse retrieveResultsEndpointsByReportGroupAndEndpoint(String tenantId, String reportName, String groupName, String endpointName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getResultsEndpointsByReportAndGroup(accessToken, tenantId, reportName, groupName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Groups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Groups services by Report failed in Argo Web Api. reportName=%s, groupType=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Services... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiGroupResultsByReportResponse retrieveResultsGroupByNameByReport(String tenantId, String reportName, String groupName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getGroupByNameResultsByReport(accessToken, tenantId, reportName, groupName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Groups... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Groups by Report failed in Argo Web Api. reportName=%s, groupName=%s", reportName, groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+
+    public TenantWebApiEndpointResultsByReportResponse retrieveResultsEndpointsByReport(String tenantId, String reportName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getEndpointsResultsByReport(accessToken, tenantId, reportName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoints by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Endpoints by Report failed in Argo Web Api. reportName=%s", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiEndpointResultsByReportResponse retrieveResultsEndpointByNameByReport(String tenantId, String reportName, String endpointName, String startTime, String endTime, String granularity) {
+
+        try {
+            return argoWebApiClient.getEndpointByNameResultsByReport(accessToken, tenantId, reportName, endpointName, startTime, endTime, granularity);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving endpoints by Report", StringUtils.defaultIfBlank(reportName, "all"));
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... " + errorMessage,
+                    status
+            );
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Retrieving Endpoints by Report failed in Argo Web Api. reportName=%s, endpointName=%s", reportName, endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public WebApiReportResponse retrieveReportByIdWebApi(String reportId, String tenantId) {
+
+        try {
+
+            return argoWebApiClient.fetchReportByIdSuperAdmin(reportId, accessToken, tenantId);
+
+        } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Report", reportId);
+
+            throw new WebApplicationException(
+                    "Retrieving Report... failed to retrieve report with id: "
+                            + reportId + " from Argo Web Api",
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e,
+                    "Retrieving Report failed in Argo Web Api. reportId=%s",
+                    reportId
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Report... failed to retrieve report with id: "
+                            + reportId + " from Argo Web Api",
+                    500
+            );
+        }
+    }
+
+
+    public WebApiNodeReportResponse setReportPublicWebApi(String reportId, String tenantId) {
+
+        var report = retrieveReportByIdWebApi(reportId, tenantId);
+
+        if (report.data.get(0).disabled) {
+            throw new WebApplicationException(
+                    "Report '" + report.data.get(0).info.name  + "' is inactive and cannot be made public.",
+                    409
+            );
+        }
+
+        try {
+
             return argoWebApiClient.setReportPublicSuperAdmin(reportId, accessToken, tenantId);
 
         } catch (WebApplicationException e) {
@@ -677,6 +984,192 @@ public class WebApiService {
     }
 
 
+    public TenantWebApiGroupStatusTimelineResponse retrieveStatusTimelineGroupsByReport(String tenantId, String reportName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getGroupsStatusTimelineByReport(accessToken, tenantId, reportName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Groups Status", "all");
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e, "Retrieving Groups Status failed in Argo Web Api. tenantId=%s", tenantId);
+
+            throw new WebApplicationException(
+                    "Retrieving Groups Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiGroupStatusTimelineResponse retrieveStatusTimelineGroupByNameByReport(String tenantId, String reportName, String groupName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getGroupStatusTimelineByGroupNameByReport(accessToken, tenantId, reportName, groupName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Group Status", groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Group Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e, "Retrieving Group Status failed in Argo Web Api. groupName=%s", groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Group Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointsByGroup(String tenantId, String reportName, String groupName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getEndpointsStatusTimelineByGroup(accessToken, tenantId, reportName, groupName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoints Status", groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Endpoints Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s",
+                    tenantId,
+                    reportName,
+                    groupName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointByGroupAndName(String tenantId, String reportName, String groupName, String endpointName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getEndpointStatusTimelineByGroupAndName(accessToken, tenantId, reportName, groupName, endpointName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoint Status", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Endpoint Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, endpointName=%s",
+                    tenantId,
+                    reportName,
+                    groupName,
+                    endpointName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointsByServiceType(String tenantId, String reportName, String groupName, String serviceTypeName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getEndpointsStatusTimelineByServiceType(
+                    accessToken, tenantId, reportName, groupName, serviceTypeName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoints Status", serviceTypeName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Endpoints Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s",
+                    tenantId,
+                    reportName,
+                    groupName,
+                    serviceTypeName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoints Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointByServiceTypeAndName(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getEndpointStatusTimelineByServiceTypeAndName(accessToken, tenantId, reportName, groupName, serviceTypeName, endpointName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoint Status", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Endpoint Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s, endpointName=%s",
+                    tenantId,
+                    reportName,
+                    groupName,
+                    serviceTypeName,
+                    endpointName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+
     private String logArgoError(WebApplicationException e, String operation, String identifier) {
 
         try {
@@ -707,4 +1200,281 @@ public class WebApiService {
         }
         return "Data Inconsistency: Tenant entry is present in status-api but missing from web-api.";
     }
+
+    public TenantWebApiServiceTypeStatusTimelineResponse retrieveStatusTimelineServiceTypesByGroup(String tenantId, String reportName, String groupName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getServiceTypesStatusTimelineByGroup(accessToken, tenantId, reportName, groupName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Service Type Status", groupName);
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Service Type Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s",
+                    tenantId,
+                    reportName,
+                    groupName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiServiceTypeStatusTimelineResponse retrieveStatusTimelineServiceTypeByName(String tenantId, String reportName, String groupName, String serviceTypeName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getServiceTypeStatusTimelineByName(accessToken, tenantId, reportName, groupName, serviceTypeName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Service Type Status", serviceTypeName);
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Service Type Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s",
+                    tenantId,
+                    reportName,
+                    groupName,
+                    serviceTypeName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Service Type Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricsByEndpoint(String tenantId, String reportName, String groupName, String endpointName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricsStatusTimelineByEndpoint(
+                    accessToken, tenantId, reportName, groupName, endpointName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metrics Status", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metrics Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, endpointName=%s",
+                    tenantId, reportName, groupName, endpointName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricByEndpointAndName(String tenantId, String reportName, String groupName, String endpointName, String metricName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricStatusTimelineByEndpointAndName(
+                    accessToken, tenantId, reportName, groupName, endpointName, metricName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metric Status", metricName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metric Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, endpointName=%s, metricName=%s",
+                    tenantId, reportName, groupName, endpointName, metricName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricsByServiceTypeAndEndpoint(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricsStatusTimelineByServiceTypeAndEndpoint(
+                    accessToken, tenantId, reportName, groupName, serviceTypeName, endpointName, startTime, endTime
+            );
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metrics Status", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metrics Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s, endpointName=%s",
+                    tenantId, reportName, groupName, serviceTypeName, endpointName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metrics Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiMetricStatusTimelineResponse retrieveStatusTimelineMetricByServiceTypeEndpointAndName(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String metricName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getMetricStatusTimelineByServiceTypeEndpointAndName(
+                    accessToken, tenantId, reportName, groupName, serviceTypeName, endpointName, metricName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metric Status", metricName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metric Status failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s, endpointName=%s, metricName=%s",
+                    tenantId, reportName, groupName, serviceTypeName, endpointName, metricName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status... failed in Argo Web Api",
+                    500
+            );
+        }
+
+    }
+
+    public TenantWebApiMetricStatusDetailsResponse retrieveStatusMetricDetailsByServiceTypeEndpointAndName(String tenantId, String reportName, String groupName, String serviceTypeName, String endpointName, String metricName, String timestamp) {
+
+        try {
+            return argoWebApiClient.getMetricStatusDetailsByServiceTypeEndpointAndName(accessToken, tenantId, reportName, groupName, serviceTypeName, endpointName, metricName, timestamp);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Metric Status Details", metricName);
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status Details... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(
+                    e,
+                    "Retrieving Metric Status Details failed in Argo Web Api. tenantId=%s, reportName=%s, groupName=%s, serviceTypeName=%s, endpointName=%s, metricName=%s, timestamp=%s",
+                    tenantId, reportName, groupName, serviceTypeName, endpointName, metricName, timestamp
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Status Details... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointByReport(String tenantId, String reportName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getEndpointsStatusTimelineByReport(accessToken, tenantId, reportName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoint Status", "all");
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e, "Retrieving Endpoint Status failed in Argo Web Api. tenantId=%s", tenantId);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public TenantWebApiEndpointStatusTimelineResponse retrieveStatusTimelineEndpointByNameByReport(String tenantId, String reportName, String endpointName, String startTime, String endTime) {
+
+        try {
+            return argoWebApiClient.getEndpointsStatusTimelineByEndpointNameByReport(accessToken, tenantId, reportName, endpointName, startTime, endTime);
+
+        } catch (WebApplicationException e) {
+
+            var status = e.getResponse().getStatus();
+            var errorMessage = logArgoError(e, "Retrieving Endpoint Status", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... " + errorMessage,
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e, "Retrieving Endpoint Status failed in Argo Web Api. endpointName=%s", endpointName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Status... failed in Argo Web Api",
+                    500
+            );
+        }
+    }
 }
+
+
+

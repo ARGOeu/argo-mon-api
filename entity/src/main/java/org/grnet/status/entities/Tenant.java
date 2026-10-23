@@ -59,6 +59,14 @@ public class Tenant {
     @Getter
     private Boolean node;
 
+    @Column(name = "performance", nullable = false)
+    @Getter
+    private Boolean performance;
+
+    @Column(name = "public_downtime", nullable = false)
+    @Getter
+    private Boolean publicDowntime;
+
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(
             name = "tenant_contact",

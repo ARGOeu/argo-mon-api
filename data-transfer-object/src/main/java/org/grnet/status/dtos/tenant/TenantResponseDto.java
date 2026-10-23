@@ -41,6 +41,27 @@ public class TenantResponseDto {
     @Valid
     public Boolean node;
 
+
+    @Schema(
+            type = SchemaType.BOOLEAN,
+            implementation = Boolean.class,
+            description = "Indicates whether the tenant is configured to have performance data",
+            example = "true"
+    )
+    @JsonProperty("performance")
+    @Valid
+    public Boolean performance;
+
+    @Schema(
+            type = SchemaType.BOOLEAN,
+            implementation = Boolean.class,
+            description = "Indicates whether the tenant is configured to have public downtimes",
+            example = "true"
+    )
+    @JsonProperty("public_downtime")
+    public Boolean publicDowntime;
+
+
     @Schema(
             type = SchemaType.STRING,
             implementation = String.class,

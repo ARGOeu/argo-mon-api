@@ -1,0 +1,545 @@
+package org.grnet.status.services;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.UriInfo;
+import org.grnet.status.dtos.downtime.*;
+import org.grnet.status.dtos.pagination.PageResource;
+import org.grnet.status.dtos.topology.EndpointTopologyDto;
+import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
+import org.grnet.status.entities.Downtime;
+import org.grnet.status.entities.DowntimeServiceEndpoint;
+import org.grnet.status.enums.DowntimeClassification;
+import org.grnet.status.enums.FeedType;
+import org.grnet.status.mappers.DowntimeMapper;
+import org.grnet.status.repositories.DowntimeRepository;
+import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.services.clients.WebApiService;
+import org.grnet.status.util.Utility;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.EnumSet;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@ApplicationScoped
+public class DowntimeService {
+
+    @Inject
+    DowntimeRepository downtimeRepository;
+
+    @Inject
+    TenantRepository tenantRepository;
+
+    @Inject
+    Utility utility;
+    @Inject
+    WebApiService webApiService;
+    @Inject
+    TopologyService topologyService;
+
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    public String getScheduledDate(Instant scheduledAt) {
+        if (scheduledAt == null) {
+            return null;
+        }
+        return scheduledAt.atZone(ZoneOffset.UTC)
+                .format(DATE_FORMATTER);
+    }
+
+    private static final EnumSet<FeedType> NOT_SUPPORTED_FEEDS = EnumSet.of(
+           FeedType.EXTERNAL
+    );
+
+    private void checkEndpoints(String id,
+                                Instant scheduledAt,
+                                List<DowntimeServiceEndpointRequest> serviceEndpoints) {
+
+        var date = getScheduledDate(scheduledAt);
+        var topology = topologyService.fetchEndpointTopologies(id, date);
+        Map<String, Set<String>> topologyMap = topology.stream()
+                .collect(Collectors.groupingBy(
+                        EndpointTopologyDto::getHostname,
+                        Collectors.mapping(
+                                EndpointTopologyDto::getService,
+                                Collectors.toSet())));
+        List<DowntimeServiceEndpointRequest> missingEndpoints = serviceEndpoints.stream()
+                .filter(request ->
+                        !topologyMap
+                                .getOrDefault(request.getHostname(), Collections.emptySet())
+                                .contains(request.getService()))
+                .toList();
+
+
+        if (!missingEndpoints.isEmpty()) {
+            String message = missingEndpoints.stream()
+                    .map(e -> String.format(
+                            "{\"service\":\"%s\",hostname:\"%s\"}",
+                            e.getService(),
+                            e.getHostname()))
+                    .collect(Collectors.joining(", ", "[", "]"));
+
+            throw new NotFoundException(
+                    "The following service/hostname pairs were not found in the topology: "
+                            + message);
+        }
+    }
+
+    /**
+     * Creates a new downtime entry for a specific tenant.
+     * <p>
+     * The downtime is stored only in the local database and is not propagated
+     * to external systems.
+     * <p>
+     * The downtime classification is calculated based on the scheduled time:
+     * - Scheduled: downtime starts at least 24 hours after creation time.
+     * - Unscheduled: downtime starts within the next 24 hours.
+     * <p>
+     * All timestamps are stored as UTC instants with second precision.
+     */
+    @Transactional
+    public DowntimeResponse addDowntime(String id, DowntimeRequest request) {
+
+        checkFeedType(id);
+        checkEndpoints(id, request.scheduledAt, request.getServices());
+
+        String warning = null;
+
+        if (request.getScheduledAt() != null) {
+
+            if (request.getScheduledAt() != null) {
+
+                List<Downtime> existingDowntimes =
+                        downtimeRepository.findOverlappingDowntimes(
+                                id,
+                                request.getScheduledAt(),
+                                request.getCompletedAt()
+                        );
+
+                Set<String> duplicatedEndpoints = new HashSet<>();
+
+                for (Downtime existingDowntime : existingDowntimes) {
+
+                    existingDowntime.getServices().forEach(existingService -> {
+
+                        boolean existsInRequest = request.getServices()
+                                .stream()
+                                .anyMatch(requestService ->
+                                        requestService.getHostname()
+                                                .equals(existingService.getHostname())
+                                                &&
+                                                requestService.getService()
+                                                        .equals(existingService.getService())
+                                );
+
+                        if (existsInRequest) {
+                            duplicatedEndpoints.add(
+                                    existingService.getHostname()
+                                            + "/"
+                                            + existingService.getService()
+                            );
+                        }
+                    });
+                }
+
+                if (!duplicatedEndpoints.isEmpty()) {
+                    warning = "The following service endpoints already have a downtime for the requested period: "
+                            + String.join(", ", duplicatedEndpoints);
+                }
+            }
+        }
+
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        Downtime downtime = DowntimeMapper.INSTANCE.dtoToDowntime(request);        downtime.setTenant(id);
+        downtime.setCreatedBy(utility.getUid());
+        downtime.setCreatedAt(now);
+
+
+//          Determine whether the downtime is scheduled or unscheduled.
+//
+//          A downtime is considered scheduled only when it is planned
+//          at least 24 hours before its start time.
+//
+
+        if (request.getScheduledAt() != null) {
+
+            Instant scheduledAt = request.getScheduledAt();
+
+            if (!scheduledAt.isBefore(now.plus(24, ChronoUnit.HOURS))) {
+                downtime.setClassification(DowntimeClassification.Scheduled.name());
+            } else {
+                downtime.setClassification(DowntimeClassification.Unscheduled.name());
+            }
+        }
+
+
+//          Map the associated service endpoints.
+//
+//          The relationship is bidirectional, therefore each endpoint must
+//          reference the parent downtime entity before persisting.
+
+        if (request.getServices() != null) {
+
+            request.getServices().forEach(serviceRequest -> {
+
+                DowntimeServiceEndpoint serviceEndpoint =
+                        DowntimeMapper.INSTANCE.dtoToDowntimeService(serviceRequest);
+
+                serviceEndpoint.setDowntime(downtime);
+                downtime.getServices().add(serviceEndpoint);
+            });
+        }
+
+        downtimeRepository.persist(downtime);
+
+        var response= DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+        response.setWarning(warning);
+        return response;
+    }
+
+    /**
+     * Retrieves downtimes for a tenant using pagination.
+     * <p>
+     * If a date is provided, only downtimes active during that UTC day are returned.
+     * The input date format is dd-MM-yyyy.
+     */
+    @Transactional
+    public PageResource<DowntimeResponse> fetchDowntimesByPageAndSize(
+            int page,
+            int size,
+            String tenantId,
+            String date,
+            String startDate,
+            String endDate,
+            UriInfo uriInfo) {
+
+        Instant start = null;
+        Instant end = null;
+
+        if (date != null && !date.isBlank()) {
+
+            Instant[] timestamps = convertDate(date);
+            start = timestamps[0];
+            end = timestamps[1];
+
+        } else if (startDate != null && endDate != null) {
+
+            LocalDate startLocal = LocalDate.parse(startDate);
+            LocalDate endLocal = LocalDate.parse(endDate);
+
+            if (startLocal.isAfter(endLocal)) {
+                throw new BadRequestException(
+                        "start_date must be before or equal to end_date.");
+            }
+
+            start = startLocal
+                    .atStartOfDay(ZoneOffset.UTC)
+                    .toInstant();
+
+            end = endLocal
+                    .plusDays(1)
+                    .atStartOfDay(ZoneOffset.UTC)
+                    .minusNanos(1)
+                    .toInstant();
+        }
+
+        var tenant = tenantRepository.findById(tenantId);
+
+        var downtimes = downtimeRepository.findByTenantPageAndSize(
+                page,
+                size,
+                tenant.id,
+                start,
+                end);
+
+        return new PageResource<>(
+                downtimes,
+                DowntimeMapper.INSTANCE.downtimesToDtos(downtimes.list()),
+                uriInfo);
+    }
+    @Transactional
+    public DowntimeResponse fetchDowntimes(String id, String downtimeId) {
+        var downtime = downtimeRepository.findById(downtimeId);
+        if (!downtime.getTenant().equals(id)) {
+            throw new ForbiddenException(
+                    String.format("Downtime with id %s cannot be accessed for tenant %s", downtimeId, id)
+            );
+        }
+        return DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+    }
+
+
+    /**
+     * Converts a date provided by the API (dd-MM-yyyy) into a UTC time range.
+     * <p>
+     * Example:
+     * Input: 08-07-2027
+     * <p>
+     * Output:
+     * Start: 2027-07-08T00:00:00Z
+     * End: 2027-07-08T23:59:59Z
+     * <p>
+     * This ensures that filtering is independent of the server timezone.
+     */
+    private Instant[] convertDate(String date) {
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        LocalDate localDate = LocalDate.parse(date, formatter);
+
+        Instant startDate = localDate
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant();
+
+        Instant endDate = localDate
+                .atTime(23, 59, 59)
+                .toInstant(ZoneOffset.UTC);
+
+        return new Instant[]{startDate, endDate};
+    }
+
+    @Transactional
+    public void deleteDowntime(String id, String downtimeId) {
+
+        var downtime = downtimeRepository.findById(downtimeId);
+
+        if (!downtime.getTenant().equals(id)) {
+            throw new ForbiddenException(
+                    String.format("Downtime with id %s cannot be deleted for tenant %s", downtimeId, id)
+            );
+        }
+
+        downtimeRepository.delete(downtime);
+    }
+
+    @Transactional
+    public DowntimeResponse updateDowntime(String tenantId, String downtimeId, DowntimeRequest request) {
+
+        checkFeedType(tenantId);
+        checkEndpoints(tenantId, request.scheduledAt, request.getServices());
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        Downtime downtime = downtimeRepository.findById(downtimeId);
+
+        if (!downtime.getTenant().equals(tenantId)) {
+            throw new ForbiddenException(
+                    String.format(
+                            "Downtime with id %s cannot be updated for tenant %s",
+                            downtimeId,
+                            tenantId
+                    )
+            );
+        }
+
+        // Map request fields to existing entity
+        DowntimeMapper.INSTANCE.updateDowntime(request, downtime);
+
+
+        // Recalculate classification
+        if (!request.getScheduledAt().isBefore(now.plus(24, ChronoUnit.HOURS))) {
+            downtime.setClassification(DowntimeClassification.Scheduled.name());
+        } else {
+            downtime.setClassification(DowntimeClassification.Unscheduled.name());
+        }
+
+
+        // Update audit fields
+        downtime.setUpdatedAt(now);
+        downtime.setUpdatedBy(utility.getUid());
+
+
+        // Replace services
+        downtime.getServices().clear();
+
+        if (request.getServices() != null) {
+
+            request.getServices().forEach(serviceRequest -> {
+
+                DowntimeServiceEndpoint service =
+                        DowntimeMapper.INSTANCE.dtoToDowntimeService(serviceRequest);
+
+                downtime.addService(service);
+            });
+        }
+
+        downtimeRepository.flush();
+
+        return DowntimeMapper.INSTANCE.downtimeToDto(downtime);
+    }
+
+    private void checkFeedType(String tenantId) {
+
+        WebApiFeedsTopologyResponse response;
+
+        try {
+            response = webApiService.retrieveFeedTopologyWebApi(tenantId);
+        } catch (WebApplicationException e) {
+            if (e.getResponse().getStatus() == 404) {
+                throw new ForbiddenException(
+                        "Cannot manage downtimes because no topology feed is defined for the tenant.");
+            }
+            throw e;
+        }
+
+        if (response == null
+                || response.data == null
+                || response.data.isEmpty()
+                || response.data.get(0) == null) {
+            throw new ForbiddenException(
+                    "Cannot manage downtimes because no topology feed is defined for the tenant.");
+        }
+
+        var feedType = response.data.get(0).type;
+
+        if (NOT_SUPPORTED_FEEDS.contains(feedType)) {
+            throw new ForbiddenException(
+                    String.format(
+                            "Downtime management is not supported for topology feed type %s.",
+                            feedType.name()
+                    ));
+        }
+    }
+
+    private List<DailyDowntimeEndpointResponse> mergeOverlappingDowntimes(
+            List<DailyDowntimeEndpointResponse> endpoints) {
+
+        Map<String, List<DailyDowntimeEndpointResponse>> grouped =
+                endpoints.stream()
+                        .collect(Collectors.groupingBy(
+                                endpoint ->
+                                        endpoint.getHostname()
+                                                + "|"
+                                                + endpoint.getService()
+                        ));
+
+
+        List<DailyDowntimeEndpointResponse> result = new ArrayList<>();
+
+        grouped.values().forEach(endpointList -> {
+
+            endpointList.sort(
+                    Comparator.comparing(
+                            DailyDowntimeEndpointResponse::getStartTime
+                    )
+            );
+
+
+            DailyDowntimeEndpointResponse current =
+                    endpointList.get(0);
+
+
+            for (int i = 1; i < endpointList.size(); i++) {
+
+                DailyDowntimeEndpointResponse next =
+                        endpointList.get(i);
+
+
+                // overlap check
+                if (!next.getStartTime().isAfter(current.getEndTime())) {
+
+                    // extend end time if needed
+                    if (next.getEndTime().isAfter(current.getEndTime())) {
+                        current.setEndTime(next.getEndTime());
+                    }
+
+                    // keep the earliest start time
+                    if (next.getStartTime().isBefore(current.getStartTime())) {
+                        current.setStartTime(next.getStartTime());
+                    }
+
+                } else {
+
+                    result.add(current);
+                    current = next;
+                }
+            }
+
+            result.add(current);
+        });
+
+
+        return result;
+    }
+
+    public DailyDowntimeResponse fetchDailyDowntimes(
+            String tenantId,
+            String date
+    ) {
+
+        LocalDate requestedDate = date == null
+                ? LocalDate.now(ZoneOffset.UTC)
+                : LocalDate.parse(date);
+
+        Instant dayStart = requestedDate
+                .atStartOfDay()
+                .toInstant(ZoneOffset.UTC);
+
+        Instant dayEnd = requestedDate
+                .plusDays(1)
+                .atStartOfDay()
+                .toInstant(ZoneOffset.UTC);
+
+        List<Downtime> downtimes =
+                downtimeRepository.findOverlappingDowntimes(
+                        tenantId,
+                        dayStart,
+                        dayEnd
+                );
+
+        List<DailyDowntimeEndpointResponse> endpoints =
+                downtimes.stream()
+                        .flatMap(downtime ->
+                                downtime.getServices()
+                                        .stream()
+                                        .map(service -> {
+
+                                            Instant startTime =
+                                                    downtime.getScheduledAt()
+                                                            .isAfter(dayStart)
+                                                            ? downtime.getScheduledAt()
+                                                            : dayStart;
+
+                                            Instant endTime =
+                                                    downtime.getCompletedAt() == null
+                                                            ? dayEnd.minusSeconds(1)
+                                                            : downtime.getCompletedAt()
+                                                            .isBefore(dayEnd)
+                                                            ? downtime.getCompletedAt()
+                                                            : dayEnd.minusSeconds(1);
+
+                                            return DowntimeMapper.INSTANCE
+                                                    .toDailyDowntimeEndpoint(
+                                                            service,
+                                                            startTime,
+                                                            endTime
+                                                    );
+                                        })
+                        )
+                        .toList();
+
+        List<DailyDowntimeEndpointResponse> mergedEndpoints =
+                mergeOverlappingDowntimes(endpoints);
+
+        DailyDowntimeResponse response = new DailyDowntimeResponse();
+
+        // Return the actual requested/default date, not null
+        response.setDate(requestedDate.toString());
+
+        response.setEndpoints(mergedEndpoints);
+
+        return response;
+    }
+}

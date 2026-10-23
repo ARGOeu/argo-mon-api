@@ -1,8 +1,6 @@
-package org.grnet.status.enums.resources;
+package org.grnet.status.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
-import java.util.Arrays;
 
 public enum FeedType {
 
@@ -10,8 +8,8 @@ public enum FeedType {
     EXTERNAL("external"),
     CSV("CSV"),
     DESY_MARKETPLACE("desy-marketplace"),
-    EOSC_SERVICE_CATALOG("eosc-service-catalog");
-
+    EOSC_SERVICE_CATALOG("eosc-service-catalog"),
+    NODE_REGISTRY("node-registry");
     private final String value;
 
     FeedType(String value) {

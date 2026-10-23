@@ -14,9 +14,25 @@ public class CheckDateValidator implements ConstraintValidator<CheckDateFormat, 
         this.pattern = constraintAnnotation.pattern();
     }
 
+    //    @Override
+//    public boolean isValid(String object, ConstraintValidatorContext constraintContext) {
+//        if ( object == null ) {
+//            return true;
+//        }
+//
+//        try {
+//            var formatter = DateTimeFormatter.ofPattern(pattern);
+//            formatter.parse(object);
+//            return true;
+//        } catch (Exception e) {
+//            return false;
+//        }
+//    }
     @Override
     public boolean isValid(String object, ConstraintValidatorContext constraintContext) {
-        if ( object == null ) {
+
+
+        if (object == null || object.isBlank()) {
             return true;
         }
 

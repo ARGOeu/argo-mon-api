@@ -27,7 +27,7 @@
     </modules>
 
     <properties>
-        <revision>1.0.0</revision>
+        <revision>1.1.0</revision>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -48,7 +48,9 @@
         <!-- Keycloak Version-->
         <keycloak.version>26.0.6</keycloak.version>
 
-        <quarkus-auth.version>1.0.0-SNAPSHOT</quarkus-auth.version>
+        <quarkus-auth.version>1.0.1-SNAPSHOT</quarkus-auth.version>
+
+        <keycloak.module.dir>${maven.multiModuleProjectDirectory}/keycloak</keycloak.module.dir>
 
     </properties>
     <repositories>

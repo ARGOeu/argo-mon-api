@@ -1,6 +1,7 @@
 package org.grnet.status.api;
 
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -37,6 +38,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @QuarkusTest
+@QuarkusTestResource(KeycloakComposeResource.class)
 public class TenantInvitationEndpointTest extends KeycloakTest {
 
     @InjectMock
@@ -83,6 +85,7 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
     void reset() {
         entitlementProvider.reset();
         ((TestRoleEndpointRepository) roleEndpointRepository).reset();    }
+
     private void mockSuperAdmin() {
         entitlementProvider.setSuperAdmin(true);
         entitlementProvider.setEntitlements(List.of());
@@ -117,7 +120,6 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
                 raw
         );
     }
-
 
     @Test
     public void createInvitationMailNotifications() {
@@ -172,11 +174,9 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
                 )
         ));
 
-        var created = createInvitation(tenant.id, "local-viewer@test.dev", "viewer");
+        var created = createInvitation(tenant.id, "user2@example.com", "viewer");
 
-        // IMPORTANT: switch identity for GET (viewer side)
         mockTenantViewer();
-
 
         ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
                 new RoleEndpoint(
@@ -188,10 +188,11 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
                         null
                 )
         ));
+
         var fetched = getInvitationByIdAsInvitedUser(created.id);
 
         assertEquals("PENDING", String.valueOf(fetched.status));
-        assertEquals("local-viewer@test.dev", fetched.email);
+        assertEquals("user2@example.com", fetched.email);
         assertEquals("viewer", fetched.role);
         assertEquals(tenant.id, fetched.tenantId);
     }
@@ -218,7 +219,7 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
         ));
 
         // create data
-        createInvitation(tenant.id, "local-viewer@test.dev", "viewer");
+        createInvitation(tenant.id, "user2@example.com", "viewer");
 
         // IMPORTANT: mock interceptor role endpoint lookup
         ((TestRoleEndpointRepository) roleEndpointRepository)
@@ -243,9 +244,9 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
         assertEquals(1, page.getContent().size());
         assertTrue(page.getContent()
                 .stream()
-                .allMatch(i -> "local-viewer@test.dev".equals(i.email)));
+                .allMatch(i -> "user2@example.com".equals(i.email)));
     }
-    //
+
     @Test
     public void getAllInvitationsTenantAdmin() {
 
@@ -292,93 +293,6 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
         assertEquals(3, page.getContent().size());
     }
 
-    //
-//    @Test
-//    public void getAllInvitationsSuperAdmin() {
-//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
-//
-//        var tenant = createTenant("LOCALTENANT");
-//
-//        createInvitation(tenant.id, "local-viewer@test.dev", "viewer");
-//        createInvitation(tenant.id, "local-admin@test.dev", "admin");
-//
-//
-//        var page = getAllInvitationsAsSuperAdmin(1, 10);
-//
-//        assertNotNull(page);
-//        assertNotNull(page.getContent());
-//
-//        assertEquals(2, page.getContent().size());
-//    }
-//
-//
-//    @Test
-//    public void acceptInvitation() {
-//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
-//
-//        var tenant = createTenant("LOCALTENANT");
-//        var created = createInvitation(tenant.id, "local-viewer@test.dev", "viewer");
-//
-//        var response = respondToInvitationAsInvitedUser(created.id, "ACCEPT");
-//
-//        assertEquals("ACCEPTED", String.valueOf(response.status));
-//    }
-//
-//    @Test
-//    public void acceptInvitationMailNotificationUser() {
-//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
-//
-//        var tenant = createTenant("LOCALTENANT");
-//
-//        var createdAdmin = createInvitation(tenant.id, "local-admin@test.dev", "admin");
-//        var createdViewer = createInvitation(tenant.id, "local-viewer@test.dev", "viewer");
-//
-//        var response = respondToInvitationAsInvitedUser(createdViewer.id, "ACCEPT");
-//
-//
-//        verify(mailerService, times(1)).sendInvitationAcceptedToInvitee(
-//                argThat(list -> list != null && list.contains("local-viewer@test.dev")),
-//                eq("LOCALTENANT"),
-//                eq("viewer"),
-//                anyString()
-//        );
-//
-//        // admins do NOT get email (because AGM returned none)
-//        verify(mailerService, never()).sendInvitationResponseToAdmins(
-//                anyList(), anyString(), anyString(), anyString(), any(), anyString()
-//        );
-//
-//        assertEquals("ACCEPTED", String.valueOf(response.status));
-//    }
-//
-//    @Test
-//    public void rejectInvitation() {
-//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
-//
-//        var tenant = createTenant("LOCALTENANT");
-//        var created = createInvitation(tenant.id, "local-viewer@test.dev", "viewer");
-//
-//        var response = respondToInvitationAsInvitedUser(created.id, "REJECT");
-//
-//        assertEquals("REJECTED", String.valueOf(response.status));
-//    }
-//
-//    @Test
-//    public void revokeInvitation() {
-//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
-//
-//        var tenant = createTenant("LOCALTENANT");
-//        var created = createInvitation(tenant.id, "local-viewer@test.dev", "viewer");
-//
-//        var revoke = revokeInvitation(currentMockId, created.id);
-//
-//        assertEquals("REVOKED", String.valueOf(revoke.status));
-//    }
-//
-//    // -----------------------------------------------------------------------------------------------------------------
-//    // Helpers (keep tests small + consistent)
-//    // -----------------------------------------------------------------------------------------------------------------
-//
     private TenantResponseDto createTenant(String tenantName) {
         var request = new TenantRequestDto();
         var tenantInfo = new TenantInfoDto();
@@ -426,10 +340,11 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
                 .as(TenantInvitationResponse.class);
 
     }
-    //
+
     private TenantInvitationResponse getInvitationByIdAsInvitedUser(String invitationId) {
         return given()
-                .auth().oauth2(tenantViewer)
+                .auth()
+                .oauth2(tenantViewer)
                 .contentType(ContentType.JSON)
                 .when()
                 .get("/v1/users/invitations/{id}", invitationId)
@@ -438,7 +353,7 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
                 .extract()
                 .as(TenantInvitationResponse.class);
     }
-    //
+
     private TenantInvitationEndpoint.PageableInvitations getInvitationsPagedAsTenantAdmin(String invitationId, int page, int size) {
         return given()
                 .auth()
@@ -451,7 +366,7 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
                 .extract()
                 .as(TenantInvitationEndpoint.PageableInvitations.class);
     }
-    //
+
     private TenantInvitationEndpoint.PageableInvitations getInvitationsPagedAsInvitedUser(int page, int size) {
         return given()
                 .auth().oauth2(tenantViewer)
@@ -496,7 +411,6 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
         assertEquals(2, page.getContent().size());
     }
 
-    //
     private TenantInvitationEndpoint.PageableInvitations getAllInvitationsAsSuperAdmin(int page, int size) {
         return given()
                 .auth().oauth2(adminToken)
@@ -508,54 +422,7 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
                 .extract()
                 .as(TenantInvitationEndpoint.PageableInvitations.class);
     }
-//    @Test
-//    public void acceptInvitation() {
-//
-//        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
-//
-//        mockSuperAdmin();
-//
-//        var tenant = createTenant("LOCALTENANT");
-//
-//        mockTenantAdmin();
-//        ((TestRoleEndpointRepository) roleEndpointRepository).set(List.of(
-//                new RoleEndpoint(
-//                        1L,
-//                        "tenant_admin",
-//                        "tenant_admin",
-//                        "POST_/v1/tenants/{id}/invitation",
-//                        LocalDateTime.now()
-//                )
-//        ));
-//
-//        var created = createInvitation(
-//                tenant.id,
-//                "local-viewer@test.dev",
-//                "viewer"
-//        );
-//
-//        mockTenantViewer();
-//
-//        ((TestRoleEndpointRepository) roleEndpointRepository)
-//                .set(List.of(
-//                        new RoleEndpoint(
-//                                1L,
-//                                "tenant_viewer",
-//                                "tenant_viewer",
-//                                "PATCH_/v1/users/invitations/{id}",
-//                                LocalDateTime.now()
-//                        )
-//                ));
-//
-//        var response = respondToInvitationAsInvitedUser(
-//                created.id,
-//                "ACCEPT"
-//        );
-//
-//        assertEquals("ACCEPTED", String.valueOf(response.status));
-//    }
 
-    //
     private TenantInvitationResponse respondToInvitationAsInvitedUser(String invitationId, String action) {
         var req = buildActionRequest(action);
 
@@ -590,24 +457,6 @@ public class TenantInvitationEndpointTest extends KeycloakTest {
 
         return req;
     }
-    ////
-//    public static class PageableInvitations extends PageResource<TenantInvitationResponse> {
-//        private List<TenantInvitationResponse> content;
-//
-//        @Override
-//        public List<TenantInvitationResponse> getContent() {
-//            return content;
-//        }
-//
-//        @Override
-//        public void setContent(List<TenantInvitationResponse> content) {
-//            this.content = content;
-//        }
-//    }
-//
-//    // -----------------------------------------------------------------------------------------------------------------
-//    // Mock payloads (unchanged)
-//    // -----------------------------------------------------------------------------------------------------------------
 
     private TenantWebApiCreateResponse loadMockTenantResponse(String id) {
         var tenantWebApiResponse = new TenantWebApiCreateResponse();

@@ -145,7 +145,8 @@ public interface TenantMapper {
         dto.status = mapStatusObject(tenant.getStatus());
         dto.contacts = contactsToDtos(tenant.getContacts());
         dto.node = webApiGetResponse.getData().get(0).getNode();
-
+        dto.performance=tenant.getPerformance();
+        dto.publicDowntime=tenant.getPublicDowntime();
         return dto;
     }
 
@@ -219,6 +220,8 @@ public interface TenantMapper {
     @Mapping(target = "contacts", source = "contacts", qualifiedByName = "contactsToDtos")
     @Mapping(target = "status", expression = "java(mapStatusObject(tenant.getStatus()))")
     //@Mapping(target = "node", expression = "java(mapNodeObject(tenant.getNode()))")
+    @Mapping(target = "performance", source = "performance")
+    @Mapping(target = "publicDowntime", source = "publicDowntime")
     TenantResponseDto tenantToDto(Tenant tenant);
 
 
@@ -251,6 +254,8 @@ public interface TenantMapper {
     @Mapping(target = "image", source = "info.image")
     @Mapping(target = "description", source = "info.description")
     @Mapping(target = "email", source = "info.email")
+    @Mapping(target = "performance", expression = "java(dto.getPerformance() != null ? dto.getPerformance() : false)")
+    @Mapping(target = "publicDowntime", expression = "java(dto.getPublicDowntime() != null ? dto.getPublicDowntime() : false)")
     void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
 
     @IterableMapping(qualifiedByName = "map3")
@@ -288,6 +293,11 @@ public interface TenantMapper {
         dto.info = dtoInfo;
         return dto;
     }
+
+    @Named("tenantToPublicInfo")
+    @Mapping(source = "image", target = "logo")
+    @Mapping(source = "performance", target = "performance")
+    PublicTenantInformationResponseDto tenantToPublicInformationDto(Tenant tenant);
 
     public default Tenant mapMetadata(TenantRequestDto dto, Tenant tenant) {
         // Convert metadata object → JSON string for DB

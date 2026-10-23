@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeType;
@@ -32,9 +33,16 @@ import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.Group
 import org.grnet.endpoint.scanner.runtime.context.RoleEndpointHolder;
 import org.grnet.status.api.resolvers.CheckDateFormat;
 import org.grnet.status.constraints.NotFoundEntity;
+import org.grnet.status.constraints.ValidLatestDataStatusFilter;
 import org.grnet.status.dtos.InformativeResponse;
+import org.grnet.status.dtos.LatestDataResponse;
 import org.grnet.status.dtos.Status;
+import org.grnet.status.dtos.downtime.DowntimeRequest;
+import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
+import org.grnet.status.dtos.incident.*;
+import org.grnet.status.dtos.incident.IncidentRequestDto;
+import org.grnet.status.dtos.incident.IncidentResponseDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
 import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
@@ -43,7 +51,7 @@ import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
 import org.grnet.status.dtos.report.FullReportResponseDto;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
-import org.grnet.status.dtos.status.StatusGroupResponseDto;
+import org.grnet.status.dtos.status.*;
 import org.grnet.status.dtos.statuspage.StatusPageRequestDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageUpdateRequestDto;
@@ -55,17 +63,16 @@ import org.grnet.status.dtos.tenant.invitations.TenantInvitationResponse;
 import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
-import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
+import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiSupergroupsResponse;
 import org.grnet.status.dtos.topology.EndpointTopologyDto;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.GroupTopologyDto;
 import org.grnet.status.dtos.topology.ServiceTypeDto;
 import org.grnet.status.enums.resources.*;
-import org.grnet.status.repositories.StatusPageRepository;
-import org.grnet.status.repositories.TenantInvitationRepository;
-import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.repositories.*;
 import org.grnet.status.services.*;
 import org.grnet.status.util.Utility;
 
@@ -108,9 +115,6 @@ public class TenantEndpoint {
     StatusPageService statusPageService;
 
     @Inject
-    GroupManagementService groupManagementService;
-
-    @Inject
     ProfileService profileService;
 
     @Inject
@@ -118,6 +122,12 @@ public class TenantEndpoint {
 
     @Inject
     TopologyService topologyService;
+
+    @Inject
+    DowntimeService downtimeService;
+
+    @Inject
+    IncidentService incidentService;
 
 
     @Operation(
@@ -2051,11 +2061,20 @@ public class TenantEndpoint {
                                             name = "Desy-Marketplace",
                                             value = """
                                                     {
-                                                      "type": "Desy-Marketplace",
+                                                      "type": "desy-marketplace",
                                                       "feed_url": "https://desy-marketplace"
                                                     }
                                                     """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Node-Registry",
+                                            value = """
+                                                    {
+                                                      "type": "node-registry"
+                                                    }
+                                                    """
                                     )
+
                             }
                     )
             )
@@ -3064,6 +3083,169 @@ public class TenantEndpoint {
 
     @Tag(name = "Capabilities")
     @Operation(
+            summary = "Get monitoring metrics results for node services.",
+            description = "Retrieve monitoring  metrics for a node’s services from Argo Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Monitoring metrics retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = WebApiNodeAvailabilityResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/capabilities/monitoring/metrics")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getMonitoring(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "item", in = QUERY,
+                    description = "Metric name to target under the node.",
+                    example = "ARCHIVE")
+            @QueryParam("item")
+            String item,
+            @Parameter(name = "start-date", in = QUERY,
+                    description = "Start date in W3C format.",
+                    example = "2026-08-05"
+            )
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start-date")
+            String startDate,
+            @Parameter(name = "end-date", in = QUERY,
+                    description = "End date in W3C format.",
+                    example = "2026-08-05")
+            @Valid
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end-date")
+            String endDate,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "Granularity of results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var availability = tenantService.getMonitoring(id, item, startDate, endDate, granularity);
+
+        return Response.ok().entity(availability).build();
+    }
+
+    @Tag(name = "Capabilities")
+    @Operation(
+            summary = "Get monitoring metrics results for a tenant service.",
+            description = "Retrieve monitoring metrics for a single service from Argo Web API.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Monitoring metrics retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = WebApiNodeMonitoringMetricResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or service not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/capabilities/monitoring/metrics/{service-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getMonitoringByService(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "6b36d6d3-56a3-48a5-93af-aecf3e16a7c6",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(
+                    description = "The ID of the service.",
+                    required = true,
+                    example = "CLOUD-B",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("service-id") String serviceId,
+            @Parameter(
+                    name = "start-date",
+                    in = QUERY,
+                    description = "Start date in UTC.",
+                    example = "2026-08-05")
+            @Valid @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start-date") String startDate,
+            @Parameter(
+                    name = "end-date",
+                    in = QUERY,
+                    description = "End date in UTC.",
+                    example = "2026-08-05")
+            @Valid @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end-date") String endDate,
+            @Parameter(
+                    name = "granularity",
+                    in = QUERY,
+                    description = "Granularity of results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity") String granularity) {
+
+        var metrics = tenantService.getMonitoringByService(id, serviceId, startDate, endDate, granularity);
+
+        return Response.ok().entity(metrics).build();
+    }
+
+    @Tag(name = "Capabilities")
+    @Operation(
             summary = "Get availability results for node services.",
             description = "Retrieve availability metrics for a node’s services from Argo Web API.")
     @APIResponse(
@@ -3147,8 +3329,8 @@ public class TenantEndpoint {
                     description = "Granularity of results (daily, monthly).",
                     example = "daily")
             @QueryParam("granularity")
-            String granularity
-    ) {
+            String granularity) {
+
         var availability = tenantService.getAvailability(id, item, date, startTime, endTime, startDate, endDate, granularity);
 
         return Response.ok().entity(availability).build();
@@ -3512,6 +3694,500 @@ public class TenantEndpoint {
 
     @Tag(name = "Reports")
     @Operation(
+            summary = "Get report supergroup results.",
+            description = "Retrieves availability and reliability results for the supergroups of a tenant's report.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report supergroup results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiSupergroupsResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/supergroups")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getSupergroupsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.getSupergroupsByReport(id, reportName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report supergroup results.",
+            description = "Retrieves availability and reliability results for the supergroups of a tenant's report.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report supergroup results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiSupergroupsResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/supergroups/{supergroup-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getSupergroupsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "supergroupName",
+                    required = true,
+                    description = "The name of the supergroup.",
+                    example = "PROJECTA")
+            @PathParam("supergroup-name")
+            String supergroupName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.getSupergroupByNameByReport(id, reportName, supergroupName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report groups results.",
+            description = "Retrieves availability and reliability results for the groups services of a tenant's report.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report groups services results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiGroupResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/groups")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getGroupsResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.retrieveGroupsResultsByReport(id, reportName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report group results.",
+            description = "Retrieves availability and reliability results for the groups services of a tenant's report.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report endpointgroups services results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiGroupResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/groups/{group-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getGroupByNameResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "groupName",
+                    required = true,
+                    description = "The name of the group.",
+                    example = "ARCHIVE")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.retrieveGroupByNameByReport(id, reportName, groupName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report endpoint results.",
+            description = "Retrieves availability and reliability results for the endpoints of a tenant's report.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report endpoints results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiEndpointResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getEndpointsResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.retrieveEndpointsResultsByReport(id, reportName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report endpoint results.",
+            description = "Retrieves availability and reliability results for an endpoint of a tenant's report.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report endpoint results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiEndpointResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getEndpointByNameResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "endpointName",
+                    required = true,
+                    description = "The name of the endpoint.",
+                    example = "hostname1.archive.foo")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.retrieveEndpointByNameResultsByReport(id, reportName, endpointName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
             summary = "Set tenant report public.",
             description = "Sets a specific tenant report as public."
     )
@@ -3648,5 +4324,3279 @@ public class TenantEndpoint {
         var response = reportService.setReportPrivate(id, reportId);
 
         return Response.ok().entity(response).build();
+    }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Create a downtime for a tenant.",
+            description = "Create a the tenant's downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtime not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/{id}/downtimes")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response createDowntime(@Parameter(
+                                           description = "The ID of the tenant to create downtime.",
+                                           required = true,
+                                           example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                                           schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+                                   @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+                                   @Valid DowntimeRequest request) {
+
+        DowntimeResponse response = downtimeService.addDowntime(id, request);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Fetch downtimes for a tenant.",
+            description = "Returns the tenant's downtimes"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = PageableDowntimes.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/downtimes")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+
+    public Response getDowntimes(
+            @Parameter(
+                    name = "page",
+                    in = ParameterIn.QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1")
+            @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+
+            @Parameter(
+                    name = "size",
+                    in = ParameterIn.QUERY,
+                    description = "The page size.")
+            @DefaultValue("10")
+            @Min(value = 1, message = "Page size must be between 1 and 100.")
+            @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+
+            @Parameter(
+                    name = "date",
+                    in = ParameterIn.QUERY,
+                    required = false,
+                    description = "Filter downtimes active on this date (UTC).",
+                    example = "2026-07-06")
+            @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("date")
+            String date,
+
+            @Parameter(
+                    name = "start_date",
+                    in = ParameterIn.QUERY,
+                    required = false,
+                    description = "Start date of the filtering period (UTC).",
+                    example = "2026-07-01")
+            @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("start_date")
+            String startDate,
+
+            @Parameter(
+                    name = "end_date",
+                    in = ParameterIn.QUERY,
+                    required = false,
+                    description = "End date of the filtering period (UTC).",
+                    example = "2026-07-10")
+            @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.")
+            @QueryParam("end_date")
+            String endDate,
+
+            @Parameter(
+                    description = "The ID of the tenant to fetch downtimes.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(
+                    repository = TenantRepository.class,
+                    message = "There is no Tenant with the following id: ")
+            String id,
+
+            @Context UriInfo uriInfo) {
+
+        var response = downtimeService.fetchDowntimesByPageAndSize(
+                page - 1,
+                size,
+                id,
+                date,
+                startDate,
+                endDate,
+                uriInfo
+        );
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Fetch a specific downtime for a tenant.",
+            description = "Returns the tenant's specific downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/downtimes/{downtime-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "downtime-id",
+                            type = ParamType.PATH,
+                            referTo = DowntimeResource.class
+                    )
+            }
+    )
+
+    public Response getDowntime(
+            @Parameter(
+                    description = "The ID of the tenant to fetch the downtime.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    description = "The ID of the downtime.",
+                    required = true,
+                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("downtime-id")
+            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ")
+            String downtimeId,
+            @Context UriInfo uriInfo) {
+
+        var response = downtimeService.fetchDowntimes(id, downtimeId);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Deletes a specific downtime for a tenant.",
+            description = "Deletes a  tenant's specific downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes deleted successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @DELETE
+    @Path("/{id}/downtimes/{downtime-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "downtime-id",
+                            type = ParamType.PATH,
+                            referTo = DowntimeResource.class
+                    )
+            }
+    )
+
+    public Response deleteDowntime(
+            @Parameter(
+                    description = "The ID of the tenant to fetch the downtime.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+            @Parameter(
+                    description = "The ID of the downtime.",
+                    required = true,
+                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime-id")
+            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
+            @Context UriInfo uriInfo) {
+
+        downtimeService.deleteDowntime(id, downtimeId);
+        var informativeResponse = new InformativeResponse();
+        informativeResponse.code = 200;
+        informativeResponse.message = "Downtime has been successfully deleted.";
+
+        return Response.ok().entity(informativeResponse).build();
+    }
+
+    @Tag(name = "Downtime")
+    @Operation(
+            summary = "Update a specific downtime for a tenant.",
+            description = "Returns the tenant's specific updated downtime"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Downtimes fetched successfully.",
+            content = @Content(schema = @Schema(implementation = DowntimeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Downtimes not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+
+    @SecurityRequirement(name = "Authentication")
+    @PUT
+    @Path("/{id}/downtimes/{downtime-id}")
+
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "downtime-id",
+                            type = ParamType.PATH,
+                            referTo = DowntimeResource.class
+                    )
+            }
+    )
+
+    public DowntimeResponse updateDowntime(
+            @Parameter(
+                    description = "The ID of the tenant to fetch the downtime.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+            @Parameter(
+                    description = "The ID of the downtime.",
+                    required = true,
+                    example = "13a1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)) @PathParam("downtime-id")
+            @Valid @NotFoundEntity(repository = DowntimeRepository.class, message = "There is no Downtime with the following id: ") String downtimeId,
+            @Valid DowntimeRequest request) {
+
+        return downtimeService.updateDowntime(id, downtimeId, request);
+    }
+
+    public static class PageableDowntimes extends PageResource<DowntimeResponse> {
+
+        private List<DowntimeResponse> content;
+
+        @Override
+        public List<DowntimeResponse> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<DowntimeResponse> content) {
+            this.content = content;
+        }
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Create an incident.",
+            description = "Creates a new incident for a service belonging to the specified tenant."
+    )
+    @APIResponse(
+            responseCode = "201",
+            description = "Incident created.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid incident request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or service not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be created.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/{id}/incidents")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response createIncident(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f")
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The incident creation request.")
+            @Valid IncidentRequestDto request) {
+
+        var response = incidentService.createIncident(id, request, utility.getUid());
+
+        return Response.status(Response.Status.CREATED).entity(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Update an incident description.",
+            description = "Updates the description of an existing incident."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid incident update request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @PATCH
+    @Path("/{id}/incidents/{incident-id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            },
+            scope = {Scope.ALL, Scope.MINE}
+    )
+    public Response updateIncidentDescription(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the incident.",
+                    required = true,
+                    example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
+            String incidentId,
+            @Valid IncidentDescriptionUpdateRequestDto request) {
+
+        var roles = RoleEndpointHolder.get();
+
+        var response = incidentService.updateIncidentDescriptionById(roles, id, incidentId, request, utility.getUid());
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Update an incident status.",
+            description = "Updates the status of an incident and, optionally, its status description."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid incident update request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @PATCH
+    @Path("/{id}/incidents/{incident-id}/status")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            },
+            scope = {Scope.ALL, Scope.MINE}
+    )
+    public Response updateIncident(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the incident.",
+                    required = true,
+                    example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
+            String incidentId,
+            @Parameter(
+                    description = "The incident update request.",
+                    required = true
+            )
+            @NotNull(message = "Incident update request cannot be null.")
+            @Valid IncidentStatusUpdateRequestDto request) {
+
+        var roles = RoleEndpointHolder.get();
+
+        var response = incidentService.updateIncidentStatus(roles, id, incidentId, request, utility.getUid());
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Add an incident comment.",
+            description = "Adds a new comment to an incident."
+    )
+    @APIResponse(
+            responseCode = "201",
+            description = "Comment added.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentCommentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid comment request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Comment could not be added.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/{id}/incidents/{incident-id}/comments")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            }
+    )
+    public Response addIncidentComment(
+
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(
+                    repository = TenantRepository.class,
+                    message = "There is no Tenant with the following id: "
+            )
+            String id,
+
+            @Parameter(
+                    description = "The ID of the incident.",
+                    required = true,
+                    example = "62491b9b-7c95-4f66-bbd2-2eb407118afc",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(
+                    repository = IncidentRepository.class,
+                    message = "There is no Incident with the following incident-id: "
+            )
+            String incidentId,
+
+            @Parameter(
+                    description = "The incident comment.",
+                    required = true
+            )
+            @NotNull(message = "Incident comment request cannot be null.")
+            @Valid
+            IncidentCommentRequestDto request) {
+
+        var response = incidentService.addComment(id, incidentId, request, utility.getUid());
+
+        return Response.status(Response.Status.CREATED).entity(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Get all incidents.",
+            description = "Retrieves a paginated list of incidents belonging to the specified tenant. Results can be filtered by incident title or service name."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incidents retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = PageableIncidents.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid pagination parameters.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incidents could not be retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/incidents")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getAllIncidents(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f")
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(name = "page", in = QUERY,
+                    description = "Indicates the page number. Page number must be >= 1.")
+            @DefaultValue("1") @Min(value = 1, message = "Page number must be >= 1.")
+            @QueryParam("page")
+            int page,
+            @Parameter(name = "size", in = QUERY,
+                    description = "The page size.")
+            @DefaultValue("10") @Min(value = 1, message = "Page size must be between 1 and 100.") @Max(value = 100, message = "Page size must be between 1 and 100.")
+            @QueryParam("size")
+            int size,
+            @Parameter(name = "search", in = QUERY,
+                    description = "Optional text used to search incidents by title or service name.")
+            @QueryParam("search")
+            String search,
+            @Parameter(name = "date", in = QUERY,
+                    description = "Optional creation date used to filter incidents. Format: YYYY-MM-DD.",
+                    example = "2026-07-21")
+            @QueryParam("date")
+            @CheckDateFormat(pattern = "yyyy-MM-dd", message = "Valid date format is yyyy-MM-dd.")
+            String date,
+            @Context UriInfo uriInfo) {
+
+        var response = incidentService.getIncidentsByPageAndSize(id, page - 1, size, search, date, uriInfo);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Get incident activity.",
+            description = "Retrieves the status change history of a specific incident."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident activity retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentActivityResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident activity could not be retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/incidents/{incident-id}/activity")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            }
+    )
+    public Response getIncidentActivity(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id") @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    description = "The ID of the incident.",
+                    required = true,
+                    example = "62491b9b-7c95-4f66-bbd2-2eb407118afc",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
+            String incidentId) {
+
+        var response = incidentService.getIncidentActivity(id, incidentId);
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Update an incident status description.",
+            description = "Updates the description associated with a specific incident status activity."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid incident update request.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be updated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            ))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @PATCH
+    @Path("/{id}/incidents/{incident-id}/activity/{activity-id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "incident-id",
+                            type = ParamType.PATH,
+                            referTo = IncidentResource.class
+                    )
+            },
+            scope = {Scope.ALL, Scope.MINE}
+    )
+    public Response updateIncidentStatusDescription(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the incident.",
+                    required = true,
+                    example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("incident-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following incident-id: ")
+            String incidentId,
+            @Parameter(description = "The ID of the incident status.",
+                    required = true,
+                    example = "f347c170-7e62-4c72-98a7-9d5e7605c973",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("activity-id")
+            @Valid
+            @NotFoundEntity(repository = IncidentActivityRepository.class, message = "There is no Incident Status with the following incident-id: ")
+            String activityId,
+            @Parameter(
+                    description = "The incident update request.",
+                    required = true
+            )
+            @NotNull(message = "Incident update request cannot be null.")
+            @Valid IncidentStatusDescriptionUpdateRequestDto request) {
+
+        var roles = RoleEndpointHolder.get();
+
+        var response = incidentService.updateIncidentStatusDescriptionById(roles, id, incidentId, activityId, request, utility.getUid());
+
+        return Response.ok(response).build();
+    }
+
+    @Tag(name = "Incident")
+    @Operation(
+            summary = "Get an incident.",
+            description = "Retrieves a specific incident belonging to the specified tenant."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Incident retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = IncidentResponseDto.class
+            )))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or incident not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @APIResponse(
+            responseCode = "500",
+            description = "Incident could not be retrieved.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class
+            )))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/incidents/{incident-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getIncident(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f")
+            @PathParam("id")
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    description = "The ID of the incident.",
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true,
+                    example = "8d8102e8-9476-4714-8101-ac76f934781f")
+            @PathParam("incident-id")
+            @NotFoundEntity(repository = IncidentRepository.class, message = "There is no Incident with the following id: ")
+            String incidentId) {
+
+        var response = incidentService.getIncident(id, incidentId);
+
+        return Response.ok(response).build();
+    }
+
+
+    public static class PageableIncidents extends PageResource<IncidentResponseDto> {
+
+        private List<IncidentResponseDto> content;
+
+        @Override
+        public List<IncidentResponseDto> getContent() {
+            return content;
+        }
+
+        @Override
+        public void setContent(List<IncidentResponseDto> content) {
+            this.content = content;
+        }
+    }
+
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report group endpoints results.",
+            description = "Retrieves availability and reliability results for the group endpoints of a tenant's report and specific group.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report groups endpoints results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiGroupEndpointResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/groups/{group-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getGroupsEndpointResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "groupName",
+                    required = true,
+                    description = "The name of the group.",
+                    example = "ARCHIVE")
+            @PathParam("group-name")
+            String groupName,
+
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.retrieveResultsEndpointByReportAndGroup(id, reportName, groupName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Get report group endpoints results by endpoint.",
+            description = "Retrieves availability and reliability results for the group endpoints of a tenant's report and specific group and a specific endpoint.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Report groups endpoint results retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = TenantWebApiGroupEndpointResultsByReportResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "404",
+            description = "Node not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getGroupsEndpointResultsByReport(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(name = "reportName",
+                    required = true,
+                    description = "The name of the report.",
+                    example = "BASIC")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(name = "groupName",
+                    required = true,
+                    description = "The name of the group.",
+                    example = "ARCHIVE")
+            @PathParam("group-name")
+            String groupName,
+
+            @Parameter(name = "endpointName",
+                    required = true,
+                    description = "The name of the endpoint.",
+                    example = "hostname1.project-a.foo")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(name = "start-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T00:00:00Z")
+            @QueryParam("start-time")
+            String startTime,
+            @Parameter(name = "end-time", in = QUERY,
+                    required = true,
+                    description = "UTC time in W3C format.",
+                    example = "2026-07-02T12:00:00Z")
+            @QueryParam("end-time")
+            String endTime,
+            @Parameter(name = "granularity", in = QUERY,
+                    description = "The aggregation granularity of the results (daily, monthly).",
+                    example = "daily")
+            @QueryParam("granularity")
+            String granularity) {
+
+        var response = tenantService.retrieveResultsEndpointByReportGroupAndEndpoint(id, reportName, groupName, endpointName, startTime, endTime, granularity);
+
+        return Response.ok(response).build();
+    }
+//
+//    @Tag(name = "Downtime")
+//    @Operation(
+//            summary = "Fetch a daily downtime for a tenant.",
+//            description = "Returns the tenant's specific daily downtime"
+//    )
+//    @APIResponse(
+//            responseCode = "200",
+//            description = "Downtimes fetched successfully.",
+//            content = @Content(schema = @Schema(implementation = DailyDowntimeResponse.class))
+//    )
+//    @APIResponse(
+//            responseCode = "400",
+//            description = "Invalid request payload.",
+//            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+//    )
+//    @APIResponse(
+//            responseCode = "401",
+//            description = "User not authenticated.",
+//            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+//    )
+//    @APIResponse(
+//            responseCode = "403",
+//            description = "Not permitted.",
+//            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+//    )
+//    @APIResponse(
+//            responseCode = "404",
+//            description = "Downtimes not found.",
+//            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+//    )
+//    @APIResponse(
+//            responseCode = "500",
+//            description = "Internal server error.",
+//            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+//    )
+//    @SecurityRequirement(name = "Authentication")
+//
+//    @GET
+//    @Path("/{id}/downtimes/daily")
+//    @Produces(MediaType.APPLICATION_JSON)
+//    @SecuredEndpoint(
+//            params = {
+//                    @ParamRef(
+//                            param = "id",
+//                            type = ParamType.PATH,
+//                            referTo = TenantResource.class
+//                    )
+//            }
+//    )
+//    public Response getDailyDowntimes(
+//            @Parameter(
+//                    description = "The ID of the tenant to fetch downtimes.",
+//                    required = true,
+//                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+//                    schema = @Schema(type = SchemaType.STRING)) @PathParam("id")
+//            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ") String id,
+//            @Parameter(
+//                    name = "date",
+//                    description = "UTC date in yyyy-MM-dd format",
+//                    example = "2026-07-22",
+//                    required = true
+//            )
+//            @CheckDateFormat(
+//                    pattern = "yyyy-MM-dd",
+//                    message = "Valid date format is yyyy-MM-dd."
+//            )
+//            @QueryParam("date")
+//            @NotNull
+//            String date
+//    ) {
+//
+//        return Response.ok(
+//                downtimeService.fetchDailyDowntimes(id, date)
+//        ).build();
+//
+//        return Response.ok(downtimeService.fetchDailyDowntimes(id, date)).build();
+//    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch status timelines for all groups.",
+            description = "Returns the status timelines for all groups of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Group status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiGroupStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status groups not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusGroupsByReport(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var groupTimelines = statusService.retrieveStatusTimelineGroupsByReport(id, reportName, startTime, endTime);
+
+        return Response.ok(groupTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timeline for a group.",
+            description = "Returns the status timeline for a specific group of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Group status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiGroupStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status group not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusGroupByNameByReport(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var groupTimelines = statusService.retrieveStatusTimelineGroupByNameByReport(id, reportName, groupName, startTime, endTime);
+
+        return Response.ok(groupTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timelines for service types.",
+            description = "Returns the status timelines for all service types of a specific group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Service type status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiServiceTypeStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Service types not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/service-types")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusServiceTypesByGroup(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var serviceTypeTimelines = statusService.retrieveStatusTimelineServiceTypesByGroup(id, reportName, groupName, startTime, endTime);
+
+        return Response.ok(serviceTypeTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timeline for a service type.",
+            description = "Returns the status timeline for a specific service type of the specified group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Service type status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiServiceTypeStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Service type not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusServiceTypeByName(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var serviceTypeTimeline = statusService.retrieveStatusTimelineServiceTypeByName(id, reportName, groupName, serviceTypeName, startTime, endTime);
+
+        return Response.ok(serviceTypeTimeline).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timelines for endpoints.",
+            description = "Returns the status timelines for all endpoints of a specific group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoints not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusEndpointsByGroup(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var endpointTimelines = statusService.retrieveStatusTimelineEndpointsByGroup(
+                id, reportName, groupName, startTime, endTime);
+
+        return Response.ok(endpointTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timeline for an endpoint.",
+            description = "Returns the status timeline for a specific endpoint of the specified group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoint not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusEndpointByGroupAndName(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "host1.example_ID1")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var endpointTimeline = statusService.retrieveStatusTimelineEndpointByGroupAndName(id, reportName, groupName, endpointName, startTime, endTime);
+
+        return Response.ok(endpointTimeline).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timelines for endpoints under a service type.",
+            description = "Returns the status timelines for all endpoints of a specific service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoints not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusEndpointsByServiceType(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var endpointTimelines = statusService.retrieveStatusTimelineEndpointsByServiceType(id, reportName, groupName, serviceTypeName, startTime, endTime);
+
+        return Response.ok(endpointTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timeline for an endpoint under a service type.",
+            description = "Returns the status timeline for a specific endpoint of the specified service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Endpoint not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusEndpointByServiceTypeAndName(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var endpointTimeline = statusService.retrieveStatusTimelineEndpointByServiceTypeAndName(
+                id, reportName, groupName, serviceTypeName, endpointName, startTime, endTime);
+
+        return Response.ok(endpointTimeline).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timelines for metrics.",
+            description = "Returns the status timelines for all metrics of a specific endpoint, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metrics not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}/metrics")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusMetricsByEndpoint(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var metricTimelines = statusService.retrieveStatusTimelineMetricsByEndpoint(id, reportName, groupName, endpointName, startTime, endTime);
+
+        return Response.ok(metricTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timeline for a metric.",
+            description = "Returns the status timeline for a specific metric of the specified endpoint, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metric not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/endpoints/{endpoint-name}/metrics/{metric-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusMetricByEndpointAndName(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "metric-name",
+                    description = "The name of the metric.",
+                    required = true,
+                    example = "generic.http.connect")
+            @PathParam("metric-name")
+            String metricName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var metricTimeline = statusService.retrieveStatusTimelineMetricByEndpointAndName(id, reportName, groupName, endpointName, metricName, startTime, endTime);
+
+        return Response.ok(metricTimeline).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timelines for metrics under a service type.",
+            description = "Returns the status timelines for all metrics of a specific endpoint, service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metrics not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusMetricsByServiceTypeAndEndpoint(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var metricTimelines = statusService.retrieveStatusTimelineMetricsByServiceTypeAndEndpoint(id, reportName, groupName, serviceTypeName, endpointName, startTime, endTime);
+
+        return Response.ok(metricTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timeline for a metric under a service type.",
+            description = "Returns the status timeline for a specific metric of the specified endpoint, service type, group and report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metric not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics/{metric-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusMetricByServiceTypeEndpointAndName(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_ID3")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "metric-name",
+                    description = "The name of the metric.",
+                    required = true,
+                    example = "generic.http.connect")
+            @PathParam("metric-name")
+            String metricName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var metricTimeline = statusService.retrieveStatusTimelineMetricByServiceTypeEndpointAndName(id, reportName, groupName, serviceTypeName, endpointName, metricName, startTime, endTime);
+
+        return Response.ok(metricTimeline).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch status result details for a metric under a service type.",
+            description = "Returns the details of a specific metric status result for the specified endpoint, service type, group and report."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Metric status result details fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiMetricStatusDetailsResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Metric status result not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/groups/{group-name}/service-types/{service-type-name}/endpoints/{endpoint-name}/metrics/{metric-name}/details")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusMetricDetailsByServiceTypeEndpointAndName(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "group-name",
+                    description = "The name of the group.",
+                    required = true,
+                    example = "WIKI")
+            @PathParam("group-name")
+            String groupName,
+            @Parameter(
+                    name = "service-type-name",
+                    description = "The name of the service type.",
+                    required = true,
+                    example = "webportal")
+            @PathParam("service-type-name")
+            String serviceTypeName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "wiki.example.foo_e17eb908-15be-403c-86ec-2fdb8bcfb523")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "metric-name",
+                    description = "The name of the metric.",
+                    required = true,
+                    example = "generic.http.connect")
+            @PathParam("metric-name")
+            String metricName,
+            @Parameter(
+                    name = "timestamp",
+                    description = "Timestamp of the metric status result in UTC.",
+                    example = "2026-08-26T00:00:00Z",
+                    required = true)
+            @QueryParam("timestamp")
+            @NotNull String timestamp) {
+
+        var metricDetails = statusService.retrieveStatusMetricDetailsByServiceTypeEndpointAndName(
+                id, reportName, groupName, serviceTypeName, endpointName, metricName, timestamp);
+
+        return Response.ok(metricDetails).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch status timelines for all endpoints.",
+            description = "Returns the status timelines for all endpoints of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timelines fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status groups not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/endpoints")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusEndpointsByReport(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING)
+            )
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var endpointTimelines = statusService.retrieveStatusTimelineEndpointsByReport(id, reportName, startTime, endTime);
+
+        return Response.ok(endpointTimelines).build();
+    }
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the status timeline for an endpoint.",
+            description = "Returns the status timeline for a specific endpoint of the specified report within the requested time range."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Endpoint status timeline fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantWebApiEndpointStatusTimelineResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Status group not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/status/{report-name}/endpoints/{endpoint-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getStatusEndpointByNameByReport(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    name = "report-name",
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE")
+            @PathParam("report-name")
+            String reportName,
+            @Parameter(
+                    name = "endpoint-name",
+                    description = "The name of the endpoint.",
+                    required = true,
+                    example = "archive.example.foo_service-6wzv3n7")
+            @PathParam("endpoint-name")
+            String endpointName,
+            @Parameter(
+                    name = "start-time",
+                    description = "Start of the requested time range in UTC.",
+                    example = "2026-07-27T00:59:59Z",
+                    required = true)
+            @QueryParam("start-time")
+            @NotNull String startTime,
+            @Parameter(
+                    name = "end-time",
+                    description = "End of the requested time range in UTC.",
+                    example = "2026-07-27T23:59:59Z",
+                    required = true)
+            @QueryParam("end-time")
+            @NotNull String endTime) {
+
+        var groupTimelines = statusService.retrieveStatusTimelineEndpointByNameByReport(id, reportName, endpointName, startTime, endTime);
+
+        return Response.ok(groupTimelines).build();
+    }
+
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the N latest data for the specified report, group type of the tenant",
+            description = "Returns the the N latest data for the specified report, group type, group name of the tenant"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Latest data fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = LatestDataResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Latest data not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/report/{report-id}/groups/latest-data")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getLatestData(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    description = "The id of the tenant's report.",
+                    required = true,
+                    example = "c7a6b0d4-4885-46da-9dd1-1f91d0e9142e",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("report-id")
+            @Valid
+            String reportId,
+            @Parameter(name = "filter", in = QUERY,
+                    description = "Filter errors by status.")
+            @ValidLatestDataStatusFilter
+            @DefaultValue("all")
+            @QueryParam("filter") String filter,
+            @Parameter(name = "strict", in = QUERY,
+                    description = "the servce will return only the latest entry grouped by endpoint_group/host/service/metric",
+                    example = "false")
+            @QueryParam("strict")
+            @DefaultValue("false")
+            Boolean strict,
+            @Parameter(name = "limit", in = QUERY,
+                    description = "the limit",
+                    example = "500",
+                    required = true)
+
+            @QueryParam("limit")
+            @DefaultValue("100")
+            Integer limit) {
+
+        var metricDetails = reportService.retrieveLatestData(
+                id, reportId, filter, strict, limit);
+
+        return Response.ok(metricDetails).build();
+    }
+
+
+    @Tag(name = "Reports")
+    @Operation(
+            summary = "Fetch the N latest data for the specified report, group type, group name of the tenant",
+            description = "Returns the N latest data for the specified report, group name of the tenant"
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Latest data fetched successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = LatestDataResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request parameters.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Latest data not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/report/{report-id}/groups/{group-name}/latest-data")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getLatestDataByGroupName(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid
+            @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(
+                    description = "The id of the tenant's report.",
+                    required = true,
+                    example = "c7a6b0d4-4885-46da-9dd1-1f91d0e9142e",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("report-id")
+            @Valid
+            String reportId,
+            @Parameter(
+                    description = "The group name ",
+                    required = true,
+                    example = "HELPDESK",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("group-name")
+            @Valid
+            String groupName,
+            @Parameter(name = "filter", in = QUERY,
+                    description = "Filter errors by status.")
+            @ValidLatestDataStatusFilter
+            @DefaultValue("all")
+            @QueryParam("filter") String filter,
+            @Parameter(name = "strict", in = QUERY,
+                    description = "the servce will return only the latest entry grouped by endpoint_group/host/service/metric",
+                    example = "false")
+            @QueryParam("strict")
+            @DefaultValue("false")
+            Boolean strict,
+            @Parameter(name = "limit", in = QUERY,
+                    description = "the limit",
+                    example = "500",
+                    required = true)
+            @QueryParam("limit")
+
+            @DefaultValue("100")
+            Integer limit) {
+
+        var metricDetails = reportService.retrieveLatestDataByGroupName(
+                id, reportId, groupName, filter, strict, limit);
+
+        return Response.ok(metricDetails).build();
     }
 }

@@ -1,5 +1,7 @@
 package org.grnet.status.enums;
 
+import io.quarkus.oidc.Tenant;
+
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
@@ -12,12 +14,12 @@ public enum TenantJobEvent {
     // Automatic jobs (updated by automation)
     INIT_AMS("init_ams", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
     INIT_MONGO("init_mongo", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
-    INIT_COMPUTE_ENGINE("init_compute_engine", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_COMPUTE_ENGINE("init_compute_engine", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME,TenantJobProperty.PERFORMANCE)),
 
     CHECK_READINESS("check_readiness", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
 
     INIT_TOPOLOGY_CONNECTOR("init_topology_connector",EventMode.AUTO, false, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
-    INIT_INTEGRATION_TOPO("init_integration_topo",EventMode.AUTO, false, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_INTEGRATION_TOPO("init_integration_topo",EventMode.AUTO, false, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME,TenantJobProperty.FEED_TYPE)),
 
     // Manual jobs (completed by admin actions)
 
@@ -25,7 +27,9 @@ public enum TenantJobEvent {
 
     INIT_MONITORING_BOX("init_monitoring_box", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)), // no properties for now
 
-    INIT_POEM("init_poem", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME));
+    INIT_POEM("init_poem", EventMode.AUTO, true, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_ARCHIVER("init_archiver", EventMode.AUTO, false, Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME)),
+    INIT_PERFORMANCE_DATA("init_performance_data",EventMode.AUTO, false,Set.of(TenantJobProperty.TENANT_ID, TenantJobProperty.TENANT_NAME, TenantJobProperty.PERFORMANCE_DATA));
 
     private final String key;
     private final EventMode mode;
