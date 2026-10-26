@@ -926,22 +926,12 @@ public class TenantService {
             }
 
             if (shouldResetAfterComputeEngine) {
-                updateSingleJob(
-                        id,
-                        resetJobDto(TenantJobEvent.INIT_POEM)
-                );
-
-                updateSingleJob(
-                        id,
-                        resetJobDto(TenantJobEvent.INIT_MONITORING_BOX)
-                );
+                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_POEM), true);
+                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_MONITORING_BOX), true);
             }
 
             if (shouldResetAfterPoem) {
-                updateSingleJob(
-                        id,
-                        resetJobDto(TenantJobEvent.INIT_MONITORING_BOX)
-                );
+                updateSingleJob(id, resetJobDto(TenantJobEvent.INIT_MONITORING_BOX), true);
             }
 
             var statusDto = tenantRepository.fetchTenantStatus(id)
@@ -2089,27 +2079,74 @@ public class TenantService {
                 });
     }
 
-
     private void updateSingleJob(String tenantId, EventStatusDto job) {
+        updateSingleJob(tenantId, job, false);
+    }
 
+
+    private void updateSingleJob(String tenantId, EventStatusDto job, boolean reset) {
         try {
-            applyJobDefinition(job); // validates job exists in TenantJobEvent and sets mode
+            applyJobDefinition(job);
 
-            var jobJson = objectMapper.writeValueAsString(job);
+            if (!reset) {
+                var existingJob = tenantRepository.fetchTenantStatus(tenantId)
+                        .map(TenantMapper.INSTANCE::mapStatusObject)
+                        .filter(status -> status.jobs != null)
+                        .flatMap(status -> status.jobs.stream()
+                                .filter(j -> job.getName().equals(j.getName()))
+                                .findFirst())
+                        .orElse(null);
+
+                var previousStatus = existingJob != null ? existingJob.getStatus() : null;
+                var newStatus = job.getStatus();
+                var now = Instant.now();
+
+                if (EventStatus.INITIALISING.name().equalsIgnoreCase(newStatus)) {
+
+                    // New initialization or rerun: clear previous execution timestamps.
+                    job.start = null;
+                    job.end = null;
+
+                } else if (EventStatus.IN_PROGRESS.name().equalsIgnoreCase(newStatus)) {
+
+                    // Set start when execution begins.
+                    // Preserve it on repeated IN_PROGRESS updates.
+                    job.start = existingJob != null && existingJob.start != null
+                            && EventStatus.IN_PROGRESS.name().equalsIgnoreCase(previousStatus)
+                            ? existingJob.start : now;
+                    job.end = null;
+
+                } else if (EventStatus.COMPLETED.name().equalsIgnoreCase(newStatus)
+                        || EventStatus.FAILED.name().equalsIgnoreCase(newStatus)) {
+
+                    // Preserve execution start and set end on completion or failure.
+                    job.start = existingJob != null ? existingJob.start : null;
+                    job.end = existingJob != null && existingJob.end != null
+                            && newStatus.equalsIgnoreCase(previousStatus)
+                            ? existingJob.end : now;
+
+                } else if (existingJob != null) {
+
+                    // Preserve timestamps for other status updates.
+                    job.start = existingJob.start;
+                    job.end = existingJob.end;
+                }
+            }
 
             tenantRepository.upsertTenantJobStatus(
                     tenantId,
                     job.getName(),
-                    jobJson
+                    objectMapper.writeValueAsString(job)
             );
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException(
-                    "Updating Tenant's Status... Failed to serialize job",
-                    e
+                    "Updating Tenant's Status... Failed to serialize job", e
             );
         }
     }
+
+
 
     private EventStatusDto resetJobDto(TenantJobEvent event) {
 
