@@ -24,6 +24,14 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 ## Unreleased
 ---
 
+### Added
+
+
+### Fix
+-[#261](https://github.com/ARGOeu/argo-mon-api/pull/261) ARGO-5988 Automate process no start time
+
+
+
 ## 1.1.0- 2026-10-23
 
 ### Added

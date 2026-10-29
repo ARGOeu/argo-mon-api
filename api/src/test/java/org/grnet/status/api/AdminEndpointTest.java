@@ -48,8 +48,7 @@ import java.time.Instant;
 import java.util.*;
 
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -344,71 +343,89 @@ public class AdminEndpointTest extends KeycloakTest {
     }
 
 
+
     @Test
     public void updateTenantStatus() {
 
         currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
-
-        var request = new TenantRequestDto();
-        var tenantInfo = new TenantInfoDto();
-        var tenantContact = new ContactDto();
-        tenantInfo.name = "TENANT-TEST";
-        tenantInfo.email = "test@gmail.com";
-        tenantInfo.description = "this is test tenant description";
-        tenantInfo.image = "https://example/image.png";
-        tenantInfo.website = "https://test.tenant.org";
-        tenantContact.email = "test@gmail.com";
-        tenantContact.name = "Test user";
-        tenantContact.type = "ADMIN";
-
-        request.info = tenantInfo;
-        request.contacts = Collections.singletonList(tenantContact);
         mockSuperAdmin();
 
-        var created = given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-                .contentType(ContentType.JSON)
-                .when()
-                .post("/tenants")
-                .then()
-                .statusCode(200)
-                .extract()
-                .as(TenantResponseDto.class);
+        var created = createTenant("TENANT-TEST");
 
-        var statusReq = new TenantStatusDto();
-        statusReq.jobs = new ArrayList<>();
+        var started = updateManualJob(created.id, EventStatus.IN_PROGRESS, "Creating domain names");
+        var startedJob = findJob(started, TenantJobEvent.CREATE_DOMAIN_NAMES);
 
-        var job = new EventStatusDto();
-        job.name = TenantJobEvent.CREATE_DOMAIN_NAMES.name();
-        job.status = EventStatus.COMPLETED.name(); // "completed"
-        job.message = "Creating domain names";
-        job.start = Instant.parse("2025-10-22T12:44:48.107Z");
-        job.end = Instant.parse("2025-10-22T12:44:48.107Z");
-        statusReq.jobs.add(job);
+        assertEquals(EventStatus.IN_PROGRESS.name(), startedJob.status);
+        assertEquals("Creating domain names", startedJob.message);
+        assertNotNull(startedJob.start);
+        assertNull(startedJob.end);
 
-        var updated = given()
-                .auth().oauth2(adminToken)
-                .contentType(ContentType.JSON)
-                .body(statusReq)
-                .when()
-                .patch("/tenants/{id}/manual/status", created.id)
-                .then()
-                .statusCode(200)
-                .extract()
-                .as(TenantStatusFullResponse.class);
+        var completed = updateManualJob(created.id, EventStatus.COMPLETED, "Domain names created");
+        var completedJob = findJob(completed, TenantJobEvent.CREATE_DOMAIN_NAMES);
 
-        var updatedJob = updated.status.jobs.stream()
-                .filter(j -> TenantJobEvent.CREATE_DOMAIN_NAMES.key().equalsIgnoreCase(j.name))
-                .findFirst()
-                .orElseThrow();
-
-        assertEquals(EventStatus.COMPLETED.name(), updatedJob.status);
-        assertEquals("Creating domain names", updatedJob.message);
-        assertEquals(Instant.parse("2025-10-22T12:44:48Z"), updatedJob.start);
-        assertEquals(Instant.parse("2025-10-22T12:44:48Z"), updatedJob.end);
+        assertEquals(EventStatus.COMPLETED.name(), completedJob.status);
+        assertEquals("Domain names created", completedJob.message);
+        assertEquals(startedJob.start, completedJob.start);
+        assertNotNull(completedJob.end);
+        assertFalse(completedJob.end.isBefore(completedJob.start));
     }
+
+
+
+    @Test
+    public void updateTenantStatusRerun() {
+
+        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
+        mockSuperAdmin();
+
+        var created = createTenant("TENANT-TEST");
+
+        updateManualJob(created.id, EventStatus.IN_PROGRESS, "Starting");
+
+        var completed = findJob(
+                updateManualJob(created.id, EventStatus.COMPLETED, "Completed"),
+                TenantJobEvent.CREATE_DOMAIN_NAMES
+        );
+
+        assertNotNull(completed.start);
+        assertNotNull(completed.end);
+
+        var initialising = findJob(
+                updateManualJob(created.id, EventStatus.INITIALISING, "Rerunning"),
+                TenantJobEvent.CREATE_DOMAIN_NAMES
+        );
+
+        assertNull(initialising.start);
+        assertNull(initialising.end);
+
+        var initialised = findJob(
+                updateManualJob(created.id, EventStatus.INITIALISED, "Scheduled"),
+                TenantJobEvent.CREATE_DOMAIN_NAMES
+        );
+
+        assertNull(initialised.start);
+        assertNull(initialised.end);
+
+        var restarted = findJob(
+                updateManualJob(created.id, EventStatus.IN_PROGRESS, "Running again"),
+                TenantJobEvent.CREATE_DOMAIN_NAMES
+        );
+
+        assertNotNull(restarted.start);
+        assertNull(restarted.end);
+
+        var failed = findJob(
+                updateManualJob(created.id, EventStatus.FAILED, "Failed"),
+                TenantJobEvent.CREATE_DOMAIN_NAMES
+        );
+
+        assertEquals(EventStatus.FAILED.name(), failed.status);
+        assertEquals(restarted.start, failed.start);
+        assertNotNull(failed.end);
+        assertFalse(failed.end.isBefore(failed.start));
+    }
+
+
 
     @Test
     public void testCreateProject() {
@@ -617,5 +634,34 @@ public class AdminEndpointTest extends KeycloakTest {
         dto.dataRetentionPolicy = "Retention policy text";
 
         return dto;
+    }
+
+    private TenantStatusFullResponse updateManualJob(String tenantId, EventStatus status, String message) {
+
+        var job = new EventStatusDto();
+        job.name = TenantJobEvent.CREATE_DOMAIN_NAMES.key();
+        job.status = status.name();
+        job.message = message;
+
+        var request = new TenantStatusDto();
+        request.jobs = List.of(job);
+
+        return given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .patch("/tenants/{id}/manual/status", tenantId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(TenantStatusFullResponse.class);
+    }
+
+    private EventStatusDto findJob(TenantStatusFullResponse response, TenantJobEvent event) {
+        return response.status.jobs.stream()
+                .filter(job -> event.key().equalsIgnoreCase(job.name))
+                .findFirst()
+                .orElseThrow();
     }
 }
