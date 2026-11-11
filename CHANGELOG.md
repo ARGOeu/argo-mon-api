@@ -29,6 +29,8 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 
 ### Fix
 -[#261](https://github.com/ARGOeu/argo-mon-api/pull/261) ARGO-5988 Automate process no start time
+-[#199](https://github.com/ARGOeu/argo-mon-api/pull/199) ARGO-5760 Fix Quarkus Authorization CDI integration after Quarkus Auth API changed
+-[#263](https://github.com/ARGOeu/argo-mon-api/pull/263) ARGO-6008 Start time in N/A in status in most tenants
 
 
 
