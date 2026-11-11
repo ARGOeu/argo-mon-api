@@ -24,10 +24,7 @@ import org.grnet.status.dtos.project.ProjectRequestDto;
 import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.report.FullReportResponseDto;
 import org.grnet.status.dtos.report.WebApiReportResponse;
-import org.grnet.status.dtos.tenant.ContactDto;
-import org.grnet.status.dtos.tenant.TenantInfoDto;
-import org.grnet.status.dtos.tenant.TenantRequestDto;
-import org.grnet.status.dtos.tenant.TenantResponseDto;
+import org.grnet.status.dtos.tenant.*;
 import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
@@ -1037,6 +1034,106 @@ public class TenantEndpointTest extends KeycloakTest {
 
     }
 
+    @Test
+    public void createTenantWithSupergroupResultsEnabled() {
+        currentMockId = UUID.randomUUID().toString();
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        assertEquals(Boolean.TRUE, tenant.displaySupergroupResults);
+
+        var result = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .get("/v1/tenants/{id}", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(TenantResponseDto.class);
+
+        assertEquals(Boolean.TRUE, result.displaySupergroupResults);
+    }
+    @Test
+    public void updateTenantSupergroupResults() {
+        currentMockId = UUID.randomUUID().toString();
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        assertEquals(Boolean.TRUE, tenant.displaySupergroupResults);
+
+        var request = new TenantSupergroupResultsRequestDto();
+        request.displaySupergroupResults = false;
+
+        var updated = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .patch("/v1/admin/tenants/{id}/display-supergroup-results", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(TenantResponseDto.class);
+
+        assertEquals(Boolean.FALSE, updated.displaySupergroupResults);
+
+        request.displaySupergroupResults = true;
+
+        updated = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .patch("/v1/admin/tenants/{id}/display-supergroup-results", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(TenantResponseDto.class);
+
+        assertEquals(Boolean.TRUE, updated.displaySupergroupResults);
+    }
+
+    @Test
+    public void updateTenantPreservesSupergroupResults() {
+        currentMockId = UUID.randomUUID().toString();
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+
+        assertEquals(Boolean.TRUE, tenant.displaySupergroupResults);
+
+        var request = new TenantRequestDto();
+        var info = new TenantInfoDto();
+        var contact = new ContactDto();
+
+        info.name = "LOCALTENANT";
+        info.email = "updated@test.com";
+        info.description = "Updated tenant description";
+
+        contact.name = "Test User";
+        contact.email = "test@gmail.com";
+        contact.type = "ADMIN";
+
+        request.info = info;
+        request.contacts = List.of(contact);
+
+        // Attempt to change the flag through normal tenant update
+        request.displaySupergroupResults = false;
+
+        var updated = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .put("/v1/tenants/{id}", tenant.id)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(TenantResponseDto.class);
+
+        // Flag must remain true
+        assertEquals(Boolean.TRUE, updated.displaySupergroupResults);
+    }
+
     private TenantResponseDto createTenant() {
         var request = new TenantRequestDto();
         var tenantInfo = new TenantInfoDto();
@@ -1054,6 +1151,8 @@ public class TenantEndpointTest extends KeycloakTest {
 
         request.info = tenantInfo;
         request.contacts = Collections.singletonList(tenantContact);
+        request.displaySupergroupResults = true;
+
 
         return given()
                 .auth().oauth2(adminToken)
