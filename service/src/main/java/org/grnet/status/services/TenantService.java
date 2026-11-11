@@ -2124,7 +2124,8 @@ public class TenantService {
                         || EventStatus.FAILED.name().equalsIgnoreCase(newStatus)) {
 
                     // Preserve execution start and set end on completion or failure.
-                    job.start = existingJob != null ? existingJob.start : null;
+                 //   job.start = existingJob != null ? existingJob.start : null;
+                    job.start = existingJob != null && existingJob.start != null ? existingJob.start : now;
                     job.end = existingJob != null && existingJob.end != null
                             && newStatus.equalsIgnoreCase(previousStatus)
                             ? existingJob.end : now;
