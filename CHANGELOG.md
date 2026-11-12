@@ -25,6 +25,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 ---
 
 ### Added
+-[#262](https://github.com/ARGOeu/argo-mon-api/pull/262) ARGO-6027 argo-mon-api add per tenant flag to display supergroup a/r data
 
 
 ### Fix

@@ -67,6 +67,10 @@ public class Tenant {
     @Getter
     private Boolean publicDowntime;
 
+    @Getter
+    @Column(name = "display_supergroup_results", nullable = false)
+    private Boolean displaySupergroupResults = false;
+
     @ManyToMany(cascade = CascadeType.PERSIST)
     @JoinTable(
             name = "tenant_contact",

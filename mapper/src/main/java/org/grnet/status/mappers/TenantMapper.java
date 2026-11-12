@@ -147,6 +147,7 @@ public interface TenantMapper {
         dto.node = webApiGetResponse.getData().get(0).getNode();
         dto.performance=tenant.getPerformance();
         dto.publicDowntime=tenant.getPublicDowntime();
+        dto.displaySupergroupResults = tenant.getDisplaySupergroupResults();
         return dto;
     }
 
@@ -222,6 +223,7 @@ public interface TenantMapper {
     //@Mapping(target = "node", expression = "java(mapNodeObject(tenant.getNode()))")
     @Mapping(target = "performance", source = "performance")
     @Mapping(target = "publicDowntime", source = "publicDowntime")
+    @Mapping(target = "displaySupergroupResults", source = "displaySupergroupResults")
     TenantResponseDto tenantToDto(Tenant tenant);
 
 
@@ -256,6 +258,7 @@ public interface TenantMapper {
     @Mapping(target = "email", source = "info.email")
     @Mapping(target = "performance", expression = "java(dto.getPerformance() != null ? dto.getPerformance() : false)")
     @Mapping(target = "publicDowntime", expression = "java(dto.getPublicDowntime() != null ? dto.getPublicDowntime() : false)")
+    @Mapping(target = "displaySupergroupResults", ignore = true)
     void updateToTenant(TenantRequestDto dto, @MappingTarget Tenant tenant);
 
     @IterableMapping(qualifiedByName = "map3")
@@ -297,6 +300,7 @@ public interface TenantMapper {
     @Named("tenantToPublicInfo")
     @Mapping(source = "image", target = "logo")
     @Mapping(source = "performance", target = "performance")
+    @Mapping(source = "displaySupergroupResults", target = "displaySupergroupResults")
     PublicTenantInformationResponseDto tenantToPublicInformationDto(Tenant tenant);
 
     public default Tenant mapMetadata(TenantRequestDto dto, Tenant tenant) {

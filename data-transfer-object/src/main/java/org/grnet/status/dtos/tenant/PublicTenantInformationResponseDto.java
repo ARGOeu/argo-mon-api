@@ -26,5 +26,14 @@ public class PublicTenantInformationResponseDto {
     @Valid
     public Boolean performance;
 
+    @Schema(
+            type = SchemaType.BOOLEAN,
+            implementation = Boolean.class,
+            description = "Indicates whether supergroup-level results should be displayed for the tenant",
+            example = "false"
+    )
+    @JsonProperty("display_supergroup_results")
+    public Boolean displaySupergroupResults;
+
 }
 

@@ -6,7 +6,6 @@ import jakarta.validation.Valid;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.grnet.status.dtos.tenant.metadata.TenantMetadata;
-import org.grnet.status.dtos.tenant.node.TenantNodeDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.enums.TenantGroupStatus;
 
@@ -107,4 +106,13 @@ public class TenantResponseDto {
             examples = "Tenant error")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String error;
+
+    @Schema(
+            type = SchemaType.BOOLEAN,
+            implementation = Boolean.class,
+            description = "Indicates whether supergroup-level results should be displayed for the tenant",
+            example = "false"
+    )
+    @JsonProperty("display_supergroup_results")
+    public Boolean displaySupergroupResults;
 }

@@ -150,12 +150,9 @@ public class TenantService {
      * @throws IOException when image handling fails
      */
     @Transactional
-    public TenantResponseDto createTenant(
-            TenantRequestDto request,
-            String userId) throws IOException {
+    public TenantResponseDto createTenant(TenantRequestDto request, String userId) throws IOException {
 
-        var existTenantOpt =
-                tenantRepository.fetchTenantByName(request.info.name);
+        var existTenantOpt = tenantRepository.fetchTenantByName(request.info.name);
 
         if (existTenantOpt.isPresent()) {
             var message =
@@ -173,8 +170,7 @@ public class TenantService {
 
         handleImage(request);
 
-        var tenant =
-                TenantMapper.INSTANCE.dtoToTenant(request.info);
+        var tenant = TenantMapper.INSTANCE.dtoToTenant(request.info);
 
         boolean tenantCreatedRemotely = false;
         String remoteTenantId = null;
@@ -185,24 +181,17 @@ public class TenantService {
         var webApiCreateResponse =
                 webApiService.createTenantInWebApi(webApiRequest);
 
-        remoteTenantId =
-                webApiCreateResponse.getData().getId();
+        remoteTenantId = webApiCreateResponse.getData().getId();
 
         tenantCreatedRemotely = true;
 
-        var status =
-                TenantMapper.INSTANCE.mapStatusToString(
-                        setDefaultStatus()
-                );
+        var status = TenantMapper.INSTANCE.mapStatusToString(setDefaultStatus());
 
         tenant.setStatus(status);
         tenant.setNode(Boolean.TRUE.equals(request.node) ? true : null);
-        tenant.setPerformance(
-                Boolean.TRUE.equals(request.performance)
-        );
-        tenant.setPublicDowntime(
-                Boolean.TRUE.equals(request.publicDowntime)
-        );
+        tenant.setPerformance(Boolean.TRUE.equals(request.performance));
+        tenant.setPublicDowntime(Boolean.TRUE.equals(request.publicDowntime));
+        tenant.setDisplaySupergroupResults(Boolean.TRUE.equals(request.displaySupergroupResults));
 
         try {
             TenantMapper.INSTANCE.mapMetadata(request, tenant);
@@ -216,9 +205,7 @@ public class TenantService {
 
             // Register notifications to be sent only after
             // the DB transaction successfully commits.
-            transactionHelper.sendAfterCommit(() ->
-                    sendNotifications(tenant)
-            );
+            transactionHelper.sendAfterCommit(() -> sendNotifications(tenant));
 
             return TenantMapper.INSTANCE.tenantToDto(tenant);
 
@@ -2273,6 +2260,18 @@ public class TenantService {
 
         alert.getProperties().put("feed_type", feedType.name());
         return notifyAmsInitIntegratorAlert(tenantId, alert);
+    }
+
+
+    @Transactional
+    public TenantResponseDto updateTenantSupergroupResults(String id, Boolean displaySupergroupResults) {
+
+        var tenant = tenantRepository.findByIdOptional(id)
+                .orElseThrow(() -> new NotFoundException("Tenant not found: " + id));
+
+        tenant.setDisplaySupergroupResults(displaySupergroupResults);
+
+        return TenantMapper.INSTANCE.tenantToDto(tenant);
     }
 
     /**

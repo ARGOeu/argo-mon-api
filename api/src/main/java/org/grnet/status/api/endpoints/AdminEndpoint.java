@@ -43,6 +43,7 @@ import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.tenant.ContactFullDto;
 import org.grnet.status.dtos.tenant.TenantRequestDto;
 import org.grnet.status.dtos.tenant.TenantResponseDto;
+import org.grnet.status.dtos.tenant.TenantSupergroupResultsRequestDto;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
 import org.grnet.status.dtos.tenant.invitations.TenantInvitationResponse;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
@@ -1496,6 +1497,62 @@ public class AdminEndpoint {
             @PathParam("id") String id, SettingUpdateDto request) {
         var updated = settingService.updateSetting(id, request, utility.getUserUniqueIdentifier());
         return Response.ok(updated).build();
+    }
+
+    @Tag(name = "Admin")
+    @Operation(
+            summary = "Update tenant supergroup results visibility",
+            description = "Enables or disables the display of supergroup-level monitoring results for a tenant."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Tenant supergroup results visibility updated successfully.",
+            content = @Content(schema = @Schema(
+                    implementation = TenantResponseDto.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Invalid request payload.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User not authenticated.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Setting not found.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error.",
+            content = @Content(schema = @Schema(implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @PATCH
+    @Path("/tenants/{id}/display-supergroup-results")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint
+    public Response updateTenantSupergroupResults(
+            @PathParam("id")
+            @Valid @NotFoundEntity(
+                    repository = TenantRepository.class,
+                    message = "There is no Tenant with the following id: "
+            ) String id,
+            @Valid @NotNull(message = "The request body is empty.")
+            TenantSupergroupResultsRequestDto request) {
+
+        var response = tenantService.updateTenantSupergroupResults(id, request.getDisplaySupergroupResults());
+
+        return Response.ok(response).build();
     }
 
 }
