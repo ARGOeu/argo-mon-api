@@ -26,6 +26,9 @@ import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
+import org.grnet.status.dtos.topology.GroupTopologyDto;
+import org.grnet.status.dtos.topology.PublicGroupTopologyDto;
+import org.grnet.status.dtos.topology.WebApiGroupTopologyResponse;
 import org.grnet.status.services.NodeService;
 import org.grnet.status.services.clients.AmsClient;
 import org.grnet.status.services.clients.AmsClientFactory;
@@ -33,6 +36,7 @@ import org.grnet.status.services.clients.ArgoWebApiClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -111,6 +115,7 @@ public class PublicEndpointTest extends KeycloakTest {
         when(mockClient.publish(anyString(), anyString(), anyString(), any(PublishRequest.class)))
                 .thenReturn(resp);
     }
+
     @BeforeEach
     void setupRepo() {
         TestRoleEndpointRepository testRepo = new TestRoleEndpointRepository();
@@ -216,6 +221,7 @@ public class PublicEndpointTest extends KeycloakTest {
 
         return response;
     }
+
     private TenantWebApiCreateResponse loadMockTenantResponse(String id) {
 
         var tenantWebApiResponse = new TenantWebApiCreateResponse();
@@ -273,7 +279,7 @@ public class PublicEndpointTest extends KeycloakTest {
         var tenant = createTenant("LOCALTENANT");
 
         // No authentication here because endpoint has @PermitAll
-        var response =  given()
+        var response = given()
                 .header("Origin", "https://frontend.com")
                 .when()
                 .get("/v1/public/tenants/{tenant-name}/reports/public", tenant.info.name)
@@ -313,6 +319,7 @@ public class PublicEndpointTest extends KeycloakTest {
 
         assertNotNull(response);
     }
+
     @Test
     public void fetchPrivateReportsWithForbiddenCorsOrigin() {
 
@@ -476,4 +483,68 @@ public class PublicEndpointTest extends KeycloakTest {
 
         return response;
     }
+
+
+    @Test
+    public void fetchPublicGroupTopologiesByReportWithoutAuthentication() {
+
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant("LOCALTENANT");
+
+        var group = new GroupTopologyDto();
+        group.setDate("2015-01-01");
+        group.setGroup("PROJECTA");
+        group.setType("PROJECT");
+        group.setSubgroup("ESHOP");
+        group.setTags(Map.of(
+                "monitored", "1",
+                "scope", "TENANT-TEST",
+                "certification", "Certified"
+        ));
+
+        var notifications = new GroupTopologyDto.NotificationsDTO();
+        notifications.setContacts(List.of("eshop-admin@example.foo"));
+        notifications.setEnabled(false);
+        group.setNotifications(notifications);
+
+        var topologyResponse = new WebApiGroupTopologyResponse();
+        topologyResponse.data = List.of(group);
+
+        when(argoWebApiClient.fetchTopologyGroupsByReportSuperAdmin(
+                anyString(),
+                Mockito.eq(tenant.id),
+                Mockito.eq("TEST_REPORT"),
+                Mockito.isNull()
+        )).thenReturn(topologyResponse);
+
+        var response = given()
+                .contentType(ContentType.JSON)
+                .get(
+                        "/v1/public/tenants/{tenant-name}/topology/groups/by-report/{report-name}",
+                        tenant.info.name,
+                        "TEST_REPORT"
+                )
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(PublicGroupTopologyDto[].class);
+
+        assertNotNull(response);
+        assertEquals(1, response.length);
+
+        var result = response[0];
+
+        assertEquals("2015-01-01", result.getDate());
+        assertEquals("PROJECTA", result.getGroup());
+        assertEquals("PROJECT", result.getType());
+        assertEquals("ESHOP", result.getSubgroup());
+
+        assertEquals(1, result.getTags().size());
+        assertEquals("TENANT-TEST", result.getTags().get("scope"));
+    }
+
+
 }
