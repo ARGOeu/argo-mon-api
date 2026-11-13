@@ -633,6 +633,15 @@ public interface ArgoWebApiClient {
             @QueryParam("end-time") String endTime
     );
 
+    @GET
+    @Path("/api/v2/topology/groups/by_report/{report-name}")
+    WebApiGroupTopologyResponse fetchTopologyGroupsByReportSuperAdmin(
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("date") String date
+    ) throws WebApplicationException, ProcessingException;
+
 
     @GET
     @Path("/api/v5/status/{report-name}/groups/{group-name}/endpoints")

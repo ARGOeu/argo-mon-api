@@ -70,6 +70,9 @@ public class PublicEndpoint {
     @Inject
     IncidentService incidentService;
 
+    @Inject
+    TopologyService topologyService;
+
     @Operation(
             summary = "Get status page configuration by slug",
             description = "Returns only the public configuration (config field) for the given slug."
@@ -3092,5 +3095,59 @@ public class PublicEndpoint {
         var metricDetails = reportService.retrieveLatestDataByGroupName(tenant.id, report.id, groupName, filter, strict, limit);
 
         return Response.ok(metricDetails).build();
+    }
+
+
+    @Tag(name = "Public")
+    @Operation(
+            summary = "Fetch public group topology by report",
+            description = "Retrieves the latest group topology for a public report, exposing only non-sensitive information."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Public group topology retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or public report not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @GET
+    @Path("/tenants/{tenant-name}/topology/groups/by-report/{report-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermitAll
+    public Response fetchPublicGroupTopologiesByReport(
+            @Parameter(
+                    description = "The name of the tenant.",
+                    required = true,
+                    example = "TENANT-TEST",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("tenant-name")
+            String tenantName,
+
+            @Parameter(
+                    description = "The name of the report.",
+                    required = true,
+                    example = "CORE",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("report-name")
+            String reportName) {
+
+        var tenant = tenantService.getTenantByName(tenantName);
+
+        checkPublicReport(tenant.id, reportName);
+
+        var topologies = topologyService.fetchPublicGroupTopologiesByReport(tenant.id, reportName);
+
+        return Response.ok(topologies).build();
     }
 }

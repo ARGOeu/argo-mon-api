@@ -8,12 +8,14 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.topology.EndpointTopologyDto;
 import org.grnet.status.dtos.topology.GroupTopologyDto;
+import org.grnet.status.dtos.topology.PublicGroupTopologyDto;
 import org.grnet.status.dtos.topology.ServiceTypeDto;
 import org.grnet.status.services.clients.ArgoWebApiClient;
 import org.grnet.status.services.clients.WebApiService;
 import org.jboss.logging.Logger;
 
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class TopologyService {
@@ -23,6 +25,9 @@ public class TopologyService {
 
     @Inject
     WebApiService webApiService;
+
+    @Inject
+    ReportService reportService;
 
     @ConfigProperty(name = "web.api.access.token")
     String accessToken;
@@ -147,6 +152,49 @@ public class TopologyService {
             System.out.println("CAUSE: " + e.getCause());
             throw e;
         }
+    }
+
+
+    public List<GroupTopologyDto> fetchGroupTopologiesByReport(String id, String reportId) {
+
+        LOG.infof("Fetching group topology for report %s...", reportId);
+
+        webApiService.validateTenantInitialized(id, "Group Topology");
+
+        var report = reportService.fetchReportById(id, reportId);
+        var response = argoWebApiClient.fetchTopologyGroupsByReportSuperAdmin(accessToken, id, report.info.name, null);
+
+        return response.data;
+    }
+
+
+    public List<PublicGroupTopologyDto> fetchPublicGroupTopologiesByReport(String id, String reportName) {
+
+        LOG.infof("Fetching public group topology for report %s...", reportName);
+
+        webApiService.validateTenantInitialized(id, "Group Topology");
+
+        var response = argoWebApiClient.fetchTopologyGroupsByReportSuperAdmin(accessToken, id, reportName, null);
+
+        return response.data.stream()
+                .map(group -> {
+                    var dto = new PublicGroupTopologyDto();
+
+                    dto.setDate(group.getDate());
+                    dto.setGroup(group.getGroup());
+                    dto.setType(group.getType());
+                    dto.setSubgroup(group.getSubgroup());
+
+                    var scope = group.getTags().get("scope");
+
+                    dto.setTags(
+                            scope != null
+                                    ? Map.of("scope", scope)
+                                    : Map.of());
+
+                    return dto;
+                })
+                .toList();
     }
 
 }

@@ -7599,4 +7599,80 @@ public class TenantEndpoint {
 
         return Response.ok(metricDetails).build();
     }
+
+    @Tag(name = "Topologies")
+    @Operation(
+            summary = "Fetch ARGO group topologies by report",
+            description = "Retrieves the latest group topology for a specific report from the ARGO Web API."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Group topology retrieved successfully.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Tenant or report not found.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "502",
+            description = "Connection error.",
+            content = @Content(schema = @Schema(
+                    implementation = InformativeResponse.class))
+    )
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/topology/groups/by-report/{report-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    ),
+                    @ParamRef(
+                            param = "report-id",
+                            type = ParamType.PATH,
+                            referTo = ReportsResource.class
+                    )
+            }
+    )
+    public Response fetchGroupTopologiesByReport(
+            @Parameter(
+                    description = "The ID of the tenant.",
+                    required = true,
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(
+                    repository = TenantRepository.class,
+                    message = "There is no Tenant with the following id: ")
+            String id,
+
+            @Parameter(
+                    description = "The ID of the report.",
+                    required = true,
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("report-id")
+            String reportId) {
+
+        var topologies = topologyService.fetchGroupTopologiesByReport(id, reportId);
+
+        return Response.ok(topologies).build();
+    }
 }

@@ -29,10 +29,7 @@ import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiCreateResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
 import org.grnet.status.dtos.tenantproject.TenantProjectRequestDto;
-import org.grnet.status.dtos.topology.EndpointTopologyDto;
-import org.grnet.status.dtos.topology.FeedTopologyDto;
-import org.grnet.status.dtos.topology.WebApiEndpointTopologyResponse;
-import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
+import org.grnet.status.dtos.topology.*;
 import org.grnet.status.enums.DowntimeSeverity;
 import org.grnet.status.enums.FeedType;
 import org.grnet.status.enums.IncidentStatus;
@@ -47,10 +44,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1133,6 +1127,97 @@ public class TenantEndpointTest extends KeycloakTest {
         // Flag must remain true
         assertEquals(Boolean.TRUE, updated.displaySupergroupResults);
     }
+
+
+
+    @Test
+    public void fetchGroupTopologiesByReport() {
+
+        currentMockId = UUID.randomUUID().toString();
+
+        mockSuperAdmin();
+
+        var tenant = createTenant();
+        var reportId = UUID.randomUUID().toString();
+
+        var report = new FullReportResponseDto();
+        report.id = reportId;
+        report.info = new FullReportResponseDto.Info();
+        report.info.name = "CORE";
+
+        var reportResponse = new WebApiReportResponse();
+        reportResponse.data = List.of(report);
+
+        when(argoWebApiClient.fetchReportByIdSuperAdmin(
+                Mockito.eq(reportId),
+                anyString(),
+                Mockito.eq(tenant.id)
+        )).thenReturn(reportResponse);
+
+        when(argoWebApiClient.fetchReportsSuperAdmin(
+                anyString(),
+                Mockito.eq(tenant.id),
+                Mockito.nullable(String.class),
+                Mockito.nullable(String.class),
+                Mockito.nullable(String.class)
+        )).thenReturn(reportResponse);
+
+        var group = new GroupTopologyDto();
+        group.setDate("2015-01-01");
+        group.setGroup("PROJECTA");
+        group.setType("PROJECT");
+        group.setSubgroup("ESHOP");
+        group.setTags(Map.of(
+                "monitored", "1",
+                "scope", "TENANT-TEST"
+        ));
+
+        var notifications = new GroupTopologyDto.NotificationsDTO();
+        notifications.setContacts(List.of("eshop-admin@example.foo"));
+        notifications.setEnabled(false);
+        group.setNotifications(notifications);
+
+        var topologyResponse = new WebApiGroupTopologyResponse();
+        topologyResponse.data = List.of(group);
+
+        when(argoWebApiClient.fetchTopologyGroupsByReportSuperAdmin(
+                anyString(),
+                Mockito.eq(tenant.id),
+                Mockito.eq("CORE"),
+                Mockito.isNull()
+        )).thenReturn(topologyResponse);
+
+        var response = given()
+                .auth().oauth2(adminToken)
+                .contentType(ContentType.JSON)
+                .when()
+                .get("/v1/tenants/{id}/topology/groups/by-report/{report-id}", tenant.id, reportId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(GroupTopologyDto[].class);
+
+        assertNotNull(response);
+        assertEquals(1, response.length);
+
+        var result = response[0];
+
+        assertEquals("2015-01-01", result.getDate());
+        assertEquals("PROJECTA", result.getGroup());
+        assertEquals("PROJECT", result.getType());
+        assertEquals("ESHOP", result.getSubgroup());
+
+        assertEquals("TENANT-TEST", result.getTags().get("scope"));
+        assertEquals("1", result.getTags().get("monitored"));
+
+        assertNotNull(result.getNotifications());
+        assertEquals(
+                "eshop-admin@example.foo",
+                result.getNotifications().getContacts().get(0)
+        );
+        assertFalse(result.getNotifications().isEnabled());
+    }
+
 
     private TenantResponseDto createTenant() {
         var request = new TenantRequestDto();
