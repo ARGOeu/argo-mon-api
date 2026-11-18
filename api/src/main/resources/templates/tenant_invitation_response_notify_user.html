@@ -178,38 +178,54 @@
                         </td>
                     </tr>
 
+
+                    <!-- BODY -->
                     <tr>
                         <td class="content">
                             <h2>Invitation accepted</h2>
 
                             <p>
                                 Dear user,<br><br>
-                                You have successfully accepted the invitation on <b>{title}</b>.
-                                You can now access the tenant.
+                                Your invitation has been successfully accepted.
+                                Your access to the <b>ARGO Monitoring Service</b>
+                                is now active.
                             </p>
+
+                            <p>You have been granted the following access:</p>
 
                             <div class="pillbox">
                                 <p style="margin:0;">
                                     Tenant: <b>{tenantName}</b><br>
-                                    Role: <b>{role}</b>
+                                    Assigned role: <b>{role}</b>
                                 </p>
                             </div>
 
-                            <p class="muted">
-                                You can access the tenant from the platform.
+                            <p>
+                                You are all set! You can now visit your tenant
+                                workspace and start using the service.
                             </p>
 
-                            <div style="padding-top:8px;">
-                                <a class="btn" href="{uiUrl}" target="_blank" rel="noopener">
-                                    View Tenant Details
+                            <p class="muted">Access your tenant here:</p>
+
+                            <div class="btn-wrap">
+                                <a class="btn" href="{uiUrl}"
+                                   target="_blank" rel="noopener">
+                                    Access Your Tenant
                                 </a>
                             </div>
 
                             <p class="muted" style="margin-top:18px;">
-                                If you did not perform this action, please contact support.
+                                If you did not accept this invitation,
+                                please contact us immediately at
+                                <a href="mailto:{replyTo}">{replyTo}</a>.
+                            </p>
+
+                            <p>
+                                Thank you for joining ARGO Monitoring Service.
                             </p>
                         </td>
                     </tr>
+
 
                     <tr>
                         <td class="footer">
