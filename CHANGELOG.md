@@ -27,6 +27,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 ### Added
 -[#262](https://github.com/ARGOeu/argo-mon-api/pull/262) ARGO-6027 argo-mon-api add per tenant flag to display supergroup a/r data
 -[#264](https://github.com/ARGOeu/argo-mon-api/pull/264) ARGO-6033 argo-mon-ui exploring api calls needed for a/r filters in the ui
+-[](https://github.com/ARGOeu/argo-mon-api/pull/266) ARGO-6048 Integrate published ARGO Web API container image into Quarkus Compose Dev Services
 
 
 ### Fix
