@@ -9,13 +9,21 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.argo.ArgoWebApiErrorResponse;
+import org.grnet.status.dtos.argo.web.api.ArgoCreateRecomputationResponse;
+import org.grnet.status.dtos.argo.web.api.ArgoRecomputationResponse;
+import org.grnet.status.dtos.argo.web.api.RecomputationResponse;
+import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
+import org.grnet.status.dtos.recomputations.RecomputationRequestDto;
+import org.grnet.status.dtos.recomputations.RecomputationUpdateResponse;
 import org.grnet.status.dtos.report.WebApiReportResponse;
 import org.grnet.status.dtos.status.*;
 import org.grnet.status.dtos.tenant.node.*;
 import org.grnet.status.dtos.tenant.webapi.*;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
+import org.grnet.status.dtos.topology.WebApiEndpointTopologyResponse;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
+import org.grnet.status.dtos.topology.WebApiGroupTopologyResponse;
 import org.grnet.status.repositories.TenantRepository;
 import org.jboss.logging.Logger;
 
@@ -408,7 +416,7 @@ public class WebApiService {
         }
     }
 
-    public WebApiNodeMonitoringMetricResponse retrieveNodeMonitoringMetrics(String nodeName,String item, String startDate, String endDate, String granularity) {
+    public WebApiNodeMonitoringMetricResponse retrieveNodeMonitoringMetrics(String nodeName, String item, String startDate, String endDate, String granularity) {
         try {
 
             if (StringUtils.isBlank(item)) {
@@ -417,7 +425,7 @@ public class WebApiService {
 
             return argoWebApiClient.getNodeMonitoringMetricsByMetric(accessToken, nodeName, item, startDate, endDate, granularity);
 
-           } catch (WebApplicationException e) {
+        } catch (WebApplicationException e) {
 
             int status = e.getResponse().getStatus();
 
@@ -877,7 +885,7 @@ public class WebApiService {
 
         if (report.data.get(0).disabled) {
             throw new WebApplicationException(
-                    "Report '" + report.data.get(0).info.name  + "' is inactive and cannot be made public.",
+                    "Report '" + report.data.get(0).info.name + "' is inactive and cannot be made public.",
                     409
             );
         }
@@ -1474,6 +1482,178 @@ public class WebApiService {
             );
         }
     }
+
+    public ArgoCreateRecomputationResponse createRecomputation(String tenantId,
+                                                               RecomputationRequestDto request) {
+
+        try {
+            return argoWebApiClient.createRecomputation(
+                    accessToken,
+                    tenantId,
+                    request
+            );
+        } catch (RuntimeException e) {
+            LOG.error("Failed to create recomputation", e);
+            throw e;
+        }
+    }
+
+    public RecomputationUpdateResponse updateRecomputation(String tenantId, String recomputationId,
+                                                           RecomputationRequestDto request) {
+
+        try {
+            return argoWebApiClient.updateRecomputation(accessToken, tenantId, recomputationId, request);
+        } catch (RuntimeException e) {
+            LOG.error("Failed to create recomputation", e);
+            throw e;
+        }
+    }
+
+    public ArgoRecomputationResponse getRecomputations(String tenantId, String date, String report) {
+
+        try {
+            return argoWebApiClient.getRecomputations(
+                    accessToken,
+                    tenantId,
+                    date,
+                    report
+            );
+        } catch (RuntimeException e) {
+            LOG.error("Failed to create recomputation", e);
+            throw e;
+        }
+    }
+
+
+    public ArgoRecomputationResponse getRecomputationById(String tenantId, String recomputationId) {
+
+        try {
+            return argoWebApiClient.getRecomputationById(
+                    accessToken,
+                    tenantId,
+                    recomputationId
+            );
+        } catch (RuntimeException e) {
+            LOG.error("Failed to create recomputation", e);
+            throw e;
+        }
+    }
+
+
+    public void deleteRecomputationById(String tenantId, String recomputationId) {
+
+        try {
+            argoWebApiClient.deleteRecomputationById(
+                    accessToken,
+                    tenantId,
+                    recomputationId
+            );
+        } catch (RuntimeException e) {
+            LOG.error("Failed to create recomputation", e);
+            throw e;
+        }
+    }
+
+
+    public MetricProfileResponse listSpecificMetricProfiles(String tenantId, String metricId) {
+
+        try {
+
+            return argoWebApiClient.listSpecificMetricProfilesSuperAdmin(metricId, null, accessToken, tenantId);
+
+        } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Metric Profile", metricId);
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Profiles... failed to retrieve metric profile with id: "
+                            + metricId + " from Argo Web Api",
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e,
+                    "Retrieving Metric Profile failed in Argo Web Api. metricId=%s",
+                    metricId
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Metric Profile... failed to retrieve metric profile with id: "
+                            + metricId + " from Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public WebApiGroupTopologyResponse listTopologyGroupsByReport(String tenantId, String reportName) {
+
+        try {
+
+            return argoWebApiClient.fetchTopologyGroupsByReportSuperAdmin(accessToken, tenantId,reportName,null);
+
+        } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Group Topology for report", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Group Topology... failed to retrieve group topology for report with name: "
+                            + reportName + " from Argo Web Api",
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e,
+                    "Retrieving Group Topology failed in Argo Web Api. reportName=%s",
+                    reportName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Group Topology... failed to retrieve group topology for report with name: "
+                            + reportName + " from Argo Web Api",
+                    500
+            );
+        }
+    }
+
+    public WebApiEndpointTopologyResponse listTopologyEndpointsByReport(String tenantId, String reportName) {
+
+        try {
+
+            return argoWebApiClient.fetchTopologyEndpointsByReportSuperAdmin(accessToken, tenantId,reportName,null);
+
+        } catch (WebApplicationException e) {
+
+            int status = e.getResponse().getStatus();
+
+            logArgoError(e, "Retrieving Endpoinnt Topology for report", reportName);
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Topology... failed to retrieve endpoint topology for report with name: "
+                            + reportName + " from Argo Web Api",
+                    status
+            );
+
+        } catch (RuntimeException e) {
+
+            LOG.errorf(e,
+                    "Retrieving Endpoint Topology failed in Argo Web Api. reportName=%s",
+                    reportName
+            );
+
+            throw new WebApplicationException(
+                    "Retrieving Endpoint Topology... failed to retrieve endpoint topology for report with name: "
+                            + reportName + " from Argo Web Api",
+                    500
+            );
+        }
+    }
+
 }
 
 

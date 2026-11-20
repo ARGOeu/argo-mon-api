@@ -7,10 +7,15 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.grnet.status.dtos.LatestDataResponse;
 import org.grnet.status.dtos.Status;
 import org.grnet.status.dtos.argo.ArgoStatusGroupsResponse;
+import org.grnet.status.dtos.argo.web.api.ArgoCreateRecomputationResponse;
+import org.grnet.status.dtos.argo.web.api.ArgoRecomputationResponse;
+import org.grnet.status.dtos.argo.web.api.RecomputationResponse;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
 import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
 import org.grnet.status.dtos.profile.operation.OperationProfileResponse;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
+import org.grnet.status.dtos.recomputations.RecomputationRequestDto;
+import org.grnet.status.dtos.recomputations.RecomputationUpdateResponse;
 import org.grnet.status.dtos.report.WebApiReportResponse;
 import org.grnet.status.dtos.status.*;
 import org.grnet.status.dtos.tenant.node.*;
@@ -274,6 +279,16 @@ public interface ArgoWebApiClient {
             @QueryParam("date") String date
     ) throws WebApplicationException, ProcessingException;
 
+
+    @GET
+    @Path("/api/v2/topology/endpoints/by_report/{report-name}")
+    WebApiEndpointTopologyResponse fetchTopologyEndpointsByReportSuperAdmin(
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("report-name") String reportName,
+            @QueryParam("date") String date
+    ) throws WebApplicationException, ProcessingException;
+
     @GET
     @Path("/api/v2/topology/service-types")
     WebApiServiceTypeResponse fetchServiceTypesSuperAdmin(
@@ -395,6 +410,7 @@ public interface ArgoWebApiClient {
             @QueryParam("end_time") String endTime,
             @QueryParam("history") Boolean history
     );
+
     @GET
     @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics")
     WebApiNodeMonitoringMetricResponse getNodeMonitoringMetrics(
@@ -404,6 +420,7 @@ public interface ArgoWebApiClient {
             @QueryParam("end-date") String endDate,
             @QueryParam("granularity") String granularity
     );
+
     @GET
     @Path("/api/v4/nodes/{nodeName}/capabilities/monitoring/metrics/{item}")
     WebApiNodeMonitoringMetricResponse getNodeMonitoringMetricsByMetric(
@@ -599,6 +616,7 @@ public interface ArgoWebApiClient {
             @QueryParam("end-time") String endTime,
             @QueryParam("granularity") String granularity
     );
+
     @GET
     @Path("/api/v5/results/{report-name}/groups/{group-name}/endpoints/{endpoint-name}")
     TenantWebApiGroupEndpointResultsByReportResponse geResultsEndpointsByReportGroupAndEndpoint(
@@ -823,4 +841,46 @@ public interface ArgoWebApiClient {
             @HeaderParam("x-api-key") String apiKey,
             @HeaderParam("x-tenant-id") String tenantId
     ) throws WebApplicationException, ProcessingException;
+
+    @POST
+    @Path("/api/v2/recomputations")
+    ArgoCreateRecomputationResponse createRecomputation(
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId,
+            RecomputationRequestDto request
+    );
+
+    @PUT
+    @Path("/api/v2/recomputations/{recomputation-id}")
+    RecomputationUpdateResponse updateRecomputation(
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("recomputation-id") String recomputationId,
+            RecomputationRequestDto request
+    );
+
+    @GET
+    @Path("/api/v2/recomputations")
+    ArgoRecomputationResponse getRecomputations(
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @QueryParam("date") String date,
+            @QueryParam("report") String report
+    );
+
+    @GET
+    @Path("/api/v2/recomputations/{id}")
+    ArgoRecomputationResponse getRecomputationById(
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("id") String id
+    );
+
+    @DELETE
+    @Path("/api/v2/recomputations/{id}")
+    void deleteRecomputationById(
+            @HeaderParam("x-api-key") String apiKey,
+            @HeaderParam("x-tenant-id") String tenantId,
+            @PathParam("id") String id
+    );
 }

@@ -17,10 +17,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.AuthGroupManagement;
 import org.grnet.endpoint.scanner.runtime.clients.groupmanagement.response.GroupUserResponse;
 import org.grnet.endpoint.scanner.runtime.context.RoleEndpointHolder;
-import org.grnet.endpoint.scanner.runtime.services.OidcResourceAuthorizationService;
 import org.grnet.endpoint.scanner.runtime.entitlements.qualifiers.ExternalSystemAuthorization;
-
-import org.grnet.endpoint.scanner.runtime.services.ResourceAuthorizationService;
+import org.grnet.endpoint.scanner.runtime.services.OidcResourceAuthorizationService;
 import org.grnet.status.dtos.ams.PublishRequest;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
@@ -31,11 +29,22 @@ import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
 import org.grnet.status.dtos.tenant.metadata.InstanceDto;
 import org.grnet.status.dtos.tenant.metadata.TenantMetadata;
-import org.grnet.status.dtos.tenant.node.*;
+import org.grnet.status.dtos.tenant.node.WebApiNodeAvailabilityResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeSummaryResponse;
 import org.grnet.status.dtos.tenant.status.EventStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
-import org.grnet.status.dtos.tenant.webapi.*;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiEndpointResultsByReportResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGetResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupEndpointResultsByReportResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsByReportResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiSupergroupsResponse;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.IsExternalFeedTopologyResponse;
 import org.grnet.status.dtos.topology.WebApiFeedsTopologyResponse;
@@ -43,7 +52,14 @@ import org.grnet.status.entities.Contact;
 import org.grnet.status.entities.Page;
 import org.grnet.status.entities.PageQueryImpl;
 import org.grnet.status.entities.Tenant;
-import org.grnet.status.enums.*;
+import org.grnet.status.enums.ContactType;
+import org.grnet.status.enums.EventMode;
+import org.grnet.status.enums.EventName;
+import org.grnet.status.enums.EventStatus;
+import org.grnet.status.enums.FeedType;
+import org.grnet.status.enums.TenantGroupStatus;
+import org.grnet.status.enums.TenantJobEvent;
+import org.grnet.status.enums.TenantJobProperty;
 import org.grnet.status.enums.resources.TenantResource;
 import org.grnet.status.exceptions.CustomRuntimeException;
 import org.grnet.status.mappers.TenantMapper;
@@ -57,7 +73,17 @@ import org.grnet.status.util.Utility;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -2324,47 +2350,4 @@ public class TenantService {
 
         return webApiService.retrieveNodeMonitoringMetricByService(tenant.name, serviceId, startDate, endDate, granularity);
     }
-
-//    private void sendAfterCommit(
-//            String tenantId,
-//            AlertDefinitionRequest alert,
-//            String eventMsg) {
-//
-//        TransactionSynchronizationRegistry tsr =
-//                CDI.current()
-//                        .select(TransactionSynchronizationRegistry.class)
-//                        .get();
-//
-//        tsr.registerInterposedSynchronization(new Synchronization() {
-//
-//            @Override
-//            public void beforeCompletion() {
-//                // Nothing to do
-//            }
-//
-//            @Override
-//            public void afterCompletion(int status) {
-//
-//                if (status == Status.STATUS_COMMITTED) {
-//                    try {
-//                        send(tenantId, alert, eventMsg);
-//                    } catch (Exception e) {
-//                        Log.errorf(
-//                                e,
-//                                "Failed to send alert after tenant transaction committed | tenantId=%s | event=%s",
-//                                tenantId,
-//                                alert.name
-//                        );
-//                    }
-//                } else {
-//                    Log.warnf(
-//                            "Tenant transaction did not commit. Alert will not be sent | tenantId=%s | event=%s | status=%s",
-//                            tenantId,
-//                            alert.name,
-//                            status
-//                    );
-//                }
-//            }
-//        });
-//    }
 }
