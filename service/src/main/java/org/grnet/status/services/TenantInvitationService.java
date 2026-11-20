@@ -76,7 +76,7 @@ public class TenantInvitationService {
             mailerService.sendTenantInvitationEmail(
                     List.of(existing.email),
                     tenant.name,
-                    existing.role,
+                    groupManagementService.resolveRoleDisplayName(existing.role),
                     invitationUrl
             );
 
@@ -96,7 +96,7 @@ public class TenantInvitationService {
         mailerService.sendTenantInvitationEmail(
                 List.of(invitation.email),
                 tenant.name,
-                invitation.role,
+                groupManagementService.resolveRoleDisplayName(invitation.role),
                 invitationUrl
         );
 
@@ -309,6 +309,8 @@ public class TenantInvitationService {
      */
     private void sendInvitationNotifications(TenantInvitationResponse response) {
 
+        var roleDisplayName = groupManagementService.resolveRoleDisplayName(response.role);
+
         // Invitee mail (only on ACCEPT)
         if (response.status == InvitationStatus.ACCEPTED) {
 
@@ -318,7 +320,7 @@ public class TenantInvitationService {
                 mailerService.sendInvitationAcceptedToInvitee(
                         List.of(response.email),
                         response.tenantName,
-                        response.role,
+                        roleDisplayName,
                         tenantDetailsUrl
                 );
             } catch (Exception e) {
@@ -355,7 +357,7 @@ public class TenantInvitationService {
                     adminEmails,
                     response.tenantName,
                     response.email,
-                    response.role,
+                    roleDisplayName,
                     response.status,
                     tenantMembersUrl
             );

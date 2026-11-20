@@ -251,4 +251,39 @@ public class GroupManagementService {
         return user;
     }
 
+
+    /**
+     * Resolves the preferred name of a role from its group attributes.
+     * Falls back to the original role name if no preferred name exists.
+     *
+     * @param role role identifier
+     * @return preferred role name or original role identifier
+     */
+
+    public String resolveRoleDisplayName(String role) {
+
+        if (role == null || role.isBlank()) {
+            return role;
+        }
+
+        var groupPath = normalizePath(parentGroup) + "/" + role;
+
+        var group = groupManagement.flattenGroups().get(groupPath);
+
+        if (group == null || group.attributes == null) {
+            return role;
+        }
+
+        var preferredNames = group.attributes.get("preferred_name");
+
+        if (preferredNames == null || preferredNames.isEmpty()) {
+            return role;
+        }
+
+        var preferredName = preferredNames.get(0);
+
+        return preferredName != null && !preferredName.isBlank()
+                ? preferredName
+                : role;
+    }
 }

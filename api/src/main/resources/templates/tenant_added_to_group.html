@@ -70,37 +70,55 @@
                                 </td>
                             </tr>
 
+
                             <!-- BODY -->
                             <tr>
                                 <td class="content">
-                                    <h2>You have been added</h2>
+                                    <h2>You have been added to a tenant</h2>
 
                                     <p>
-                                        Dear User,<br><br>
-                                        You have been successfully added to the tenant <b>{tenantName}</b> on <b>{title}</b>.
+                                        Dear user,<br><br>
+                                        You have been successfully added to the
+                                        <b>{tenantName}</b> tenant on the
+                                        <b>ARGO Monitoring Service</b>.
+                                        Your access is now active.
                                     </p>
+
+                                    <p>You have been granted the following access:</p>
 
                                     <div class="pillbox">
                                         <p style="margin:0;">
                                             Tenant: <b>{tenantName}</b><br>
-                                            Your role: <b>{role}</b>
+                                            Assigned role: <b>{role}</b>
                                         </p>
                                     </div>
 
                                     <p>
-                                        You can now access the platform and start using the available services.
+                                        You are all set! You can now visit your tenant
+                                        workspace and start using the service.
                                     </p>
 
-                                    <!-- Optional button -->
+                                    <p class="muted">Access your tenant here:</p>
+
                                     <div class="btn-wrap">
-                                        <a class="btn" href="{uiUrl}" target="_blank" rel="noopener">Open platform</a>
+                                        <a class="btn" href="{uiUrl}"
+                                           target="_blank" rel="noopener">
+                                            Access Your Tenant
+                                        </a>
                                     </div>
 
-                                    <p class="muted" style="margin-top:16px;">
-                                        If you believe this was sent by mistake, please contact the platform administrators.
+                                    <p class="muted" style="margin-top:18px;">
+                                        If you believe you have been added to this tenant
+                                        by mistake, please contact us at
+                                        <a href="mailto:{replyTo}">{replyTo}</a>.
+                                    </p>
+
+                                    <p>
+                                        Thank you for using ARGO Monitoring Service.
                                     </p>
                                 </td>
                             </tr>
+
 
                             <!-- FOOTER -->
                             <tr>
