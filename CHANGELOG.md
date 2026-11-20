@@ -35,6 +35,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 -[#199](https://github.com/ARGOeu/argo-mon-api/pull/199) ARGO-5760 Fix Quarkus Authorization CDI integration after Quarkus Auth API changed
 -[#263](https://github.com/ARGOeu/argo-mon-api/pull/263) ARGO-6008 Start time in N/A in status in most tenants
 -[#265](https://github.com/ARGOeu/argo-mon-api/pull/265) ARGO-5363: Change Description In emails in invitation
+-[#268](https://github.com/ARGOeu/argo-mon-api/pull/268) ARGO-6050: Enable CORS for tenant logos in all environments
 
 
 
