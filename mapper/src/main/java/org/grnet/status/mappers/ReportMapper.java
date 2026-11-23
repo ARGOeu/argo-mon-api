@@ -23,11 +23,15 @@ public interface ReportMapper {
     @Mapping(target = "updatedAt", source = "info.updated")
     @Mapping(target = "nodeReport", source = "nodeReport")
     @Mapping(target = "publicReport", source = "publicReport", defaultValue = "false")
+    @Mapping(target = "thresholds", source = "thresholds")
+    @Mapping(target = "topologySchema", source = "topology_schema")
     PartialReportResponseDto fullToPartialReport(FullReportResponseDto source);
 
 
     @Mapping(target = "name", source = "info.name")
     @Mapping(target = "node", source = "nodeReport")
+    @Mapping(target = "thresholds", source = "thresholds")
+    @Mapping(target = "topologySchema", source = "topology_schema")
     MiniReportResponse fullToMiniReport(FullReportResponseDto source);
 
     default Instant map(Timestamp timestamp) {

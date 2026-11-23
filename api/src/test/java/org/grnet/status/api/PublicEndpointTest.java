@@ -217,6 +217,19 @@ public class PublicEndpointTest extends KeycloakTest {
         report.thresholds = thresholds;
 
 
+        var topologySchema = new FullReportResponseDto.TopologySchema();
+
+        var group = new FullReportResponseDto.TopologySchema.Group();
+        group.type = "PROJECT";
+
+        var nestedGroup = new FullReportResponseDto.TopologySchema.Group.NestedGroup();
+        nestedGroup.type = "SERVICEGROUPS";
+
+        group.group = nestedGroup;
+        topologySchema.group = group;
+
+        report.topology_schema = topologySchema;
+
         response.data = List.of(report);
 
         return response;
@@ -272,13 +285,12 @@ public class PublicEndpointTest extends KeycloakTest {
     @Test
     public void fetchPublicReportsWithoutAuthentication() {
 
-        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";  // dynamically set here
+        currentMockId = "e1ab046c-8544-47e6-bd8f-e8aa8b83acb3";
 
         mockSuperAdmin();
 
         var tenant = createTenant("LOCALTENANT");
 
-        // No authentication here because endpoint has @PermitAll
         var response = given()
                 .header("Origin", "https://frontend.com")
                 .when()
@@ -290,6 +302,26 @@ public class PublicEndpointTest extends KeycloakTest {
                 .as(MiniReportResponse[].class);
 
         assertNotNull(response);
+        assertEquals(1, response.length);
+
+        var report = response[0];
+
+        assertEquals("report-1", report.id);
+        assertEquals("TEST_REPORT", report.name);
+
+        // Thresholds
+        assertNotNull(report.thresholds);
+        assertEquals(80, report.thresholds.availability);
+        assertEquals(90, report.thresholds.reliability);
+        assertEquals(0.8, report.thresholds.uptime);
+        assertEquals(0.1, report.thresholds.unknown);
+        assertEquals(0.1, report.thresholds.downtime);
+
+        // Topology schema
+        assertNotNull(report.topologySchema);
+        assertNotNull(report.topologySchema.group);
+        assertEquals("PROJECT", report.topologySchema.group.type);
+        assertEquals("SERVICEGROUPS", report.topologySchema.group.group.type);
     }
 
     @Test
@@ -301,12 +333,11 @@ public class PublicEndpointTest extends KeycloakTest {
 
         var tenant = createTenant("LOCALTENANT");
 
-
         var response = given()
                 .auth()
                 .oauth2(adminToken)
                 .header("Origin", "https://frontend.com")
-                .basePath("/v1/tenants")//
+                .basePath("/v1/tenants")
                 .contentType(ContentType.JSON)
                 .when()
                 .get("/{id}/reports", tenant.id)
@@ -316,8 +347,27 @@ public class PublicEndpointTest extends KeycloakTest {
                 .extract()
                 .as(PartialReportResponseDto[].class);
 
-
         assertNotNull(response);
+        assertEquals(1, response.length);
+
+        var report = response[0];
+
+        assertEquals("report-1", report.id);
+        assertEquals("TEST_REPORT", report.name);
+
+        // Thresholds
+        assertNotNull(report.thresholds);
+        assertEquals(80, report.thresholds.availability);
+        assertEquals(90, report.thresholds.reliability);
+        assertEquals(0.8, report.thresholds.uptime);
+        assertEquals(0.1, report.thresholds.unknown);
+        assertEquals(0.1, report.thresholds.downtime);
+
+        // Topology schema
+        assertNotNull(report.topologySchema);
+        assertNotNull(report.topologySchema.group);
+        assertEquals("PROJECT", report.topologySchema.group.type);
+        assertEquals("SERVICEGROUPS", report.topologySchema.group.group.type);
     }
 
     @Test
