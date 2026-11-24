@@ -29,4 +29,15 @@ public class MiniReportResponse {
     @JsonProperty("node")
     public Boolean node;
 
+    @Schema(type = SchemaType.OBJECT,
+            implementation = FullReportResponseDto.Thresholds.class,
+            description = "Threshold values for availability, reliability, uptime, unknown and downtime")
+    @JsonProperty("thresholds")
+    public FullReportResponseDto.Thresholds thresholds;
+
+    @Schema(type = SchemaType.OBJECT,
+            implementation = FullReportResponseDto.TopologySchema.class,
+            description = "Topology schema defining the report's group and supergroup structure")
+    @JsonProperty("topology_schema")
+    public FullReportResponseDto.TopologySchema topologySchema;
 }

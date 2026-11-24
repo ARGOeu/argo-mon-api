@@ -28,6 +28,7 @@ According to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) , the `Unr
 -[#262](https://github.com/ARGOeu/argo-mon-api/pull/262) ARGO-6027 argo-mon-api add per tenant flag to display supergroup a/r data
 -[#264](https://github.com/ARGOeu/argo-mon-api/pull/264) ARGO-6033 argo-mon-ui exploring api calls needed for a/r filters in the ui
 -[#267](https://github.com/ARGOeu/argo-mon-api/pull/267) ARGO-6051: Initialize default authorization roles, endpoint permissions, and test users in dev mode
+-[#269](https://github.com/ARGOeu/argo-mon-api/pull/269) ARGO-6059: argo-web-api provide threshold and topology info when listing reports
 
 
 ### Fix

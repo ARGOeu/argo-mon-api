@@ -29,6 +29,7 @@ import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.LatestDataResponse;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.report.FullReportResponseDto;
+import org.grnet.status.dtos.report.MiniReportResponse;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
 import org.grnet.status.dtos.setting.SettingResponseDto;
 import org.grnet.status.dtos.status.*;
@@ -298,7 +299,7 @@ public class PublicEndpoint {
             description = "List of available public reports",
             content = @Content(schema = @Schema(
                     type = SchemaType.ARRAY,
-                    implementation = PartialReportResponseDto.class)))
+                    implementation = MiniReportResponse.class)))
     @APIResponse(
             responseCode = "401",
             description = "User has not been authenticated.",
