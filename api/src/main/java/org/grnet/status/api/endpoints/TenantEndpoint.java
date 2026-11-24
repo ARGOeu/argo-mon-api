@@ -6,7 +6,17 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -37,21 +47,35 @@ import org.grnet.status.constraints.ValidLatestDataStatusFilter;
 import org.grnet.status.dtos.InformativeResponse;
 import org.grnet.status.dtos.LatestDataResponse;
 import org.grnet.status.dtos.Status;
+import org.grnet.status.dtos.argo.web.api.ArgoRecomputationResponse;
+import org.grnet.status.dtos.argo.web.api.RecomputationResponse;
 import org.grnet.status.dtos.downtime.DowntimeRequest;
 import org.grnet.status.dtos.downtime.DowntimeResponse;
 import org.grnet.status.dtos.general.ExistResponseDto;
-import org.grnet.status.dtos.incident.*;
+import org.grnet.status.dtos.incident.IncidentActivityResponseDto;
+import org.grnet.status.dtos.incident.IncidentCommentRequestDto;
+import org.grnet.status.dtos.incident.IncidentCommentResponseDto;
+import org.grnet.status.dtos.incident.IncidentDescriptionUpdateRequestDto;
 import org.grnet.status.dtos.incident.IncidentRequestDto;
 import org.grnet.status.dtos.incident.IncidentResponseDto;
+import org.grnet.status.dtos.incident.IncidentStatusDescriptionUpdateRequestDto;
+import org.grnet.status.dtos.incident.IncidentStatusUpdateRequestDto;
 import org.grnet.status.dtos.pagination.PageResource;
 import org.grnet.status.dtos.profile.aggregation.AggregationProfileResponse;
 import org.grnet.status.dtos.profile.metric.MetricProfileResponse;
 import org.grnet.status.dtos.profile.operation.OperationProfileResponse;
 import org.grnet.status.dtos.project.ProjectResponseDto;
 import org.grnet.status.dtos.readiness.WebApiTenantReadiness;
+import org.grnet.status.dtos.recomputations.RecomputationElement;
+import org.grnet.status.dtos.recomputations.RecomputationRequestDto;
 import org.grnet.status.dtos.report.FullReportResponseDto;
 import org.grnet.status.dtos.report.PartialReportResponseDto;
-import org.grnet.status.dtos.status.*;
+import org.grnet.status.dtos.status.StatusGroupResponseDto;
+import org.grnet.status.dtos.status.TenantWebApiEndpointStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiGroupStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiMetricStatusDetailsResponse;
+import org.grnet.status.dtos.status.TenantWebApiMetricStatusTimelineResponse;
+import org.grnet.status.dtos.status.TenantWebApiServiceTypeStatusTimelineResponse;
 import org.grnet.status.dtos.statuspage.StatusPageRequestDto;
 import org.grnet.status.dtos.statuspage.StatusPageResponseDto;
 import org.grnet.status.dtos.statuspage.StatusPageUpdateRequestDto;
@@ -60,10 +84,18 @@ import org.grnet.status.dtos.tenant.TenantResponseDto;
 import org.grnet.status.dtos.tenant.alerts.AlertDefinitionRequest;
 import org.grnet.status.dtos.tenant.invitations.TenantInvitationRequest;
 import org.grnet.status.dtos.tenant.invitations.TenantInvitationResponse;
-import org.grnet.status.dtos.tenant.node.*;
+import org.grnet.status.dtos.tenant.node.WebApiNodeAvailabilityResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeMonitoringMetricResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeReportResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeStatusResponse;
+import org.grnet.status.dtos.tenant.node.WebApiNodeSummaryResponse;
 import org.grnet.status.dtos.tenant.status.TenantStatusDto;
 import org.grnet.status.dtos.tenant.status.TenantStatusFullResponse;
-import org.grnet.status.dtos.tenant.webapi.*;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiEndpointResultsByReportResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupEndpointResultsByReportResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsByReportResponse;
+import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupResultsResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiGroupStatusResponse;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiNodeRequest;
 import org.grnet.status.dtos.tenant.webapi.TenantWebApiSupergroupsResponse;
@@ -71,9 +103,31 @@ import org.grnet.status.dtos.topology.EndpointTopologyDto;
 import org.grnet.status.dtos.topology.FeedTopologyDto;
 import org.grnet.status.dtos.topology.GroupTopologyDto;
 import org.grnet.status.dtos.topology.ServiceTypeDto;
-import org.grnet.status.enums.resources.*;
-import org.grnet.status.repositories.*;
-import org.grnet.status.services.*;
+import org.grnet.status.enums.resources.AggregationProfileResource;
+import org.grnet.status.enums.resources.DowntimeResource;
+import org.grnet.status.enums.resources.IncidentResource;
+import org.grnet.status.enums.resources.MetricProfileResource;
+import org.grnet.status.enums.resources.OperationsProfileResource;
+import org.grnet.status.enums.resources.ReportsResource;
+import org.grnet.status.enums.resources.TenantResource;
+import org.grnet.status.repositories.DowntimeRepository;
+import org.grnet.status.repositories.IncidentActivityRepository;
+import org.grnet.status.repositories.IncidentRepository;
+import org.grnet.status.repositories.StatusPageRepository;
+import org.grnet.status.repositories.TenantInvitationRepository;
+import org.grnet.status.repositories.TenantRepository;
+import org.grnet.status.services.ContactService;
+import org.grnet.status.services.DowntimeService;
+import org.grnet.status.services.IncidentService;
+import org.grnet.status.services.ProfileService;
+import org.grnet.status.services.RecomputationService;
+import org.grnet.status.services.ReportService;
+import org.grnet.status.services.StatusPageService;
+import org.grnet.status.services.StatusService;
+import org.grnet.status.services.TenantInvitationService;
+import org.grnet.status.services.TenantProjectService;
+import org.grnet.status.services.TenantService;
+import org.grnet.status.services.TopologyService;
 import org.grnet.status.util.Utility;
 
 import java.io.IOException;
@@ -129,7 +183,8 @@ public class TenantEndpoint {
     @Inject
     IncidentService incidentService;
 
-
+    @Inject
+    RecomputationService recomputationService;
     @Operation(
             summary = "List Tenants Available to the User",
             description = "Retrieves a paginated list of tenants the authenticated user is allowed to access."
@@ -7674,5 +7729,482 @@ public class TenantEndpoint {
         var topologies = topologyService.fetchGroupTopologiesByReport(id, reportId);
 
         return Response.ok(topologies).build();
+    }
+
+    @Tag(name = "Recomputations")
+    @Operation(summary = "Create recomputation for tenant",
+            description = "Create recomputation for tenant with specific id, to the ARGO Web API.")
+    @APIResponse(
+            responseCode = "201",
+            description = "Succeeded",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = Status.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Topology already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "502",
+            description = "Connection error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @POST
+    @Path("/{id}/recomputations")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response createRecomputations(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Valid @NotNull(message = "The request body is empty.") RecomputationRequestDto request) {
+
+        var topologies = recomputationService.createRecomputation(id,  request);
+
+        return Response.ok().entity(topologies).build();
+    }
+
+
+    @Tag(name = "Recomputations")
+    @Operation(summary = "Update recomputation for tenant",
+            description = "Update recomputation for tenant with specific id, to the ARGO Web API.")
+    @APIResponse(
+            responseCode = "201",
+            description = "Succeeded",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = RecomputationResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Topology already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "502",
+            description = "Connection error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @PUT
+    @Path("/{id}/recomputations/{recomputation-id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response updateRecomputations(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the recomputation.",
+
+
+                    required = true,
+                    example = "c1ac1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("recomputation-id")
+            @Valid String recomputationId,
+            @Valid @NotNull(message = "The request body is empty.") RecomputationRequestDto request) {
+
+        var topologies = recomputationService.updateRecomputation(id, recomputationId, request);
+
+        return Response.ok().entity(topologies).build();
+    }
+    @Tag(name = "Recomputations")
+    @Operation(summary = "Get recomputations for tenant",
+            description = "Get recomputation for tenant with specific id, from the ARGO Web API.")
+    @APIResponse(
+            responseCode = "201",
+            description = "Succeeded",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = ArgoRecomputationResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Recomputation already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "502",
+            description = "Connection error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/recomputations")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )public Response getRecomputations(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(
+                    repository = TenantRepository.class,
+                    message = "There is no Tenant with the following id: ")
+            String id,
+
+            @Parameter(name = "date", in = QUERY,
+                    description = "Target date to retrieve a recomputation.")
+            @QueryParam("date")
+            @Valid @CheckDateFormat(
+                    pattern = "yyyy-MM-dd",
+                    message = "Valid date format is yyyy-MM-dd.")
+            String date,
+
+            @Parameter(name = "report-id", in = QUERY,
+                    description = "Optional ID of the report to retrieve.",
+                    required = false,
+                    example = "cf010255-cda3-49d8-92d1-926c2c6cf9eb",
+                    schema = @Schema(type = SchemaType.STRING))
+            @QueryParam("report-id")
+            @Valid String reportId) {
+
+        var topologies = recomputationService.getRecomputations(id, date, reportId);
+
+        return Response.ok().entity(topologies).build();
+    }
+
+    @Tag(name = "Recomputations")
+    @Operation(summary = "Get specific recomputation for tenant",
+            description = "Get recomputation by id for tenant with specific id, from the ARGO Web API.")
+    @APIResponse(
+            responseCode = "201",
+            description = "Succeeded",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = ArgoRecomputationResponse.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Recomputation already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "502",
+            description = "Connection error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/recomputations/{recomputation-id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getRecomputationById(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the recomputation.",
+                    required = true,
+                    example = "ca11152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("recomputation-id")
+            @Valid String recomputationId) {
+
+        var topologies = recomputationService.getRecomputationById(id,recomputationId);
+
+        return Response.ok().entity(topologies).build();
+    }
+
+    @Tag(name = "Recomputations")
+    @Operation(
+            summary = "Delete a tenant's recomputation by id from Argo Web Api.",
+            description = "Deletes a specific tenant's recomputation."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Deletion completed.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Page not found.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class))
+    )
+    @DELETE
+    @Path("/{id}/recomputations/{recomputation-id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response deleteRecomputation(
+            @Parameter(
+                    description = "The ID of the tenant to retrieve report.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id") String id,
+            @Parameter(
+                    description = "The ID of the recomputation to delete.",
+                    required = true,
+                    example = "e7ab046c-8544-47e6-bd8f-e8aa8b83acb0",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("recomputation-id") String recomputationId) {
+
+        recomputationService.deleteRecomputationById(id,recomputationId);
+
+        var informativeResponse = new InformativeResponse();
+        informativeResponse.code = 200;
+        informativeResponse.message = "Recomputation has been successfully deleted.";
+
+        return Response.ok().entity(informativeResponse).build();
+    }
+    @Tag(name = "Recomputations")
+    @Operation(summary = "Get recomputation elements for tenant",
+            description = "Get recomputation  elements by report for tenant with specific id, from the ARGO Web API.")
+    @APIResponse(
+            responseCode = "201",
+            description = "Succeeded",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.ARRAY,
+                    implementation = RecomputationElement.class)))
+    @APIResponse(
+            responseCode = "401",
+            description = "User has not been authenticated.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "403",
+            description = "Not permitted.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "409",
+            description = "Topology already exists.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "501",
+            description = "Not Implemented.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @APIResponse(
+            responseCode = "502",
+            description = "Connection error.",
+            content = @Content(schema = @Schema(
+                    type = SchemaType.OBJECT,
+                    implementation = InformativeResponse.class)))
+    @SecurityRequirement(name = "Authentication")
+    @GET
+    @Path("/{id}/report/{report-id}/recomputation-elements")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @SecuredEndpoint(
+            params = {
+
+                    @ParamRef(
+                            param = "id",
+                            type = ParamType.PATH,
+                            referTo = TenantResource.class
+                    )
+            }
+    )
+    public Response getRecomputationElements(
+            @Parameter(description = "The ID of the tenant.",
+                    required = true,
+                    example = "42c1152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("id")
+            @Valid @NotFoundEntity(repository = TenantRepository.class, message = "There is no Tenant with the following id: ")
+            String id,
+            @Parameter(description = "The ID of the recomputation.",
+                    required = true,
+                    example = "ca11152d-e23c-4a19-b51a-b27f1eb7f37f",
+                    schema = @Schema(type = SchemaType.STRING))
+            @PathParam("report-id")
+            @Valid String reportId) {
+
+        var topologies = recomputationService.getRecomputationElements(id,reportId);
+
+        return Response.ok().entity(topologies).build();
     }
 }
